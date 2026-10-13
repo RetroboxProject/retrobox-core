@@ -70,13 +70,13 @@ groups:
             - name: On (Default)
               value: true
       EMULATION:
-        - name: SHOW BIOS BOOTLOGO
+        - name: FAST BOOT
           value: xemu_bootanim
-          description: Enhancement.
+          description: Skip the Xbox boot animation.
           choices:
-            - name: Show
+            - name: Disabled (Default)
               value: false
-            - name: Skip
+            - name: Enabled
               value: true
         - name: NETWORK TYPE
           value: xemu_networktype

@@ -4,6 +4,7 @@ sharedFeatures:
   - tdp
   - videomode
   - bezel
+  - bezel_stretch
   - hud
   - hud_corner
   - hud_custom
@@ -61,30 +62,6 @@ groups:
             - name: Enabled (Default)
               value: true
       AUDIO:
-        - name: AUDIO VOLUME GAIN
-          value: ares_audio_gain
-          description: Set game audio level in dB. Ares can amplify up to +6 dB (twice the volume).
-          choices:
-            - name: '-12'
-              value: "-12.0"
-            - name: '-10'
-              value: "-10.0"
-            - name: '-8'
-              value: "-8.0"
-            - name: '-6'
-              value: "-6.0"
-            - name: '-4'
-              value: "-4.0"
-            - name: '-2'
-              value: "-2.0"
-            - name: 0 (No gain)
-              value: 0
-            - name: '+2'
-              value: '2.0'
-            - name: '+4'
-              value: '4.0'
-            - name: '+6'
-              value: '6.0'
         - name: AUDIO LATENCY
           value: ares_audio_latency
           description: Adjust audio buffer latency in milliseconds.

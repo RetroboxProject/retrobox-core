@@ -13,9 +13,9 @@ groups:
       SCREEN:
         - name: GRAPHICS API
           value: pcsx2_gfxbackend
-          description: Graphics API. Auto uses Vulkan, or the renderer PCSX2 picks when Vulkan is not available on this system.
+          description: Graphics API. The default is Vulkan, or OpenGL when Vulkan is not available on this system.
           choices:
-            - name: Auto (Default)
+            - name: Vulkan (Default)
               value: auto
             - name: Vulkan
               value: 14
@@ -89,40 +89,36 @@ groups:
               value: false
             - name: Enabled
               value: true
-      AUDIO:
-        - name: AUDIO VOLUME GAIN
-          value: pcsx2_audio_gain
-          description: Set game audio level in dB. PCSX2 can amplify up to +6 dB (twice the volume).
-          choices:
-            - name: '-12'
-              value: "-12.0"
-            - name: '-10'
-              value: "-10.0"
-            - name: '-8'
-              value: "-8.0"
-            - name: '-6'
-              value: "-6.0"
-            - name: '-4'
-              value: "-4.0"
-            - name: '-2'
-              value: "-2.0"
-            - name: 0 (No gain)
-              value: 0
-            - name: '+2'
-              value: '2.0'
-            - name: '+4'
-              value: '4.0'
-            - name: '+6'
-              value: '6.0'
       EMULATION:
-        - name: SHOW BIOS BOOTLOGO
+        - name: FAST BOOT
           value: pcsx2_fastboot
-          description: "Some games have issues when the animation is shown, others require it."
+          description: "Skip the PlayStation 2 BIOS logo and animation. Disable it for the few games that need to see it."
           choices:
-            - name: Skip (safer)
-              value: 0
-            - name: Show (specific games)
-              value: 1
+            - name: Enabled (Default)
+              value: true
+            - name: Disabled
+              value: false
+        - name: BIOS
+          value: pcsx2_forcebios
+          description: The BIOS file the emulator starts the games with.
+          order: 102
+          choices:
+            - name: EUR 230 (Default)
+              value: auto
+            - name: USA 120
+              value: "ps2-0120a-20000902.bin"
+            - name: JAP 101
+              value: "ps2-0101j-20000217.bin"
+            - name: EUR 120
+              value: "ps2-0120e-20000902.bin"
+            - name: USA 230
+              value: "ps2-0230a-20080220.bin"
+            - name: EUR 230
+              value: "ps2-0230e-20080220.bin"
+            - name: JAP 210j
+              value: "ps2-0210j-20040917.bin"
+            - name: PS3 PS2 FIRMWARE
+              value: ps3_ps2_emu_bios.bin
   CONTROLS:
     submenus:
       CONTROLLERS:
@@ -136,19 +132,6 @@ groups:
               value: 4
             - name: Maximum 8 Players
               value: 8
-      WHEELS:
-        - name: WHEEL MODEL
-          value: pcsx2_wheel_type
-          description: Playstation 2 wheel type
-          choices:
-            - name: Driving Force
-              value: DrivingForce
-            - name: Driving Force Pro
-              value: DrivingForcePro
-            - name: GT Force
-              value: GTForce
-            - name: Virtual
-              value: Virtual
       LIGHT GUNS:
         - name: SHOW LIGHT GUN CROSSHAIRS
           value: pcsx2_crosshairs
@@ -166,24 +149,16 @@ groups:
               value: false
             - name: "On"
               value: true
-  ADVANCED OPTIONS:
-    items:
-      - name: FORCE BIOS
-        value: pcsx2_forcebios
-        description: Force the emulator to use a specific BIOS file.
-        order: 102
-        choices:
-          - name: USA 120
-            value: "ps2-0120a-20000902.bin"
-          - name: JAP 101
-            value: "ps2-0101j-20000217.bin"
-          - name: EUR 120
-            value: "ps2-0120e-20000902.bin"
-          - name: USA 230
-            value: "ps2-0230a-20080220.bin"
-          - name: EUR 230
-            value: "ps2-0230e-20080220.bin"
-          - name: JAP 210j
-            value: "ps2-0210j-20040917.bin"
-          - name: PS3 PS2 FIRMWARE
-            value: ps3_ps2_emu_bios.bin
+      WHEELS:
+        - name: WHEEL MODEL
+          value: pcsx2_wheel_type
+          description: Playstation 2 wheel type
+          choices:
+            - name: Driving Force
+              value: DrivingForce
+            - name: Driving Force Pro
+              value: DrivingForcePro
+            - name: GT Force
+              value: GTForce
+            - name: Virtual
+              value: Virtual

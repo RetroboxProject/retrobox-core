@@ -67,15 +67,16 @@ groups:
               value: 8
             - name: 16x
               value: 16
+      EMULATION:
+        - name: SKIP INTRO VIDEO
+          value: iortcw_skip_video
+          description: Skip the initial intro video.
+          choices:
+            - name: Play (Default)
+              value: 0
+            - name: Skip
+              value: 1
     items:
-      - name: SKIP INTRO VIDEO
-        value: iortcw_skip_video
-        description: Skip the initial intro video.
-        choices:
-          - name: Play (Default)
-            value: 0
-          - name: Skip
-            value: 1
       - name: LANGUAGE
         value: iortcw_language
         description: Change the game's language.

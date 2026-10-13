@@ -8,7 +8,7 @@ groups:
           value: beetle_psx_hw_internal_resolution
           description: Multiplies the native PlayStation resolution. Needs a hardware renderer. Bigger is sharper and slower.
           choices:
-            - name: Auto (Default)
+            - name: Default
               value: auto
             - name: 1x (native)
               value: 1x(native)

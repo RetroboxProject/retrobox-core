@@ -18,23 +18,7 @@ groups:
               value: OpenGl
             - name: Vulkan
               value: Vulkan
-        - name: ANTIALIASING
-          value: anti_aliasing
-          description: Anti aliasing FXAA/SMAA
-          choices:
-            - name: Off
-              value: None
-            - name: Fxaa
-              value: Fxaa
-            - name: Smaa Low
-              value: SmaaLow
-            - name: Smaa Medium
-              value: SmaaMedium
-            - name: Smaa High
-              value: SmaaHigh
-            - name: Smaa Ultra
-              value: SmaaUltra
-        - name: TEXTURES FILTERING
+        - name: SCALING FILTER
           value: scaling_filter
           description: "Smooths out textures on 3D objetcs Auto=Bilinear"
           choices:
@@ -46,20 +30,6 @@ groups:
               value: Fsr
             - name: Area
               value: 3
-        - name: ANISOTROPIC FILTERING
-          value: max_anisotropy
-          description: "Enhance the quality with on perspective textures Auto=Auto"
-          choices:
-            - name: Auto
-              value: "-1"
-            - name: 2x
-              value: 2
-            - name: 4x
-              value: 4
-            - name: 8x
-              value: 8
-            - name: 16x
-              value: 16
         - name: RESOLUTION SCALE
           value: ryu_resolution_scale
           description: "Choose resolution scaling Auto=Native"
@@ -130,32 +100,6 @@ groups:
               value: 2.9
             - name: Custom 3.0x (2160p/3240p)
               value: 3.0
-        - name: GRAPHICS MULTITHREADING
-          value: backend_threading
-          description: "Graphics Backend Multithreading Auto=Auto"
-          choices:
-            - name: Auto
-              value: Auto
-            - name: Off
-              value: Off
-            - name: On
-              value: On
-        - name: SHADER CACHE
-          value: ryu_shadercache
-          description: Enable Shader Cache
-          choices:
-            - name: Off
-              value: 0
-            - name: On
-              value: 1
-        - name: TEXTURE RECOMPRESSION
-          value: ryu_texture_recompression
-          description: "Enable Texture Recompression Auto=Off"
-          choices:
-            - name: Off
-              value: 0
-            - name: On
-              value: 1
         - name: VSYNC
           value: use_vsync
           description: Fix the heavy screen tearing in games
@@ -189,114 +133,6 @@ groups:
               value: 0
             - name: Docked
               value: 1
-        - name: AUDIO DRIVER
-          value: ryu_audio_backend
-          description: Choose audio backend
-          choices:
-            - name: SDL2
-              value: SDL2
-            - name: OpenAL
-              value: OpenAl
-        - name: REGION
-          value: system_region
-          description: "System Region select Auto=USA"
-          choices:
-            - name: USA
-              value: USA
-            - name: Europe
-              value: Europe
-            - name: Japan
-              value: Japan
-            - name: Australia
-              value: Australia
-            - name: China
-              value: China
-            - name: Korea
-              value: Korea
-            - name: Taiwan
-              value: Taiwan
-        - name: LANGUAGE
-          value: system_language
-          description: "System language select Auto=American English"
-          choices:
-            - name: American English
-              value: AmericanEnglish
-            - name: Francais
-              value: French
-            - name: German
-              value: German
-            - name: Japanese
-              value: Japanese
-            - name: Italian
-              value: Italian
-            - name: Spanish
-              value: Spanish
-            - name: Chinese
-              value: Chinese
-            - name: Korean
-              value: Korean
-            - name: Dutch
-              value: Dutch
-            - name: Portuguese
-              value: Portuguese
-            - name: Russian
-              value: Russian
-            - name: Taiwanese
-              value: Taiwanese
-            - name: British English
-              value: BritishEnglish
-            - name: Canadian French
-              value: CanadianFrench
-            - name: Latina American Spanish
-              value: LatinAmericanSpanish
-            - name: Simplified Chinese
-              value: SimplifiedChinese
-            - name: Traditional Chinese
-              value: TraditionalChinese
-            - name: Brazilian Portuguese
-              value: BrazilianPortuguese
-        - name: PROFILED PERSISTENT TRANSLATION CACHE
-          value: enable_ptc
-          description: "PPTC Saves Translated functions for re-use Auto=On"
-          choices:
-            - name: Off
-              value: 0
-            - name: On
-              value: 1
-        - name: FS INTEGRITY CHECKS
-          value: enable_fs_integrity_checks
-          description: "Allows Ryujinx to load with some FS integrity issues in ROMs Auto=On"
-          choices:
-            - name: Off
-              value: 0
-            - name: On
-              value: 1
-        - name: MEMORY MANAGER MODE
-          value: memory_manager_mode
-          description: "Change how guest memory is mapped Auto=HostMappedUnsafe"
-          choices:
-            - name: Host Mapped Unsafe
-              value: HostMappedUnsafe
-            - name: Host Mapped
-              value: HostMapped
-            - name: Software
-              value: SoftwarePageTable
-        - name: "HACK: EXPAND DRAM"
-          value: expand_ram
-          description: "Expand DRAM to 6GB (Experimental) Auto=Off"
-          choices:
-            - name: Off
-              value: 0
-            - name: On
-              value: 1
-        - name: "HACK: IGNORE MISSING SERVICES"
-          value: ignore_missing_services
-          description: "Avoids some missing services crashing Ryujinx (Experimental) Auto=Off"
-          choices:
-            - name: Off
-              value: 0
-            - name: On
-              value: 1
   CONTROLS:
     submenus:
       CONTROLLERS:
@@ -316,14 +152,6 @@ groups:
               value: false
             - name: On
               value: true
-        - name: SDL_GAMECONTROLLERCONFIG
-          value: ryu_sdl_game_controller_config
-          description: "Use SDL_GAMECONTROLLERCONFIG from Batocera Auto=On. "
-          choices:
-            - name: Off
-              value: 0
-            - name: On
-              value: 1
         - name: RUMBLE
           value: ryu_enable_rumble
           description: "Auto Controller Configuration Auto=On "
@@ -332,6 +160,7 @@ groups:
               value: 0
             - name: On
               value: 1
+      PORT 1:
         - name: CONTROLLER 1 TYPE
           value: p1_pad
           description: "Choose Player 1 Pad Type Auto=Pro Controller"
@@ -344,6 +173,7 @@ groups:
               value: JoyconLeft
             - name: Right Joycon
               value: JoyconRight
+      PORT 2:
         - name: CONTROLLER 2 TYPE
           value: p2_pad
           description: "Choose Player 2 Pad Type Auto=Pro Controller"
@@ -356,6 +186,7 @@ groups:
               value: JoyconLeft
             - name: Right Joycon
               value: JoyconRight
+      PORT 3:
         - name: CONTROLLER 3 TYPE
           value: p3_pad
           description: "Choose Player 3 Pad Type Auto=Pro Controller"
@@ -368,6 +199,7 @@ groups:
               value: JoyconLeft
             - name: Right Joycon
               value: JoyconRight
+      PORT 4:
         - name: CONTROLLER 4 TYPE
           value: p4_pad
           description: "Choose Player 4 Pad Type Auto=Pro Controller"
@@ -380,6 +212,7 @@ groups:
               value: JoyconLeft
             - name: Right Joycon
               value: JoyconRight
+      PORT 5:
         - name: CONTROLLER 5 TYPE
           value: p5_pad
           description: "Choose Player 5 Pad Type Auto=Pro Controller"
@@ -392,6 +225,7 @@ groups:
               value: JoyconLeft
             - name: Right Joycon
               value: JoyconRight
+      PORT 6:
         - name: CONTROLLER 6 TYPE
           value: p6_pad
           description: "Choose Player 6 Pad Type Auto=Pro Controller"
@@ -404,6 +238,7 @@ groups:
               value: JoyconLeft
             - name: Right Joycon
               value: JoyconRight
+      PORT 7:
         - name: CONTROLLER 7 TYPE
           value: p7_pad
           description: "Choose Player 7 Pad Type Auto=Pro Controller"
@@ -416,6 +251,7 @@ groups:
               value: JoyconLeft
             - name: Right Joycon
               value: JoyconRight
+      PORT 8:
         - name: CONTROLLER 8 TYPE
           value: p8_pad
           description: "Choose Player 8 Pad Type Auto=Pro Controller"

@@ -22,6 +22,7 @@ from runtime.paths import ensure_parents_and_open
 
 from ...utils import vulkan
 from ...utils.audio_gain import gain_to_percent
+from ...utils.discrete_gpu import discrete_gpu_property
 from ...utils.configparser import CaseSensitiveConfigParser
 from .ppssppPaths import _PPSSPP_SYSDIR
 
@@ -105,16 +106,8 @@ def _configure_backend(settings: CaseSensitiveConfigParser, config: SystemConfig
         return
 
     _logger.debug("Vulkan driver is available on the system.")
-    if not vulkan.has_discrete_gpu():
-        _logger.debug("Discrete GPU is not available on the system. Using default.")
-        return
-
-    _logger.debug("A discrete GPU is available on the system. We will use that for performance")
-    if discrete_name := vulkan.get_discrete_gpu_name():
-        _logger.debug("Using Discrete GPU Name: %s for PPSSPP", discrete_name)
+    if discrete_name := discrete_gpu_property("PPSSPP", "Name", vulkan.get_discrete_gpu_name):
         settings.set("Graphics", "VulkanDevice", discrete_name)
-    else:
-        _logger.debug("Couldn't get discrete GPU Name")
 
 
 def _configure_graphics(settings: CaseSensitiveConfigParser, config: SystemConfig) -> None:
@@ -158,10 +151,16 @@ def _configure_graphics(settings: CaseSensitiveConfigParser, config: SystemConfi
 
 
 def _configure_sound(settings: CaseSensitiveConfigParser, config: SystemConfig) -> None:
-    """Write the game volume that corresponds to the audio gain of the game."""
+    """Write the game volume that corresponds to the audio gain of the game, if it has one.
+
+    The menu does not offer the gain for PPSSPP at the moment: without it the
+    volume the user set in PPSSPP's own UI stays.
+    """
+    gain = config.get("ppsspp_audio_gain")
+    if gain is config.MISSING:
+        return
     # PPSSPP cannot amplify, so 0 dB is the loudest: a positive gain is the same as 0 dB
-    volume = gain_to_percent(config.get("ppsspp_audio_gain", "0"), _MAX_VOLUME)
-    settings.set("Sound", "GameVolume", str(volume))
+    settings.set("Sound", "GameVolume", str(gain_to_percent(gain, _MAX_VOLUME)))
 
 
 def _configure_system_param(settings: CaseSensitiveConfigParser, config: SystemConfig) -> None:

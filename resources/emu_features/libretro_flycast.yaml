@@ -8,7 +8,7 @@ groups:
           value: reicast_internal_resolution
           description: Rendering resolution. Bigger is sharper and slower.
           choices:
-            - name: Auto (Default)
+            - name: Default
               value: auto
             - name: 1x (640x480)
               value: 640x480

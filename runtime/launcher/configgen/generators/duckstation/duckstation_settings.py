@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING
 
 from runtime.paths import BIOS, CACHE, CHEATS, ROMS, SAVES, SCREENSHOTS, mkdir_if_not_exists
@@ -14,6 +15,8 @@ if TYPE_CHECKING:
 
     from ...config import SystemConfig
     from ...utils.configparser import CaseSensitiveConfigParser
+
+_logger = logging.getLogger(__name__)
 
 # the DuckStation settings version these options were written for
 _SETTINGS_VERSION = "3"
@@ -95,7 +98,9 @@ def configure_main(settings: CaseSensitiveConfigParser, config: SystemConfig) ->
         "SyncToHostRefreshRate": config.get("duckstation_hrr", "false"),
     }
     options.update(_rewind_options(config))
-    options["EnableDiscordPresence"] = "false"
+    options["EnableDiscordPresence"] = config.get_bool(
+        "discordrpc", False, return_values=("true", "false")
+    )
     options["Language"] = get_language_from_environment()
     _section(settings, "Main", options)
 
@@ -147,7 +152,11 @@ def configure_bios(settings: CaseSensitiveConfigParser, config: SystemConfig) ->
     if not found_bios:
         raise RetroboxException("No PSX1 BIOS found")
 
-    if "Uni" in found_bios:
+    if forced_bios := _forced_bios(config):
+        # the BIOS the user picked is used for every region
+        for option in ("PathNTSCU", "PathPAL", "PathNTSCJ"):
+            settings.set("BIOS", option, forced_bios)
+    elif "Uni" in found_bios:
         # a universal BIOS covers every region
         uni_bios = found_bios["Uni"]
         for option in ("PathNTSCU", "PathPAL", "PathNTSCJ"):
@@ -156,6 +165,17 @@ def configure_bios(settings: CaseSensitiveConfigParser, config: SystemConfig) ->
         region_options = {"NTSCU": "PathNTSCU", "PAL": "PathPAL", "NTSCJ": "PathNTSCJ"}
         for region, bios in found_bios.items():
             settings.set("BIOS", region_options[region], bios)
+
+
+def _forced_bios(config: SystemConfig) -> str | None:
+    """Return the BIOS file the game asked for, or None if it did not or it is missing."""
+    chosen = str(config.get("duckstation_bios", ""))
+    if chosen in ("", "auto"):
+        return None
+    if not (BIOS / chosen).is_file():
+        _logger.warning("The BIOS %s was asked for but is not in %s", chosen, BIOS)
+        return None
+    return chosen
 
 
 def configure_cpu(settings: CaseSensitiveConfigParser, config: SystemConfig) -> None:

@@ -1245,6 +1245,48 @@ systems:
                 value: 0
   - name: macintosh
     groups:
+      GENERAL:
+        submenus:
+          EMULATION:
+            - name: BOOT DISK
+              value: bootdisk
+              description: Select a boot disk or hard drive if needed
+              choices:
+                - name: System 3.0 (LD Floppy)
+                  value: macos3
+                - name: System 6.0.8 (LD Floppy)
+                  value: macos608
+                - name: System 7.0.1 (HD Floppy)
+                  value: macos701
+                - name: System 7.5 (HD Floppy)
+                  value: macos75
+                - name: System 6.0.8 (Hard Drive)
+                  value: mac608
+                - name: System 7.0.1 (Hard Drive)
+                  value: mac701
+                - name: System 7.5.5 (Hard Drive)
+                  value: mac755
+        items:
+          - name: MAC MODEL
+            value: altmodel
+            description: "Select model of Mac (Recommendations are Mac Plus for B&W, Mac LC 3 for Color)"
+            choices:
+              - name: "Mac 128k (128kb RAM, 2 LD Floppies)"
+                value: mac128k
+              - name: "Mac 512k (512kb RAM, 2 LD Floppies)"
+                value: mac512k
+              - name: "Mac Plus (4Mb RAM, 2 LD Floppies/HDD)"
+                value: macplus
+              - name: "Mac SE (4Mb RAM, 2 LD Floppies/HDD)"
+                value: macse
+              - name: "Mac Classic (4Mb RAM, 2 HD Floppies/HDD)"
+                value: macclasc
+              - name: "Mac II (2Mb RAM, Color, 2 HD Floppies/CD/HDD)"
+                value: mac2fdhd
+              - name: "Mac IIx (2Mb RAM, Color, 2 HD Floppies/CD/HDD, Image Reader)"
+                value: maciix
+              - name: "Mac LC 3 (Default) (4Mb RAM, Color, 2 HD Floppies/CD/HDD)"
+                value: maclc3
       ADVANCED OPTIONS:
         items:
           - name: SOFTWARE LIST
@@ -1309,24 +1351,6 @@ systems:
                 value: hard
               - name: Disk Image
                 value: disk
-          - name: BOOT DISK
-            value: bootdisk
-            description: Select a boot disk or hard drive if needed
-            choices:
-              - name: System 3.0 (LD Floppy)
-                value: macos3
-              - name: System 6.0.8 (LD Floppy)
-                value: macos608
-              - name: System 7.0.1 (HD Floppy)
-                value: macos701
-              - name: System 7.5 (HD Floppy)
-                value: macos75
-              - name: System 6.0.8 (Hard Drive)
-                value: mac608
-              - name: System 7.0.1 (Hard Drive)
-                value: mac701
-              - name: System 7.5.5 (Hard Drive)
-                value: mac755
           - name: UI KEYS
             value: enableui
             description: "Toggle with hotkey + D-pad up or Scroll Lock in-game."
@@ -1343,28 +1367,6 @@ systems:
                 value: 1
               - name: Off
                 value: 0
-      GENERAL:
-        items:
-          - name: MAC MODEL
-            value: altmodel
-            description: "Select model of Mac (Recommendations are Mac Plus for B&W, Mac LC 3 for Color)"
-            choices:
-              - name: "Mac 128k (128kb RAM, 2 LD Floppies)"
-                value: mac128k
-              - name: "Mac 512k (512kb RAM, 2 LD Floppies)"
-                value: mac512k
-              - name: "Mac Plus (4Mb RAM, 2 LD Floppies/HDD)"
-                value: macplus
-              - name: "Mac SE (4Mb RAM, 2 LD Floppies/HDD)"
-                value: macse
-              - name: "Mac Classic (4Mb RAM, 2 HD Floppies/HDD)"
-                value: macclasc
-              - name: "Mac II (2Mb RAM, Color, 2 HD Floppies/CD/HDD)"
-                value: mac2fdhd
-              - name: "Mac IIx (2Mb RAM, Color, 2 HD Floppies/CD/HDD, Image Reader)"
-                value: maciix
-              - name: "Mac LC 3 (Default) (4Mb RAM, Color, 2 HD Floppies/CD/HDD)"
-                value: maclc3
   - name: megaduck
     groups:
       ADVANCED OPTIONS:

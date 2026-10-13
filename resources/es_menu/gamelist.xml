@@ -999,22 +999,6 @@
 		<region>wr</region>
 	</game>
 	<game>
-		<path>./cemu.menu</path>
-		<name>Cemu (Wii U)</name>
-		<desc>Run Cemu Emulator (Wii U).</desc>
-		<genre>Emulator</genre>
-		<image>./media/cemu-logo.png</image>
-		<marquee>./media/cemu-logo.png</marquee>
-		<rating>0</rating>
-		<developer>Cemu Team</developer>
-		<publisher>Cemu Team</publisher>
-		<playcount>4</playcount>
-		<lastplayed>20260807T002506</lastplayed>
-		<gametime>1058</gametime>
-		<lang>en</lang>
-		<region>wr</region>
-	</game>
-	<game>
 		<path>./ares.menu</path>
 		<name>Ares (Multi Cores Emulator)</name>
 		<desc>Run Ares (Multi Cores Emulator).</desc>
@@ -1122,6 +1106,22 @@
 		<playcount>10</playcount>
 		<lastplayed>20260924T000354</lastplayed>
 		<gametime>368</gametime>
+		<lang>en</lang>
+		<region>wr</region>
+	</game>
+	<game>
+		<path>./cemu.menu</path>
+		<name>Cemu (Wii U)</name>
+		<desc>Run Cemu Emulator (Wii U).</desc>
+		<genre>Emulator</genre>
+		<image>./media/cemu-logo.png</image>
+		<marquee>./media/cemu-logo.png</marquee>
+		<rating>0</rating>
+		<developer>Cemu Team</developer>
+		<publisher>Cemu Team</publisher>
+		<playcount>5</playcount>
+		<lastplayed>20261012T190948</lastplayed>
+		<gametime>2176</gametime>
 		<lang>en</lang>
 		<region>wr</region>
 	</game>

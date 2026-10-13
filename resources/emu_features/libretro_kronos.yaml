@@ -8,7 +8,7 @@ groups:
           value: kronos_resolution_mode
           description: Multiplies the native Saturn resolution. Needs a restart.
           choices:
-            - name: Auto (Default)
+            - name: Default
               value: auto
             - name: 1x (original)
               value: original

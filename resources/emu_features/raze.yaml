@@ -9,6 +9,16 @@ sharedFeatures:
   - bezel_stretch
 groups:
   GENERAL:
+    submenus:
+      EMULATION:
+        - name: SKIP INTRO VIDEOS
+          value: nologo
+          description: ""
+          choices:
+            - name: Skip
+              value: 1
+            - name: Show (Default)
+              value: 0
     items:
       - name: GRAPHICS API
         value: raze_api
@@ -20,11 +30,3 @@ groups:
             value: 1
           - name: OpenGLES (Default)
             value: 2
-      - name: SKIP INTRO VIDEOS
-        value: nologo
-        description: ""
-        choices:
-          - name: Skip
-            value: 1
-          - name: Show (Default)
-            value: 0

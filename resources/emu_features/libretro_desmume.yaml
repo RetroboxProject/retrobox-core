@@ -8,7 +8,7 @@ groups:
           value: desmume_screens_layout
           description: Where the two screens go.
           choices:
-            - name: Auto (Default)
+            - name: Default
               value: auto
             - name: Top/Bottom
               value: top/bottom
@@ -30,7 +30,7 @@ groups:
           value: desmume_internal_resolution
           description: Scales the 3D rendering.
           choices:
-            - name: Auto (Default)
+            - name: Default
               value: auto
             - name: 1x (256x192)
               value: 256x192
@@ -64,7 +64,7 @@ groups:
             stick: {desmume_pointer_mouse: disabled, desmume_pointer_device_r: emulated}
             both: {desmume_pointer_mouse: enabled, desmume_pointer_device_r: emulated}
           choices:
-            - name: Auto (Default)
+            - name: Default
               value: auto
             - name: None
               value: none

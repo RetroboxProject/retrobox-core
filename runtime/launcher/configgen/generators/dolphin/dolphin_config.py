@@ -20,6 +20,7 @@ from runtime.paths import BIOS, ROMS, SAVES, mkdir_if_not_exists
 
 from ...utils import vulkan
 from ...utils.audio_gain import gain_to_percent
+from ...utils.discrete_gpu import discrete_gpu_property
 from ...utils.configparser import CaseSensitiveConfigParser
 from .dolphin_paths import (
     _DOLPHIN_CFGDIR,
@@ -155,10 +156,16 @@ def configure_gfx_backend(settings: CaseSensitiveConfigParser, system: Emulator)
 
 
 def _configure_audio(settings: CaseSensitiveConfigParser, config: SystemConfig) -> None:
-    """Write the volume that corresponds to the audio gain of the game."""
+    """Write the volume that corresponds to the audio gain of the game, if it has one.
+
+    The menu does not offer the gain for Dolphin at the moment: without it the
+    volume the user set in Dolphin's own UI stays.
+    """
+    gain = config.get("dolphin_audio_gain")
+    if gain is config.MISSING:
+        return
     # Dolphin cannot amplify, so 0 dB is the loudest: a positive gain is the same as 0 dB
-    volume = gain_to_percent(config.get("dolphin_audio_gain", "0"), _MAX_VOLUME)
-    settings.set("DSP", "Volume", str(volume))
+    settings.set("DSP", "Volume", str(gain_to_percent(gain, _MAX_VOLUME)))
 
 
 def _default_port_device(
@@ -231,16 +238,8 @@ def _configure_gpu_adapter(settings: CaseSensitiveConfigParser) -> None:
     if not vulkan.is_available():
         return
     _logger.debug("Vulkan driver is available on the system.")
-    if not vulkan.has_discrete_gpu():
-        _logger.debug("Discrete GPU is not available on the system. Using default.")
-        return
-
-    _logger.debug("A discrete GPU is available on the system. We will use that for performance")
-    if discrete_index := vulkan.get_discrete_gpu_index():
-        _logger.debug("Using Discrete GPU Index: %s for Dolphin", discrete_index)
+    if discrete_index := discrete_gpu_property("Dolphin", "Index", vulkan.get_discrete_gpu_index):
         settings.set("Hardware", "Adapter", discrete_index)
-    else:
-        _logger.debug("Couldn't get discrete GPU index")
 
 
 # ---------------------------------------------------------------------------

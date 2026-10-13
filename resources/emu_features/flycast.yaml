@@ -20,25 +20,27 @@ systems:
   - name: dreamcast
     groups:
       GENERAL:
+        submenus:
+          EMULATION:
+            - name: BIOS LANGUAGE
+              value: flycast_language
+              description: Dreamcast BIOS's language setting. Can change the language of some games. Some games default to Japanese.
+              choices:
+                - name: Japanese
+                  value: 0
+                - name: English
+                  value: 1
+                - name: German
+                  value: 2
+                - name: French
+                  value: 3
+                - name: Spanish
+                  value: 4
+                - name: Italian
+                  value: 5
+                - name: Game's default
+                  value: 6
         items:
-          - name: BIOS LANGUAGE
-            value: flycast_language
-            description: Dreamcast BIOS's language setting. Can change the language of some games. Some games default to Japanese.
-            choices:
-              - name: Japanese
-                value: 0
-              - name: English
-                value: 1
-              - name: German
-                value: 2
-              - name: French
-                value: 3
-              - name: Spanish
-                value: 4
-              - name: Italian
-                value: 5
-              - name: Game's default
-                value: 6
           - name: CONSOLE REGION
             value: flycast_region
             description: ""

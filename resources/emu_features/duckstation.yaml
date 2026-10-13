@@ -12,6 +12,7 @@ sharedFeatures:
   - wheel_rotation
   - wheel_deadzone
   - wheel_midzone
+  - discordrpc
 groups:
   GENERAL:
     submenus:
@@ -306,10 +307,12 @@ groups:
               value: "NTSC-U"
             - name: "NTSC-J"
               value: "NTSC-J"
-        - name: FORCE BIOS
+        - name: BIOS
           value: duckstation_bios
           order: 102
           choices:
+            - name: First BIOS found (Default)
+              value: auto
             - name: PSX ON PSP BIOS
               value: psxonpsp660.bin
             - name: PS1 JP (SCPH5500)
@@ -324,6 +327,23 @@ groups:
               value: scph7001.bin
             - name: Version 4.5 (SCPH101)
               value: scph101.bin
+          description: The BIOS file the emulator starts the games with.
+        - name: FAST BOOT
+          value: duckstation_PatchFastBoot
+          description: Skip the BIOS logo and boot animation. Skipping it can break some games.
+          choices:
+            - name: Disabled (Default)
+              value: false
+            - name: Enabled
+              value: true
+        - name: ALLOW BOOTING WITHOUT SBI FILE
+          value: duckstation_boot_without_sbi
+          description: Allows loading protected games without subchannel information.
+          choices:
+            - name: Disabled (Default)
+              value: false
+            - name: Enabled
+              value: true
     items:
       - name: ENABLE CHEATS
         value: duckstation_cheats
@@ -340,14 +360,6 @@ groups:
           - name: Disabled (Default)
             value: false
           - name: Enabled
-            value: true
-      - name: SHOW BIOS BOOTLOGO
-        value: duckstation_PatchFastBoot
-        description: Skipping it can break some games.
-        choices:
-          - name: Show
-            value: false
-          - name: Skip
             value: true
       - name: REWIND
         value: duckstation_rewind
@@ -452,14 +464,6 @@ groups:
           - name: Disabled
             value: false
           - name: Enabled (Default)
-            value: true
-      - name: ALLOW BOOTING WITHOUT SBI FILE
-        value: duckstation_boot_without_sbi
-        description: Allows loading protected games without subchannel information.
-        choices:
-          - name: Disabled (Default)
-            value: false
-          - name: Enabled
             value: true
       - name: CPU EXECUTION MODE
         value: duckstation_executionmode

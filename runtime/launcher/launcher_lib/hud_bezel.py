@@ -24,10 +24,10 @@ if TYPE_CHECKING:
 
 _logger = logging.getLogger(__name__)
 
-# Bezels must ALWAYS cover the whole target resolution. If the bezel aspect
-# ratio does not match the screen one, it is stretched instead of being
-# rejected or padded with black.
-_BEZEL_STRETCH = True
+# Bezels cover the whole target resolution. If the bezel aspect ratio does not
+# match the screen one, it is stretched by default, instead of being rejected or
+# padded with black; the "bezel_stretch" option of the game can turn that off.
+_DEFAULT_BEZEL_STRETCH = True
 # max cover proportion and ratio distortion (only used when not stretching)
 _MAX_COVER = 0.05  # 5%
 _MAX_RATIO_DELTA = 0.01
@@ -144,14 +144,14 @@ def _bezel_fits(
 
 
 def _resize_bezel(
-    overlay: _Overlay, bezel_size: tuple[int, int], resolution: Resolution
+    overlay: _Overlay, bezel_size: tuple[int, int], resolution: Resolution, stretch: bool
 ) -> Path | None:
     """Resize the bezel (and its info file) to the screen resolution."""
     _logger.debug("bezel needs to be resized")
     width = resolution["width"]
     height = resolution["height"]
     try:
-        bezels_util.resize_image(overlay.png, _RESIZED_BEZEL_PNG, width, height, _BEZEL_STRETCH)
+        bezels_util.resize_image(overlay.png, _RESIZED_BEZEL_PNG, width, height, stretch)
 
         # The PNG has been stretched independently in X/Y. The sidecar .info
         # must receive the same transformation so the game's opening stays
@@ -164,7 +164,7 @@ def _resize_bezel(
                 bezel_size[1],
                 width,
                 height,
-                keep_aspect_ratio=not _BEZEL_STRETCH,
+                keep_aspect_ratio=not stretch,
             )
     except (OSError, ValueError, RetroboxException) as err:
         _logger.error("failed to resize the image %s", err)
@@ -206,9 +206,10 @@ def get_hud_bezel(
         return None
 
     bezel_size = _bezel_size(overlay)
+    stretch = system.config.get_bool("bezel_stretch", _DEFAULT_BEZEL_STRETCH)
 
     # in case there are gun borders, skip the compatibility checks
-    if not _BEZEL_STRETCH and gun_borders is None:
+    if not stretch and gun_borders is None:
         ingame_ratio = generator.getInGameRatio(system.config, game_resolution, rom)
         if not _bezel_fits(overlay.infos, bezel_size, game_resolution, ingame_ratio):
             return None
@@ -216,7 +217,7 @@ def get_hud_bezel(
     overlay_png = overlay.png
     # if screen and bezel sizes don't match, resize
     if bezel_size != (game_resolution["width"], game_resolution["height"]):
-        overlay_png = _resize_bezel(overlay, bezel_size, game_resolution)
+        overlay_png = _resize_bezel(overlay, bezel_size, game_resolution, stretch)
         if overlay_png is None:
             return None
 

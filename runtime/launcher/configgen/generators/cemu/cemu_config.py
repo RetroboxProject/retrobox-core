@@ -20,6 +20,7 @@ from xml.dom import minidom
 
 from ...utils import vulkan
 from ...utils.audio_gain import gain_to_percent
+from ...utils.discrete_gpu import discrete_gpu_property
 from .cemuPaths import CEMU_ROMDIR, CEMU_SAVES
 
 if TYPE_CHECKING:
@@ -178,16 +179,8 @@ def _configure_content(
 def _configure_device(document: minidom.Document, graphic: minidom.Element) -> None:
     """Use the discrete GPU for the Vulkan API, if there is one."""
     _logger.debug("Vulkan driver is available on the system.")
-    if not vulkan.has_discrete_gpu():
-        _logger.debug("Discrete GPU is not available on the system. Using default.")
-        return
-
-    if discrete_uuid := vulkan.get_discrete_gpu_uuid():
-        discrete_uuid_num = discrete_uuid.replace("-", "")
-        _logger.debug("Using Discrete GPU UUID: %s for Cemu", discrete_uuid_num)
-        _set_value(document, graphic, "device", discrete_uuid_num)
-    else:
-        _logger.debug("Couldn't get discrete GPU UUID!")
+    if discrete_uuid := discrete_gpu_property("Cemu", "UUID", vulkan.get_discrete_gpu_uuid):
+        _set_value(document, graphic, "device", discrete_uuid.replace("-", ""))
 
 
 def _configure_graphic(

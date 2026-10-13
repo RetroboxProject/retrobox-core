@@ -23,9 +23,9 @@ groups:
               value: 3
         - name: GRAPHICS API
           value: gfxbackend
-          description: Graphics API. Auto uses Vulkan, or OpenGL when Vulkan is not available on this system.
+          description: Graphics API. The default is Vulkan, or OpenGL when Vulkan is not available on this system.
           choices:
-            - name: Auto (Default)
+            - name: Vulkan (Default)
               value: auto
             - name: Vulkan
               value: Vulkan
@@ -51,25 +51,6 @@ groups:
               value: 7
             - name: 8x 5K (5120x4224)
               value: 8
-      AUDIO:
-        - name: AUDIO VOLUME GAIN
-          value: dolphin_audio_gain
-          description: Set game audio level in dB. Dolphin cannot amplify, so 0 is the loudest.
-          choices:
-            - name: 0 (No gain)
-              value: 0
-            - name: '-2'
-              value: '-2.0'
-            - name: '-4'
-              value: '-4.0'
-            - name: '-6'
-              value: '-6.0'
-            - name: '-8'
-              value: '-8.0'
-            - name: '-10'
-              value: '-10.0'
-            - name: '-12'
-              value: '-12.0'
   CONTROLS:
     submenus:
       CONTROLLERS:

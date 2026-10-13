@@ -20,6 +20,7 @@ sharedFeatures:
   - ai_service_pause
   - audio_volume
   - bordersmode
+  - discordrpc
 groups:
   GENERAL:
     submenus:
@@ -27,10 +28,9 @@ groups:
         - name: GRAPHICS API
           value: gfxbackend
           description: >-
-            Video driver. Auto uses the one set in retroarch.cfg, or the best one for the core.
-            If the chosen driver is not available on this system, OpenGL is used instead.
+            Video driver. Default uses the one set in retroarch.cfg, or the best one for the core. If the chosen driver is not available, OpenGL is used instead.
           choices:
-            - name: Auto (Default)
+            - name: Default
               value: auto
             - name: Vulkan
               value: vulkan

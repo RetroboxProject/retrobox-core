@@ -8,7 +8,7 @@ groups:
           value: parallel-n64-upscaling
           description: Renders at a multiple of the N64 resolution. Used by the ParaLLEl-RDP and Angrylion plugins; the core needs a restart.
           choices:
-            - name: Auto (Default)
+            - name: Default
               value: auto
             - name: 1x
               value: 1x

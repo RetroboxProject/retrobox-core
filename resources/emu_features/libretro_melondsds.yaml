@@ -8,7 +8,7 @@ groups:
           value: melonds_screen_layout1
           description: First layout, the one the game starts with.
           choices:
-            - name: Auto (Default)
+            - name: Default
               value: auto
             - name: Top/Bottom
               value: top-bottom
@@ -46,7 +46,7 @@ groups:
             largescreen-bottom: {melonds_number_of_screen_layouts: '2', melonds_screen_layout2: largescreen-bottom}
             single: {melonds_number_of_screen_layouts: '1'}
           choices:
-            - name: Auto (Default)
+            - name: Default
               value: auto
             - name: Only one layout
               value: single
@@ -83,7 +83,7 @@ groups:
             7x: {melonds_render_mode: opengl, melonds_opengl_resolution: '7'}
             8x: {melonds_render_mode: opengl, melonds_opengl_resolution: '8'}
           choices:
-            - name: Auto (Default)
+            - name: Default
               value: auto
             - name: 1x (256x192)
               value: 1x

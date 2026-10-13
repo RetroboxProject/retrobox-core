@@ -7,12 +7,13 @@ sharedFeatures:
   - bezel_stretch
 groups:
   GENERAL:
-    items:
-      - name: SKIP INTRO VIDEOS
-        value: nologo
-        description: ""
-        choices:
-          - name: Skip
-            value: 1
-          - name: Show (Default)
-            value: 0
+    submenus:
+      EMULATION:
+        - name: SKIP INTRO VIDEOS
+          value: nologo
+          description: ""
+          choices:
+            - name: Skip
+              value: 1
+            - name: Show (Default)
+              value: 0

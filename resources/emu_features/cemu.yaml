@@ -14,9 +14,9 @@ groups:
       SCREEN:
         - name: GRAPHICS API
           value: cemu_gfxbackend
-          description: Graphics API. Auto uses Vulkan, or OpenGL when Vulkan is not available on this system.
+          description: Graphics API. The default is Vulkan, or OpenGL when Vulkan is not available on this system.
           choices:
-            - name: Auto (Default)
+            - name: Vulkan (Default)
               value: auto
             - name: Vulkan
               value: 1
@@ -64,25 +64,24 @@ groups:
               value: 2
             - name: Nearest Neighbour
               value: 3
-      AUDIO:
-        - name: AUDIO VOLUME GAIN
-          value: cemu_audio_gain
-          description: Set game audio level in dB. Cemu cannot amplify, so 0 is the loudest.
+      DECORATIONS:
+        - name: ENABLE PERFORMANCE OVERLAY
+          value: cemu_overlay
+          description: Enable Cemu's performance overlay.
           choices:
-            - name: '-12'
-              value: "-12.0"
-            - name: '-10'
-              value: "-10.0"
-            - name: '-8'
-              value: "-8.0"
-            - name: '-6'
-              value: "-6.0"
-            - name: '-4'
-              value: "-4.0"
-            - name: '-2'
-              value: "-2.0"
-            - name: 0 (No gain)
-              value: 0
+            - name: Disabled (Default)
+              value: false
+            - name: Enabled
+              value: true
+        - name: ENABLE NOTIFICATIONS
+          value: cemu_notifications
+          description: "Enable notifications of cache, controller events etc."
+          choices:
+            - name: Disabled (Default)
+              value: false
+            - name: Enabled
+              value: true
+      AUDIO:
         - name: AUDIO CHANNELS
           value: cemu_audio_channels
           description: Choose the audio output type.
@@ -130,23 +129,6 @@ groups:
               value: ru_RU
             - name: Taiwanese
               value: zh_TW
-      DECORATIONS:
-        - name: ENABLE PERFORMANCE OVERLAY
-          value: cemu_overlay
-          description: Enable Cemu's performance overlay.
-          choices:
-            - name: Disabled (Default)
-              value: false
-            - name: Enabled
-              value: true
-        - name: ENABLE NOTIFICATIONS
-          value: cemu_notifications
-          description: "Enable notifications of cache, controller events etc."
-          choices:
-            - name: Disabled (Default)
-              value: false
-            - name: Enabled
-              value: true
   CONTROLS:
     submenus:
       CONTROLLERS:

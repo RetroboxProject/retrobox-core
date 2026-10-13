@@ -21,6 +21,7 @@ from runtime.paths import CACHE, CHEATS, LOGS, ROMS, SAVES, SCREENSHOTS, mkdir_i
 from ...exceptions import RetroboxException
 from ...utils import vulkan
 from ...utils.audio_gain import gain_to_percent
+from ...utils.discrete_gpu import discrete_gpu_property
 from ...utils.configparser import CaseSensitiveConfigParser
 from .pcsx2_controllers import _pcsx2_gen_controllers_config
 from .pcsx2_guns import configure_fog_hack, configure_guns
@@ -150,11 +151,11 @@ def _configure_emu_core(settings: CaseSensitiveConfigParser, config: SystemConfi
         "EnableDiscordPresence",
         config.get_bool("discordrpc", False, return_values=("true", "false")),
     )
-    # the menu says whether to SHOW the BIOS logo, which is not fast booting
+    # fast boot skips the BIOS logo; it is on by default, like in PCSX2
     settings.set(
         "EmuCore",
         "EnableFastBoot",
-        config.get_bool("pcsx2_fastboot", True, return_values=("false", "true")),
+        config.get_bool("pcsx2_fastboot", True, return_values=("true", "false")),
     )
 
 
@@ -166,17 +167,8 @@ def _configure_renderer(settings: CaseSensitiveConfigParser, config: SystemConfi
         return
 
     _logger.debug("Vulkan driver is available on the system.")
-    adapter = "(Default)"
-    if vulkan.has_discrete_gpu():
-        _logger.debug("A discrete GPU is available on the system. We will use that for performance")
-        if discrete_name := vulkan.get_discrete_gpu_name():
-            _logger.debug("Using Discrete GPU Name: %s for PCSX2", discrete_name)
-            adapter = discrete_name
-        else:
-            _logger.debug("Couldn't get discrete GPU Name")
-    else:
-        _logger.debug("Discrete GPU is not available on the system. Using default.")
-    settings.set("EmuCore/GS", "Adapter", adapter)
+    discrete_name = discrete_gpu_property("PCSX2", "Name", vulkan.get_discrete_gpu_name)
+    settings.set("EmuCore/GS", "Adapter", discrete_name or "(Default)")
 
 
 def _configure_display(settings: CaseSensitiveConfigParser, config: SystemConfig) -> None:
@@ -195,9 +187,15 @@ def _configure_display(settings: CaseSensitiveConfigParser, config: SystemConfig
 
 
 def _configure_audio(settings: CaseSensitiveConfigParser, config: SystemConfig) -> None:
-    """Write the volume that corresponds to the audio gain of the game."""
-    volume = gain_to_percent(config.get("pcsx2_audio_gain", "0"), _MAX_VOLUME)
-    settings.set("SPU2/Output", "StandardVolume", str(volume))
+    """Write the volume that corresponds to the audio gain of the game, if it has one.
+
+    The menu does not offer the gain for PCSX2 at the moment: without it the
+    volume the user set in PCSX2's own UI stays.
+    """
+    gain = config.get("pcsx2_audio_gain")
+    if gain is config.MISSING:
+        return
+    settings.set("SPU2/Output", "StandardVolume", str(gain_to_percent(gain, _MAX_VOLUME)))
 
 
 # the arguments are the ones the controllers code needs

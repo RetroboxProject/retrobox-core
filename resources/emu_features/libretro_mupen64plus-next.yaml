@@ -8,7 +8,7 @@ groups:
           value: mupen64plus-43screensize
           description: Render viewport of 4:3 games. Bigger is sharper and slower.
           choices:
-            - name: Auto (Default)
+            - name: Default
               value: auto
             - name: 320x240
               value: 320x240
@@ -40,7 +40,7 @@ groups:
           value: mupen64plus-169screensize
           description: Render viewport when widescreen is on.
           choices:
-            - name: Auto (Default)
+            - name: Default
               value: auto
             - name: 640x360
               value: 640x360
@@ -72,7 +72,7 @@ groups:
           value: mupen64plus-pak1
           description: Accessory plugged into the controller.
           choices:
-            - name: Auto (Default)
+            - name: Default
               value: auto
             - name: None
               value: none
@@ -96,7 +96,7 @@ groups:
           value: mupen64plus-pak2
           description: Accessory plugged into the controller.
           choices:
-            - name: Auto (Default)
+            - name: Default
               value: auto
             - name: None
               value: none
@@ -120,7 +120,7 @@ groups:
           value: mupen64plus-pak3
           description: Accessory plugged into the controller.
           choices:
-            - name: Auto (Default)
+            - name: Default
               value: auto
             - name: None
               value: none
@@ -144,7 +144,7 @@ groups:
           value: mupen64plus-pak4
           description: Accessory plugged into the controller.
           choices:
-            - name: Auto (Default)
+            - name: Default
               value: auto
             - name: None
               value: none

@@ -8,7 +8,7 @@ groups:
           value: vb_color_mode
           description: Color of the picture. The Virtual Boy drew everything in shades of one color.
           choices:
-            - name: Auto (Default)
+            - name: Default
               value: auto
             - name: Original (red)
               value: black & red

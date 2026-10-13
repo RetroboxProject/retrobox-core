@@ -9,18 +9,19 @@ sharedFeatures:
   - bezel_stretch
 groups:
   GENERAL:
-    items:
-      - name: GSPLUS BIOS FILENAME
-        value: gsplus_bios_filename
-        description: Choose which BIOS file for GSplus to boot with.
-        choices:
-          - name: ROM.03 (default)
-            value: ROM.03
-          - name: ROM1
-            value: ROM1
-          - name: ROM.00
-            value: ROM.00
-          - name: APPLE2GS.ROM
-            value: APPLE2GS.ROM
-          - name: "APPLE2GS-BIOS.ROM"
-            value: "APPLE2GS-BIOS.ROM"
+    submenus:
+      EMULATION:
+        - name: GSPLUS BIOS FILENAME
+          value: gsplus_bios_filename
+          description: Choose which BIOS file for GSplus to boot with.
+          choices:
+            - name: ROM.03 (default)
+              value: ROM.03
+            - name: ROM1
+              value: ROM1
+            - name: ROM.00
+              value: ROM.00
+            - name: APPLE2GS.ROM
+              value: APPLE2GS.ROM
+            - name: "APPLE2GS-BIOS.ROM"
+              value: "APPLE2GS-BIOS.ROM"

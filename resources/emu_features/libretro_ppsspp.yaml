@@ -8,7 +8,7 @@ groups:
           value: ppsspp_internal_resolution
           description: Multiplies the native PSP resolution. Bigger is sharper and slower; Vulkan needs a restart.
           choices:
-            - name: Auto (Default)
+            - name: Default
               value: auto
             - name: 1x (480x272)
               value: 480x272

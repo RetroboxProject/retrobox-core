@@ -26,22 +26,6 @@ groups:
               value: 3
             - name: Stretch To Window
               value: 4
-        - name: FULLSCREEN MODE
-          value: fullscreen_mode
-          description: Choose fullscreen/borderless
-          choices:
-            - name: Borderless Windowed
-              value: 0
-            - name: Exclusive Fullscreen
-              value: 1
-        - name: SINGLE WINDOW MODE
-          value: single_window
-          description: "Single Window Mode setting Auto=On"
-          choices:
-            - name: On
-              value: true
-            - name: Off
-              value: false
         - name: VSYNC
           value: vsync
           description: "Fix the heavy screen tearing in games Auto=Mailbox (Recommended)"
@@ -62,24 +46,6 @@ groups:
               value: 0
             - name: Vulkan
               value: 1
-        - name: SHADER MODE
-          value: shaderbackend
-          description: "Faster shaders compil (OpenGL backend only) Auto=GLSL"
-          choices:
-            - name: Glsl (default)
-              value: 0
-            - name: Glasm (nvidia only)
-              value: 1
-            - name: "Spir-v (mesa only)"
-              value: 2
-        - name: ENABLE ASYNC SHADER COMPILATION
-          value: async_shaders
-          description: Speedup shader compilation
-          choices:
-            - name: Off
-              value: false
-            - name: On
-              value: true
         - name: RENDERING RESOLUTION
           value: resolution_scale
           description: "Improve the fidelity of 3D models Auto=1X (720p/1080p)"
@@ -110,27 +76,7 @@ groups:
               value: 11
             - name: 8x (5760p/8640p)
               value: 12
-        - name: ASTC DECODING METHOD
-          value: accelerate_astc
-          description: "Uses a background thread to decode ASTC textures Default:GPU"
-          choices:
-            - name: GPU
-              value: 1
-            - name: CPU
-              value: 0
-            - name: CPU Async
-              value: 2
-        - name: ASTC TEXTURE RECOMPRESSION
-          value: astc_recompression
-          description: "Decreases VRAM requirements Auto=Uncompressed"
-          choices:
-            - name: Uncompressed (Best Quality)
-              value: 0
-            - name: BC3 (Medium Quality)
-              value: 2
-            - name: BC1 (Low Quality)
-              value: 1
-        - name: TEXTURE FILTERING
+        - name: SCALING FILTER
           value: scale_filter
           description: "Smooths out textures on 3D objetcs Auto=Bilinear"
           choices:
@@ -160,169 +106,7 @@ groups:
               value: 11
             - name: MMPX
               value: 12
-        - name: FXAA/SMAA
-          value: aliasing_method
-          description: Anti aliasing FXAA/SMAA
-          choices:
-            - name: Off
-              value: 0
-            - name: Fxaa
-              value: 1
-            - name: Smaa
-              value: 2
-        - name: ASYNC GPU EMULATION
-          value: async_gpu
-          description: Asynchronous gpu emulation
-          choices:
-            - name: Off
-              value: false
-            - name: On
-              value: true
-        - name: GPU CACHE GC
-          value: gpu_cache_gc
-          description: Enables garbage collection for gpu cache
-          choices:
-            - name: Off
-              value: false
-            - name: On
-              value: true
-        - name: GPU ACCURACY
-          value: gpuaccuracy
-          description: Gpu accuracy level
-          choices:
-            - name: Normal
-              value: 0
-            - name: High
-              value: 1
-            - name: Extreme
-              value: 2
-        - name: CPU ACCURACY
-          value: cpuaccuracy
-          description: Cpu accuracy level
-          choices:
-            - name: Accurate
-              value: 1
-            - name: Unsafe
-              value: 2
-        - name: NVDEC EMULATION
-          value: nvdec_emu
-          description: "Cutscenes video decoder Auto=Via Gpu"
-          choices:
-            - name: Off
-              value: 0
-            - name: Cpu
-              value: 1
-            - name: Gpu
-              value: 2
-        - name: ANISOTROPIC FILTERING
-          value: anisotropy
-          description: Enhance the quality with on perspective textures (experimental)
-          choices:
-            - name: Automatic
-              value: 0
-            - name: Default
-              value: 1
-            - name: 2x
-              value: 2
-            - name: 4x
-              value: 3
-            - name: 8x
-              value: 4
-            - name: 16x
-              value: 5
       EMULATION:
-        - name: AUDIO FORMAT
-          value: audio_mode
-          description: Audio Output Mode
-          choices:
-            - name: Mono
-              value: 0
-            - name: Stereo (default)
-              value: 1
-            - name: Surround
-              value: 2
-        - name: MULTICORE CPU
-          value: multicore
-          description: "Multicore CPU Auto=enable"
-          choices:
-            - name: Off
-              value: false
-            - name: On
-              value: true
-        - name: MEMORY LAYOUT
-          value: eden_memory_layout
-          description: "Increases amount of emulated RAM from 4G to 8/6 useful for HDtextures Auto=4G(Recommended)"
-          choices:
-            - name: 4GB DRAM (Recommended)
-              value: 0
-            - name: 6GB DRAM (Unsafe)
-              value: 1
-            - name: 8GB DRAM
-              value: 2
-            - name: 10GB DRAM (Unsafe)
-              value: 3
-            - name: 12GB DRAM (Unsafe)
-              value: 4
-        - name: LANGUAGE
-          value: language
-          description: "System language select Auto=American English"
-          choices:
-            - name: Japanese
-              value: 0
-            - name: American English
-              value: 1
-            - name: Francais
-              value: 2
-            - name: German
-              value: 3
-            - name: Italian
-              value: 4
-            - name: Spanish
-              value: 5
-            - name: Chinese
-              value: 6
-            - name: Korean
-              value: 7
-            - name: Dutch
-              value: 8
-            - name: Portuguese
-              value: 9
-            - name: Russian
-              value: 10
-            - name: Taiwanese
-              value: 11
-            - name: British English
-              value: 12
-            - name: Canadian French
-              value: 13
-            - name: Latin American Spanish
-              value: 14
-            - name: Simplified Chinese
-              value: 15
-            - name: Traditional Chinese
-              value: 16
-            - name: Brazilian Portugese
-              value: 17
-            - name: Serbian
-              value: 18
-        - name: REGION
-          value: region
-          description: "System region select Auto=USA"
-          choices:
-            - name: Japan
-              value: 0
-            - name: Usa
-              value: 1
-            - name: Europe
-              value: 2
-            - name: Australia
-              value: 3
-            - name: China
-              value: 4
-            - name: Korea
-              value: 5
-            - name: Taiwan
-              value: 6
         - name: SWITCH DOCK MODE
           value: dock_mode
           description: "Undocked reduce resolution/detail for slow PC Auto=Docked"
@@ -331,14 +115,6 @@ groups:
               value: 1
             - name: Undocked
               value: 0
-        - name: USERS PROFILES
-          value: user_profile
-          description: Ask For User Profile on boot (useful if you have created several profiles in eden)
-          choices:
-            - name: Off (default)
-              value: false
-            - name: On
-              value: true
   CONTROLS:
     submenus:
       CONTROLLERS:
@@ -366,6 +142,7 @@ groups:
               value: false
             - name: On
               value: true
+      PORT 1:
         - name: CONTROLLER 1 TYPE
           value: p1_pad
           description: "Choose Player 1 Pad Type Auto=Pro Controller"
@@ -382,6 +159,7 @@ groups:
               value: 4
             - name: Gamecube Pad
               value: 5
+      PORT 2:
         - name: CONTROLLER 2 TYPE
           value: p2_pad
           description: "Choose Player 2 Pad Type Auto=Pro Controller"
@@ -398,6 +176,7 @@ groups:
               value: 4
             - name: Gamecube Pad
               value: 5
+      PORT 3:
         - name: CONTROLLER 3 TYPE
           value: p3_pad
           description: "Choose Player 3 Pad Type Auto=Pro Controller"
@@ -414,6 +193,7 @@ groups:
               value: 4
             - name: Gamecube Pad
               value: 5
+      PORT 4:
         - name: CONTROLLER 4 TYPE
           value: p4_pad
           description: "Choose Player 4 Pad Type Auto=Pro Controller"
@@ -430,6 +210,7 @@ groups:
               value: 4
             - name: Gamecube Pad
               value: 5
+      PORT 5:
         - name: CONTROLLER 5 TYPE
           value: p5_pad
           description: "Choose Player 5 Pad Type Auto=Pro Controller"
@@ -446,6 +227,7 @@ groups:
               value: 4
             - name: Gamecube Pad
               value: 5
+      PORT 6:
         - name: CONTROLLER 6 TYPE
           value: p6_pad
           description: "Choose Player 6 Pad Type Auto=Pro Controller"
@@ -462,6 +244,7 @@ groups:
               value: 4
             - name: Gamecube Pad
               value: 5
+      PORT 7:
         - name: CONTROLLER 7 TYPE
           value: p7_pad
           description: "Choose Player 7 Pad Type Auto=Pro Controller"
@@ -478,6 +261,7 @@ groups:
               value: 4
             - name: Gamecube Pad
               value: 5
+      PORT 8:
         - name: CONTROLLER 8 TYPE
           value: p8_pad
           description: "Choose Player 8 Pad Type Auto=Pro Controller"

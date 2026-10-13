@@ -46,7 +46,7 @@ _LANGUAGES = {
 
 def get_language_from_environment() -> str:
     """Return the DuckStation language code for the ``LANG`` of the session."""
-    lang = environ["LANG"][:5]
+    lang = environ.get("LANG", _DEFAULT_LANGUAGE)[:5]
     return _LANGUAGES.get(lang, _LANGUAGES[_DEFAULT_LANGUAGE])
 
 

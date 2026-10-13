@@ -9,7 +9,7 @@ groups:
           description: Multiplies the native PlayStation resolution. Bigger is sharper and slower.
           core_option: swanstation_GPU_ResolutionScale
           choices:
-            - name: Auto (Default)
+            - name: Default
               value: auto
             - name: 1x (native)
               value: '1'

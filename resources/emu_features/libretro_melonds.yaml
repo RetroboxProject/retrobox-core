@@ -8,7 +8,7 @@ groups:
           value: melonds_screen_layout
           description: Where the two screens go.
           choices:
-            - name: Auto (Default)
+            - name: Default
               value: auto
             - name: Top/Bottom
               value: Top/Bottom
@@ -39,7 +39,7 @@ groups:
             7x: {melonds_opengl_renderer: enabled, melonds_opengl_resolution: 7x native (1792x1344)}
             8x: {melonds_opengl_renderer: enabled, melonds_opengl_resolution: 8x native (2048x1536)}
           choices:
-            - name: Auto (Default)
+            - name: Default
               value: auto
             - name: 1x (256x192)
               value: 1x
