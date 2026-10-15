@@ -45,22 +45,6 @@ groups:
               value: None
             - name: Anamorphic (widescreen)
               value: Anamorphic
-        - name: COLOR EMULATION
-          value: ares_color_emulation
-          description: Accurately emulate original hardware color profiles.
-          choices:
-            - name: Disabled
-              value: false
-            - name: Enabled (Default)
-              value: true
-        - name: INTERFRAME BLENDING
-          value: ares_interframe_blending
-          description: Blend frames to simulate CRT motion blur.
-          choices:
-            - name: Disabled
-              value: false
-            - name: Enabled (Default)
-              value: true
       AUDIO:
         - name: AUDIO LATENCY
           value: ares_audio_latency
@@ -73,38 +57,13 @@ groups:
             - name: "80 ms"
               value: 80
       EMULATION:
-        - name: FAST BOOT
-          value: ares_fast_boot
-          description: Skip system boot animation and intro sequences.
+        - name: REGION
+          value: ares_region
+          description: Region of the console. Used by the games that support several, and to pick the BIOS of that region.
           choices:
-            - name: Disabled (Default)
-              value: false
-            - name: Enabled
-              value: true
-        - name: REWIND
-          value: ares_rewind
-          description: Enable gameplay rewind functionality.
-          choices:
-            - name: Disabled (Default)
-              value: false
-            - name: Enabled
-              value: true
-  ADVANCED OPTIONS:
-    submenus:
-      PERFORMANCE:
-        - name: THREADED RENDERER
-          value: ares_threaded_renderer
-          description: Enable multi-threaded rendering for improved performance.
-          choices:
-            - name: Disabled
-              value: false
-            - name: Enabled (Default)
-              value: true
-        - name: RUN AHEAD
-          value: ares_run_ahead
-          description: Reduce input latency by running frames ahead.
-          choices:
-            - name: Disabled (Default)
-              value: false
-            - name: Enabled
-              value: true
+            - name: USA (Default)
+              value: NTSC-U
+            - name: Japan
+              value: NTSC-J
+            - name: Europe
+              value: PAL

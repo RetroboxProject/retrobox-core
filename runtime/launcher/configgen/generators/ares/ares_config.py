@@ -1,9 +1,13 @@
 """Ares configuration: settings.bml.
 
-Ares reads one settings file (BML, nested by name) that this module writes in
-full on every launch. The options of the menu fill the settings that exist in
-Ares, and each one has the default the file used before the menu was wired, so
-a game that sets nothing runs as it always did.
+Ares reads one settings file (BML, nested by name). This module changes only
+the settings that the menu of Retrobox manages, plus the controller mapping
+and the firmware locations, and leaves every other setting as it already is in
+the file. That way what is not offered in the menu (rewind, run ahead, the
+threaded renderer, the color options...) can be set from Ares itself and it
+is kept from one game to the next. A game that sets nothing runs as it always
+did, because every managed setting has the default it had before the menu was
+wired.
 """
 
 from __future__ import annotations
@@ -12,7 +16,9 @@ import logging
 from typing import TYPE_CHECKING
 
 from ...utils.audio_gain import gain_to_percent
+from .ares_bml import BmlNode, parse, render
 from .ares_controllers import _ares_create_pads_config
+from .ares_firmware import firmware_settings
 from .ares_paths import _ARES_CFG, _ARES_CFGDIR, _ARES_SAVES, _ARES_SCREENSHOTS
 
 if TYPE_CHECKING:
@@ -32,6 +38,9 @@ _MAX_VOLUME = 200  # Ares can amplify up to twice the volume (+6 dB)
 _AUTO_VALUES = ("", "auto")
 _DEFAULT_PAK_SIZE = "32KiB (Default)"
 _DEFAULT_QUALITY = "SD"  # 1x native; HD is 2x and UHD is 4x
+_DEFAULT_REGION = "NTSC-U"
+_DEFAULT_PSX_PAD = "DualShock"  # the Digital Gamepad that Ares plugs in has no rumble
+_PAD_SECTION_PREFIX = "VirtualPad"
 
 # the controllers of the SNES ports Ares can remember: menu option -> Ares setting
 _SNES_PORTS = {"ares_snes_port1": "ControllerPort1", "ares_snes_port2": "ControllerPort2"}
@@ -90,6 +99,11 @@ def aspect_correction(config: SystemConfig) -> str:
     return _value(config, "ares_aspect_correction", "Standard")
 
 
+def region(config: SystemConfig) -> str:
+    """Return the region of the console: NTSC-U, NTSC-J or PAL."""
+    return _value(config, "ares_region", _DEFAULT_REGION)
+
+
 def _video_section(config: SystemConfig) -> Section:
     """Build the [Video] section."""
     return {
@@ -108,12 +122,9 @@ def _video_section(config: SystemConfig) -> Section:
         "Saturation": "1.0",
         "Gamma": "1.0",
         "ColorBleed": False,
-        "ColorEmulation": config.get_bool("ares_color_emulation", True),
-        "InterframeBlending": config.get_bool("ares_interframe_blending", True),
         "Overscan": False,
         "PixelAccuracy": False,
         "PresentSRGB": False,
-        "ThreadedRenderer": config.get_bool("ares_threaded_renderer", True),
         "NativeFullScreen": True,
         "WindowWidth": 800,
         "WindowHeight": 576,
@@ -160,11 +171,14 @@ def _nintendo64_section(config: SystemConfig) -> Section:
 
 
 def _peripherals(config: SystemConfig, ports: Mapping[str, str]) -> Section:
-    """Return the controllers the game picked for the ports; the others keep Ares' choice."""
+    """Return the controller the game picked for each port.
+
+    A port left on "auto" is written empty, so Ares plugs its own choice and
+    the one of a previous game is not kept.
+    """
     return {
-        setting: str(config.get(key))
+        setting: "" if str(config.get(key, "")) in _AUTO_VALUES else str(config.get(key))
         for key, setting in ports.items()
-        if str(config.get(key, "")) not in _AUTO_VALUES
     }
 
 
@@ -176,8 +190,17 @@ def _super_famicom_section(config: SystemConfig) -> Section:
     }
 
 
+def _playstation_section(config: SystemConfig) -> Section:
+    """Build the [PlayStation] section: the controller of both ports.
+
+    Ares plugs a Digital Gamepad, which has no analog sticks and no rumble.
+    """
+    pad = _value(config, "ares_psx_pad", _DEFAULT_PSX_PAD)
+    return {"ControllerPort1": pad, "ControllerPort2": pad}
+
+
 def build_settings(config: SystemConfig, saves_path: str) -> dict[str, Section]:
-    """Build every section of settings.bml for a game."""
+    """Build the sections of settings.bml that the menu of Retrobox manages."""
     return {
         "Video": _video_section(config),
         "Audio": _audio_section(config),
@@ -185,13 +208,11 @@ def build_settings(config: SystemConfig, saves_path: str) -> dict[str, Section]:
         "Boot": {
             "Fast": config.get_bool("ares_fast_boot"),
             "Debugger": False,
-            "Prefer": "NTSC-U",
+            "Prefer": region(config),
             "AwaitGDBClient": False,
         },
         "General": {
             "ShowStatusBar": True,
-            "Rewind": config.get_bool("ares_rewind"),
-            "RunAhead": config.get_bool("ares_run_ahead"),
             "AutoSaveMemory": True,
             "HomebrewMode": False,
             "NoFilePrompt": True,
@@ -199,6 +220,7 @@ def build_settings(config: SystemConfig, saves_path: str) -> dict[str, Section]:
         "Nintendo64": _nintendo64_section(config),
         "SuperFamicom": _super_famicom_section(config),
         "MegaDrive": {"TMSS": config.get_bool("ares_md_tmss")},
+        "PlayStation": _playstation_section(config),
         "Paths": {
             "Home": f"{_ARES_CFGDIR}/",
             "Saves": saves_path,
@@ -207,19 +229,27 @@ def build_settings(config: SystemConfig, saves_path: str) -> dict[str, Section]:
     }
 
 
-def render_bml(sections: Mapping[str, Section]) -> str:
-    """Write the sections as BML text."""
-    lines: list[str] = []
-    for name, options in sections.items():
-        lines.append(name)
-        for key, value in options.items():
-            text = str(value).lower() if isinstance(value, bool) else str(value)
-            lines.append(f"  {key}: {text}")
-    return "\n".join(lines) + "\n"
+def _read_settings() -> BmlNode:
+    """Return the settings file as a tree, or an empty tree when there is none."""
+    try:
+        return parse(_ARES_CFG.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return BmlNode()
 
 
 def write_ares_config(system: Emulator, players_controllers) -> None:
-    """Write settings.bml: the settings of the game followed by the controller mapping."""
-    sections = build_settings(system.config, _saves_path_for(system))
-    content = render_bml(sections) + _ares_create_pads_config(players_controllers)
-    _ARES_CFG.write_text(content, encoding="utf-8")
+    """Update settings.bml with the settings of the game, the firmware and the controllers."""
+    settings = _read_settings()
+
+    for section, options in build_settings(system.config, _saves_path_for(system)).items():
+        for key, value in options.items():
+            settings.set(f"{section}/{key}", value)
+
+    for path, location in firmware_settings().items():
+        settings.set(path, location)
+
+    # the pads are rebuilt from the controllers of this game, never merged
+    settings.remove_children(lambda name: name.startswith(_PAD_SECTION_PREFIX))
+    settings.replace_children(parse(_ares_create_pads_config(players_controllers)))
+
+    _ARES_CFG.write_text(render(settings), encoding="utf-8")
