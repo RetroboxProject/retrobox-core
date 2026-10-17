@@ -18,3 +18,8 @@ gb:
         mesen-s: {}
         mgba: {}
         vba-m: {}
+    ares:
+      cores:
+        gb:
+          incompatible_extensions:
+          - .7z

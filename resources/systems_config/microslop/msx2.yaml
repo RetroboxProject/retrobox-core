@@ -36,3 +36,13 @@ msx2:
         openmsx:
           incompatible_extensions:
           - .m3u
+    ares:
+      cores:
+        msx:
+          incompatible_extensions:
+          - .dsk
+          - .mx2
+          - .7z
+          - .m3u
+          - .ogv
+          - .openmsx

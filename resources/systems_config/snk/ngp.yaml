@@ -15,3 +15,8 @@ ngp:
       cores:
         mednafen_ngp:
           default: true
+    ares:
+      cores:
+        ngp:
+          incompatible_extensions:
+          - .7z

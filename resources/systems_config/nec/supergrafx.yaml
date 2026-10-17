@@ -19,3 +19,12 @@ supergrafx:
       cores:
         mednafen_supergrafx:
           default: true
+    ares:
+      cores:
+        pcengine:
+          incompatible_extensions:
+          - .pce
+          - .cue
+          - .ccd
+          - .chd
+          - .7z

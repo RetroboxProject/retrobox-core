@@ -19,3 +19,11 @@ pcenginecd:
         pce:
           default: true
         pce_fast: {}
+    ares:
+      cores:
+        pcengine:
+          incompatible_extensions:
+          - .pce
+          - .ccd
+          - .iso
+          - .img

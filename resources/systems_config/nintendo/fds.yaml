@@ -18,3 +18,8 @@ fds:
           default: true
         mesen: {}
         nestopia: {}
+    ares:
+      cores:
+        nes:
+          incompatible_extensions:
+          - .7z

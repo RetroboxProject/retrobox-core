@@ -24,3 +24,9 @@ mastersystem:
           default: true
         picodrive: {}
         smsplus: {}
+    ares:
+      cores:
+        mastersystem:
+          incompatible_extensions:
+          - .bin
+          - .7z

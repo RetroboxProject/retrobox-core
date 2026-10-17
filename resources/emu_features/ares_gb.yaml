@@ -1,0 +1,14 @@
+emulator_name: ares
+core_name: gb
+groups:
+  GENERAL:
+    submenus:
+      EMULATION:
+        - name: FAST BOOT
+          value: ares_fast_boot
+          description: Skip the boot animation of the console.
+          choices:
+            - name: Disabled (Default)
+              value: false
+            - name: Enabled
+              value: true

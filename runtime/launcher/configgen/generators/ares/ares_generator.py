@@ -18,6 +18,7 @@ from .ares_paths import (
     _ARES_XDG,
     ARES_BIN,
 )
+from .ares_systems import ares_system_name
 
 if TYPE_CHECKING:
     from ...config import SystemConfig
@@ -71,6 +72,10 @@ class AresGenerator(Generator):
         shader_cfg = system.renderconfig.get("shader")
         if ares_config.resolve_shader(shader_cfg, _ARES_SHADERS_DIR) != "None":
             args_array = ["--shader", shader_cfg]
+
+        # systems that share file extensions are told apart by name
+        if ares_system := ares_system_name(system.name):
+            args_array.extend(["--system", ares_system])
 
         # kiosk mode disables the bottom bar;
         # pseudofullscreen allows for better window management on KDE

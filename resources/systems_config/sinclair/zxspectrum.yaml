@@ -26,3 +26,13 @@ zxspectrum:
       cores:
         fuse:
           default: true
+    ares:
+      cores:
+        zxspectrum:
+          incompatible_extensions:
+          - .z80
+          - .rzx
+          - .scl
+          - .trd
+          - .dsk
+          - .7z

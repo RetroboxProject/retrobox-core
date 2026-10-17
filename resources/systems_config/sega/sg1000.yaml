@@ -17,3 +17,9 @@ sg1000:
         gearsystem: {}
         genesis_plus_gx:
           default: true
+    ares:
+      cores:
+        sg1000:
+          incompatible_extensions:
+          - .bin
+          - .7z

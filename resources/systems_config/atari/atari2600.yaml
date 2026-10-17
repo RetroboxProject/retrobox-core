@@ -16,3 +16,8 @@ atari2600:
       cores:
         stella:
           default: true
+    ares:
+      cores:
+        atari2600:
+          incompatible_extensions:
+          - .7z

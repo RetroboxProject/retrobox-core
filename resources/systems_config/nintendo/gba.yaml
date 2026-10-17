@@ -16,3 +16,8 @@ gba:
         mgba:
           default: true
         vba-m: {}
+    ares:
+      cores:
+        gba:
+          incompatible_extensions:
+          - .7z

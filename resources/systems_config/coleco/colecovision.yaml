@@ -25,3 +25,10 @@ colecovision:
     openmsx:
       cores:
         openmsx: {}
+    ares:
+      cores:
+        colecovision:
+          incompatible_extensions:
+          - .bin
+          - .rom
+          - .7z

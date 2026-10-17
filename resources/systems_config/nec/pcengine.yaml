@@ -17,3 +17,9 @@ pcengine:
         mednafen_pce:
           default: true
         mednafen_pce_fast: {}
+    ares:
+      cores:
+        pcengine:
+          incompatible_extensions:
+          - .bin
+          - .7z

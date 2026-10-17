@@ -28,3 +28,12 @@ saturn:
     ymir:
       cores:
         ymir: {}
+    ares:
+      cores:
+        saturn:
+          incompatible_extensions:
+          - .ccd
+          - .m3u
+          - .iso
+          - .zip
+          - .mds

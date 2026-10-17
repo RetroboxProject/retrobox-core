@@ -25,3 +25,15 @@ atari5200:
         a5200:
           default: true
         atari800: {}
+    ares:
+      cores:
+        atari5200:
+          incompatible_extensions:
+          - .rom
+          - .xfd
+          - .atr
+          - .atx
+          - .cdm
+          - .cas
+          - .xex
+          - .7z

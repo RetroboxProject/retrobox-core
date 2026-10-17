@@ -23,3 +23,10 @@ n64dd:
           default: true
         gliden64: {}
         rice: {}
+    ares:
+      cores:
+        n64:
+          incompatible_extensions:
+          - .z64
+          - .n64
+          - .7z

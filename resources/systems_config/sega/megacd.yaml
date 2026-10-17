@@ -17,3 +17,9 @@ megacd:
         genesis_plus_gx:
           default: true
         picodrive: {}
+    ares:
+      cores:
+        megadrive:
+          incompatible_extensions:
+          - .iso
+          - .m3u

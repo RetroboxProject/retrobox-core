@@ -27,3 +27,15 @@ psx:
         pcsx_rearmed:
           default: true
         swanstation: {}
+    ares:
+      cores:
+        psx:
+          incompatible_extensions:
+          - .img
+          - .mdf
+          - .pbp
+          - .toc
+          - .cbn
+          - .m3u
+          - .ccd
+          - .iso

@@ -15,3 +15,8 @@ wswan:
       cores:
         mednafen_wswan:
           default: true
+    ares:
+      cores:
+        wonderswan:
+          incompatible_extensions:
+          - .7z

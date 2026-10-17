@@ -22,3 +22,12 @@ sc3000:
     mame:
       cores:
         mame: {}
+    ares:
+      cores:
+        sg1000:
+          incompatible_extensions:
+          - .bin
+          - .wav
+          - .cas
+          - .bit
+          - .7z
