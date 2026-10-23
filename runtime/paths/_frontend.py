@@ -17,7 +17,8 @@ from ._base import CONFIG_DIR, DATA_DIR, DEFAULTS_DIR, RETROBOX_ROOTDIR
 # es_systems.cfg, gamelists, collections), seeded from FRONTEND_DIR. It is
 # configuration, so it lives under ~/.config/retrobox.
 # THEMES_DIR / MUSIC_DIR: user content, under ~/.local/share/retrobox. The
-# themes shipped in FRONTEND_DIR/themes are linked into THEMES_DIR at startup.
+# themes shipped in FRONTEND_DIR/themes are found by EmulationStation itself
+# through `system.themes` in emulationstation.ini; nothing is linked.
 FRONTEND_DIR: Final = RETROBOX_ROOTDIR / "frontend"
 FRONTEND_HOME: Final = CONFIG_DIR / "frontend"
 THEMES_DIR: Final = DATA_DIR / "themes"

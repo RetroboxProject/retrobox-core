@@ -3,7 +3,6 @@ sharedFeatures:
   - power_profile
   - tdp
   - videomode
-  - ratio
 groups:
   ADVANCED OPTIONS:
     items:

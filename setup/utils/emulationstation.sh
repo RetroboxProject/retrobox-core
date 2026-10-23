@@ -177,7 +177,7 @@ write_patch_file() {
     mkdir -p "${WORKDIR}"
     cat > "${PATCH_FILE}" <<'RETROBOX_PATCH_EOF'
 diff --git a/.gitignore b/.gitignore
-index c85af5817..982decd39 100644
+index c85af58..982decd 100644
 --- a/.gitignore
 +++ b/.gitignore
 @@ -53,3 +53,7 @@ CPackSourceConfig.cmake
@@ -189,7 +189,7 @@ index c85af5817..982decd39 100644
 +locale/*
 +build.sh
 diff --git a/es-app/src/ApiSystem.cpp b/es-app/src/ApiSystem.cpp
-index 60f0433cc..a84554a63 100644
+index 2b35c84..6524b81 100644
 --- a/es-app/src/ApiSystem.cpp
 +++ b/es-app/src/ApiSystem.cpp
 @@ -591,8 +591,7 @@ bool ApiSystem::launchKodi(Window *window)
@@ -202,7 +202,7 @@ index 60f0433cc..a84554a63 100644
  
  	ApiSystem::launchExternalWindow_before(window);
  
-@@ -2122,8 +2121,7 @@ bool ApiSystem::isScriptingSupported(ScriptId script)
+@@ -2175,8 +2174,7 @@ bool ApiSystem::isScriptingSupported(ScriptId script)
  #endif
  		break;
  	case ApiSystem::KODI:
@@ -212,7 +212,7 @@ index 60f0433cc..a84554a63 100644
  	case ApiSystem::WIFI:
  		executables.push_back("batocera-wifi");
  		break;
-@@ -2159,7 +2157,8 @@ bool ApiSystem::isScriptingSupported(ScriptId script)
+@@ -2212,7 +2210,8 @@ bool ApiSystem::isScriptingSupported(ScriptId script)
  		executables.push_back("batocera-padsinfo");
  		break;
  	case ApiSystem::EVMAPY:
@@ -222,7 +222,7 @@ index 60f0433cc..a84554a63 100644
  		break;
  	case ApiSystem::BATOCERAPREGAMELISTSHOOK:
  		executables.push_back("batocera-preupdate-gamelists-hook");
-@@ -2186,7 +2185,7 @@ bool ApiSystem::isScriptingSupported(ScriptId script)
+@@ -2239,7 +2238,7 @@ bool ApiSystem::isScriptingSupported(ScriptId script)
  		executables.push_back("batocera-upgrade-torrent");
  		break;
  	case ApiSystem::SUSPEND:
@@ -231,7 +231,7 @@ index 60f0433cc..a84554a63 100644
  	case ApiSystem::VERSIONINFO:
  		executables.push_back("batocera-version");
  		break;
-@@ -2706,7 +2705,7 @@ bool ApiSystem::emuKill()
+@@ -2759,7 +2758,7 @@ bool ApiSystem::emuKill()
  void ApiSystem::suspend()
  {
  	LOG(LogDebug) << "ApiSystem::suspend";
@@ -241,43 +241,31 @@ index 60f0433cc..a84554a63 100644
  
  void ApiSystem::replugControllers_sindenguns()
 diff --git a/es-app/src/guis/GuiMenu.cpp b/es-app/src/guis/GuiMenu.cpp
-index 71d3c2419..d7529e405 100644
+index 7cc6ec7..3d758a6 100644
 --- a/es-app/src/guis/GuiMenu.cpp
 +++ b/es-app/src/guis/GuiMenu.cpp
-@@ -218,11 +218,11 @@ GuiMenu::GuiMenu(Window *window, bool animate) : GuiComponent(window), mMenu(win
+@@ -220,11 +220,7 @@ GuiMenu::GuiMenu(Window *window, bool animate) : GuiComponent(window), mMenu(win
  		addEntry(_("UNLOCK USER INTERFACE MODE").c_str(), true, [this] { exitKidMode(); }, "iconAdvanced");
  	}
  
 -#ifdef WIN32
-+//#ifdef WIN32
  	addEntry(_("QUIT"), !Settings::getInstance()->getBool("ShowOnlyExit") || !Settings::getInstance()->getBool("ShowExit"), [this] { openQuitMenu(); }, "iconQuit");
 -#else
 -	addEntry(_("QUIT").c_str(), true, [this] { openQuitMenu(); }, "iconQuit");
 -#endif
-+//#else
-+	//addEntry(_("QUIT").c_str(), true, [this] { openQuitMenu(); }, "iconQuit");
-+//#endif
- 	
+ 
  	addChild(&mMenu);
  	addVersionInfo();
-@@ -1468,6 +1468,7 @@ void GuiMenu::openSystemSettings()
- 	});
- 
- 	// Keyboard layout & variant
-+
- #if !WIN32
- 	
- 	std::string curLayout = SystemConf::getInstance()->get("system.kblayout");
-@@ -1480,7 +1481,7 @@ void GuiMenu::openSystemSettings()
+@@ -1504,7 +1500,7 @@ void GuiMenu::openSystemSettings()
  	auto keyboard_variant = std::make_shared<OptionListComponent<std::string>>(window, _("KEYBOARD VARIANT"), false);
  
  	// Populate Layouts
 -	auto layouts = getScriptOutput("/usr/bin/batocera-keyboard list-layouts");
 +	auto layouts = getScriptOutput("batocera-keyboard list-layouts");
  	bool layoutFound = false;
- 	
+ 
  	for (const auto& l : layouts)
-@@ -1499,7 +1500,7 @@ void GuiMenu::openSystemSettings()
+@@ -1523,7 +1519,7 @@ void GuiMenu::openSystemSettings()
  		bool noneSelected = (curVariant == "none" || curVariant.empty());
  		keyboard_variant->add(_("NONE"), "none", noneSelected);
  
@@ -286,63 +274,59 @@ index 71d3c2419..d7529e405 100644
  		bool variantFound = false;
  		for (const auto& v : variants)
  		{
-@@ -1521,7 +1522,7 @@ void GuiMenu::openSystemSettings()
+@@ -1545,7 +1541,7 @@ void GuiMenu::openSystemSettings()
  		keyboard_variant->clear();
  		keyboard_variant->add(_("NONE"), "none", true);
- 		
+ 
 -		auto variants = getScriptOutput("/usr/bin/batocera-keyboard list-variants " + newLayout);
 +		auto variants = getScriptOutput("batocera-keyboard list-variants " + newLayout);
  		for (const auto& v : variants)
  		{
  			keyboard_variant->add(v.second, v.first, false);
-@@ -1541,7 +1542,7 @@ void GuiMenu::openSystemSettings()
+@@ -1565,7 +1561,7 @@ void GuiMenu::openSystemSettings()
  			std::string selLayout = keyboard_layout->getSelected();
  			std::string selVariant = keyboard_variant->getSelected();
- 			
+ 
 -			std::string cmd = "/usr/bin/batocera-keyboard set \"" + selLayout + "\" \"" + selVariant + "\"";
 +			std::string cmd = "batocera-keyboard set \"" + selLayout + "\" \"" + selVariant + "\"";
  			if (system(cmd.c_str()) == 0) {
  				SystemConf::getInstance()->set("system.kblayout", selLayout);
  				SystemConf::getInstance()->set("system.kbvariant", selVariant);
-@@ -4584,13 +4585,15 @@ void GuiMenu::openQuitMenu()
+@@ -4746,13 +4742,13 @@ void GuiMenu::openQuitMenu()
  
  void GuiMenu::openQuitMenu_static(Window *window, bool quickAccessMenu, bool animate)
  {
 -#ifdef WIN32
-+//#ifdef WIN32
  	if (!quickAccessMenu && Settings::getInstance()->getBool("ShowOnlyExit") && Settings::getInstance()->getBool("ShowExit"))
  	{
 -		Utils::Platform::quitES(Utils::Platform::QuitMode::QUIT);
-+		window->pushGui(new GuiMsgBox(window, _("REALLY QUIT?"), 
++		window->pushGui(new GuiMsgBox(window, _("REALLY QUIT?"),
 +			_("YES"), [] { Utils::Platform::quitES(Utils::Platform::QuitMode::QUIT); },
 +			_("NO"), nullptr));
  		return;
  	}
 -#endif
-+//#endif
  
  	auto s = new GuiSettings(window, (quickAccessMenu ? _("QUICK ACCESS") : _("QUIT")).c_str());
  	s->setCloseButton("select");
-@@ -4745,7 +4748,7 @@ void GuiMenu::openQuitMenu_static(Window *window, bool quickAccessMenu, bool ani
+@@ -4907,7 +4903,6 @@ void GuiMenu::openQuitMenu_static(Window *window, bool quickAccessMenu, bool ani
  			_("NO"), nullptr));
  	}, "iconFastShutdown");
  
 -#ifdef WIN32
-+//#ifdef WIN32
  	if (Settings::getInstance()->getBool("ShowExit"))
  	{
  		s->addEntry(_("QUIT EMULATIONSTATION"), false, [window] {
-@@ -4754,7 +4757,7 @@ void GuiMenu::openQuitMenu_static(Window *window, bool quickAccessMenu, bool ani
+@@ -4916,7 +4911,6 @@ void GuiMenu::openQuitMenu_static(Window *window, bool quickAccessMenu, bool ani
  				_("NO"), nullptr));
  		}, "iconQuit");
  	}
 -#endif
-+//#endif
  
  	if (quickAccessMenu && animate)
  		s->getMenu().animateTo(Vector2f((Renderer::getScreenWidth() - s->getMenu().getSize().x()) / 2, (Renderer::getScreenHeight() - s->getMenu().getSize().y()) / 2));
 diff --git a/es-app/src/views/gamelist/BasicGameListView.cpp b/es-app/src/views/gamelist/BasicGameListView.cpp
-index ceb4e6ef6..9b2337445 100644
+index ceb4e6e..9b23374 100644
 --- a/es-app/src/views/gamelist/BasicGameListView.cpp
 +++ b/es-app/src/views/gamelist/BasicGameListView.cpp
 @@ -22,16 +22,21 @@ BasicGameListView::BasicGameListView(Window* window, FolderData* root)
@@ -430,30 +414,8 @@ index ceb4e6ef6..9b2337445 100644
  }
  
  void BasicGameListView::addPlaceholder()
-diff --git a/es-core/src/Settings.cpp b/es-core/src/Settings.cpp
-index 254ce34e6..6ab555a7f 100644
---- a/es-core/src/Settings.cpp
-+++ b/es-core/src/Settings.cpp
-@@ -153,7 +153,7 @@ void Settings::setDefaults()
- 	mBoolMap["ShowOnlyExit"] = true;
- 	mBoolMap["FullscreenBorderless"] = true;
- #else
--	mBoolMap["ShowOnlyExit"] = false;
-+	mBoolMap["ShowOnlyExit"] = true;
- 	mBoolMap["FullscreenBorderless"] = false;
- #endif
- 	mBoolMap["TTS"] = false;
-@@ -352,7 +352,7 @@ void Settings::setDefaults()
- #if defined(_WIN32) || defined(X86) || defined(X86_64)
- 	mBoolMap["HideWindow"] = false;
- #else
--	mBoolMap["HideWindow"] = true;
-+	mBoolMap["HideWindow"] = false;
- #endif
- 
- 	mBoolMap["HideWindowFullReinit"] = false;
 diff --git a/es-core/src/renderers/Renderer.cpp b/es-core/src/renderers/Renderer.cpp
-index c5d5f8788..4300dd9a8 100644
+index d880cd8..d470a02 100644
 --- a/es-core/src/renderers/Renderer.cpp
 +++ b/es-core/src/renderers/Renderer.cpp
 @@ -236,7 +236,7 @@ namespace Renderer
@@ -466,7 +428,7 @@ index c5d5f8788..4300dd9a8 100644
  			LOG(LogError) << "Error creating SDL window!\n\t" << SDL_GetError();
  			return false;
 diff --git a/es-core/src/utils/Platform.cpp b/es-core/src/utils/Platform.cpp
-index 5fc9bb10a..7c7b5a29b 100644
+index 8caa683..59bbef3 100644
 --- a/es-core/src/utils/Platform.cpp
 +++ b/es-core/src/utils/Platform.cpp
 @@ -1,6 +1,8 @@

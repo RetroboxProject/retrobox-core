@@ -20,6 +20,7 @@ from runtime.paths import (
     MUSIC_DIR,
     SAVES,
     SCREENSHOTS,
+    FRONTEND_DIR,
     THEMES_DIR,
 )
 
@@ -37,7 +38,8 @@ saves={SAVES}
 # SCREENSHOTS
 screenshots={SCREENSHOTS}
 
-# THEMES (GET MORE AT THEME DOWNLOADER)
+# THEMES: shipped with the install (read-only) and user-installed
+system.themes={FRONTEND_DIR}/themes
 themes={THEMES_DIR}
 
 # BACKGROUND MUSIC FOR MENUS

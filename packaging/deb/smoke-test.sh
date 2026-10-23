@@ -55,8 +55,9 @@ grep -qiE "first-time setup|Running platform setup" <<<"${output}" \
     || fail "default EmulationStation collections were not seeded"
 [[ -d "${user_home}/.local/share/retrobox/roms" ]] \
     || fail "default ROMs directory was not created under ~/.local/share/retrobox"
-[[ -L "${user_home}/.local/share/retrobox/themes/es-theme-iconic" ]] \
-    || fail "the shipped theme was not linked into ~/.local/share/retrobox/themes"
+grep -q '^system.themes=/opt/retrobox/frontend/themes$' \
+    "${user_home}/.config/retrobox/frontend/.emulationstation/emulationstation.ini" \
+    || fail "emulationstation.ini does not point system.themes at the shipped themes"
 [[ ! -e "${user_home}/.config/retrobox/retrobox.ini" ]] \
     || fail "retrobox.ini must not be written by retrobox itself"
 

@@ -135,30 +135,6 @@ def seed_user_es_dir() -> None:
         shutil.copy2(source, target)
 
 
-def link_shipped_themes() -> None:
-    """
-    Make the themes shipped with the install (frontend/themes, e.g. iconic)
-    available in the user's themes directory, next to any theme the user
-    adds there. Links only: the shipped copy stays read-only and updates
-    with the package. A user theme with the same name is left alone.
-    """
-    shipped = FRONTEND_DIR / "themes"
-    if not shipped.is_dir():
-        return
-    mkdir_if_not_exists(THEMES_DIR)
-    for theme in shipped.iterdir():
-        if not theme.is_dir():
-            continue
-        link = THEMES_DIR / theme.name
-        if link.is_symlink():
-            if link.resolve() == theme.resolve():
-                continue
-            link.unlink()  # stale link (e.g. the install moved)
-        elif link.exists():
-            continue
-        link.symlink_to(theme)
-
-
 def setup_emulationstation_config() -> None:
     """
     Ensure the user's EmulationStation configuration directory exists
@@ -167,7 +143,8 @@ def setup_emulationstation_config() -> None:
     if not _USER_ES_DIR.is_dir():
         mkdir_if_not_exists(_USER_ES_DIR)
     seed_user_es_dir()
-    link_shipped_themes()
+    # ES only honours the `themes=` key of emulationstation.ini if it exists.
+    mkdir_if_not_exists(THEMES_DIR)
 
     generate_emulationstation_ini()
     generate_es_systems()

@@ -14,7 +14,7 @@ groups:
               value: true
   CONTROLS:
     submenus:
-      GAMEPAD:
+      CONTROLLERS:
         - name: CONTROLLER TYPE
           value: ares_psx_pad
           description: The DualShock has analog sticks and rumble. The digital gamepad has neither.
