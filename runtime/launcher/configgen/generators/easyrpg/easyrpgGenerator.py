@@ -3,7 +3,7 @@ from __future__ import annotations
 import codecs
 from typing import TYPE_CHECKING
 
-from runtime.paths import EMULATORS
+from runtime.paths import EMULATORS_CONFIG
 
 from ... import Command
 from runtime.paths import SAVES, mkdir_if_not_exists
@@ -45,7 +45,7 @@ class EasyRPGGenerator(Generator):
         commandArray.extend(["--save-path", savePath])
 
         # Dir for logs and conf
-        configdir = EMULATORS / "easyrpg"
+        configdir = EMULATORS_CONFIG / "easyrpg"
         mkdir_if_not_exists(configdir)
 
         commandArray.extend(["--project-path", rom])

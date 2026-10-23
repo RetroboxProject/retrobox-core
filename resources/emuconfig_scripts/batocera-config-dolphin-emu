@@ -7,5 +7,5 @@ if test -z "${DISPLAY}"; then
     export DISPLAY=$(getLocalXDisplay)
 fi
 
-"${USERDATA}/resources/emulatorlauncher/emulatorlauncher.sh" -system wii -emulator dolphin -rom config
+"${RETROBOX_ROOTDIR}/resources/emulatorlauncher/emulatorlauncher.sh" -system wii -emulator dolphin -rom config
 

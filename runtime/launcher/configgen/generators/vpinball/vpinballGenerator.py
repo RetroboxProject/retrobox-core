@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 
 from . import vpinballOptions
 from ... import Command
-from runtime.paths import EMULATORS, mkdir_if_not_exists
+from runtime.paths import EMULATORS_CONFIG, mkdir_if_not_exists
 from ...controller import generate_sdl_game_controller_config
 from ...utils.batoceraServices import batoceraServices
 from ...utils.configparser import CaseSensitiveConfigParser
@@ -29,7 +29,7 @@ class VPinballGenerator(Generator):
 
     def generate(self, system, rom, playersControllers, metadata, guns, wheels, gameResolution):
         # files
-        vpinballConfigPath     = EMULATORS / "vpinball"
+        vpinballConfigPath     = EMULATORS_CONFIG / "vpinball"
         vpinballConfigFile     = vpinballConfigPath  / "VPinballX.ini"
         vpinballLogFile        = vpinballConfigPath / "vpinball.log"
         vpinballPinmameIniPath = vpinballConfigPath / "pinmame" / "ini"

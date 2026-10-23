@@ -22,7 +22,6 @@ else
   RETROBOX_LABWC_DIR="${RETROBOX_ROOT}/resources/labwc"
 fi
 
-RETROBOX_INI="${RETROBOX_INI:-${RETROBOX_ROOT}/retrobox.ini}"
 RETROBOX_TTYSAVE="${RETROBOX_TTYSAVE:-/tmp/retrobox-ttysave}"
 # Where to return to when no origin TTY was saved (session started by
 # hand on the gaming TTY instead of through retrobox-enter-tty).
@@ -63,10 +62,19 @@ is_valid_tty() {
 get_gaming_tty() {
   local tty
 
-  tty="$(read_ini_value "${RETROBOX_INI}" "advanced" "labwc_tty")" || {
-    echo "error: missing [advanced] labwc_tty in ${RETROBOX_INI}" >&2
+  # retrobox.ini is layered (/etc/retrobox, ~/.config/retrobox, each with its
+  # retrobox.ini.d/), so ask the shared path library for the merged value.
+  # Kept lazy: this file is sourced by every interactive shell through
+  # ~/.bashrc.d, most of which never get here.
+  local py="${RETROBOX_PYTHON:-}"
+  if [[ -z "${py}" ]]; then
+    if [[ -x "${RETROBOX_ROOT}/venv/bin/python3" ]]; then py="${RETROBOX_ROOT}/venv/bin/python3"; else py="python3"; fi
+  fi
+  tty="$(cd "${RETROBOX_ROOT}" && "${py}" -W ignore -m runtime.paths --get advanced.labwc_tty 2>/dev/null)"
+  if [[ -z "${tty}" ]]; then
+    echo "error: missing [advanced] labwc_tty in retrobox.ini (~/.config/retrobox/retrobox.ini or /etc/retrobox/retrobox.ini)" >&2
     return 1
-  }
+  fi
 
   if ! is_valid_tty "${tty}"; then
     echo "error: labwc_tty must be an integer between 1 and 12, got '${tty}'" >&2

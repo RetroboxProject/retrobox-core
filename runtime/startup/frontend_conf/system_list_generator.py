@@ -1,6 +1,7 @@
 """Regenerate es_systems.cfg from the current systems_config directory tree."""
 import logging
 import os
+import sys
 from pathlib import Path
 from typing import Final
 import xml.etree.ElementTree as ET
@@ -12,18 +13,18 @@ from yaml.parser import ParserError
 # pylint: disable=wrong-import-position
 from runtime.paths import (
     IGNORED_SYSTEMS,
-    SYSTEMS_CONF_DIR,
+    layered_files,
     ES_SYSTEMS_CFG,
     ES_SYSTEMS_TMP,
+    RETROBOX_ROOTDIR,
     ROMS,
-    USERDATA
 )
 # pylint: enable=wrong-import-position
 
 _logger = logging.getLogger(__name__)
 
-PYTHON_COMMAND: Final = Path("/usr/bin/python3")
-EMULAUNCHER_COMMAND: Final = USERDATA / "runtime" / "launcher" / "emulatorlauncher.py"
+PYTHON_COMMAND: Final = Path(sys.executable or "/usr/bin/python3")
+EMULAUNCHER_COMMAND: Final = RETROBOX_ROOTDIR / "runtime" / "launcher" / "emulatorlauncher.py"
 DEFAULT_COMMAND = [
     str(PYTHON_COMMAND),
     str(EMULAUNCHER_COMMAND),
@@ -74,14 +75,28 @@ def _append_emulator_nodes(parent_elem, emulators_data):
             core_elem = ET.SubElement(emulator_elem, "core", **core_attrs)
             core_elem.text = core_name
 
-def generate_es_systems(base_path: Path = SYSTEMS_CONF_DIR, output_path: Path = ES_SYSTEMS_TMP):
-    """Walk the generated YAML directory tree and rebuild es_systems.cfg."""
+def _system_yaml_files(base_path: Path | None) -> list[str]:
+    """The system definitions to use, sorted by their relative path.
+
+    Without `base_path`, the layers (shipped resources, /etc/retrobox, the
+    user's config) are merged: a file of a later layer replaces the one of the
+    same relative path, and extra files add systems.
+    """
+    if base_path is None:
+        found = layered_files("systems_config", "*.yaml")
+        if not found:
+            raise FileNotFoundError("No systems_config found in any configuration layer")
+        return [str(path) for path in found.values()]
     if not os.path.exists(base_path):
         raise FileNotFoundError(f"Systems dir not found: {base_path}")
-
     if not os.path.isdir(base_path):
         raise NotADirectoryError(f"Systems dir isn't a directory: {base_path}")
+    return sorted(str(p) for p in Path(base_path).rglob("*.yaml"))
 
+
+def generate_es_systems(base_path: Path | None = None, output_path: Path = ES_SYSTEMS_TMP):
+    """Rebuild es_systems.cfg from the (layered) systems_config YAML tree."""
+    yaml_files = _system_yaml_files(base_path)
 
     _logger.info("Begin generating %s", output_path)
 
@@ -92,60 +107,52 @@ def generate_es_systems(base_path: Path = SYSTEMS_CONF_DIR, output_path: Path = 
     (ES_SYSTEMS_CFG.exists() or ES_SYSTEMS_CFG.is_symlink()):
         ES_SYSTEMS_CFG.unlink()
 
-    base_dir: str = str(base_path)
     output_cfg_file: str = str(output_path)
 
     root = ET.Element("systemList")
 
-    # Force the path to a plain string to avoid linter false positives on iteration
-    safe_base_dir = os.fspath(base_dir)
-    for root_dir, _, files in os.walk(safe_base_dir):
-        for file in files:
-            if not file.endswith(".yaml") or file == "defaults.yml":
+    for yaml_path in yaml_files:
+        try:
+            with open(yaml_path, 'r', encoding='utf-8') as f:
+                data = yaml.safe_load(f)
+        except (ScannerError, ParserError) as e:
+            _logger.error("YAML syntax error while reading %s: %s", yaml_path, e)
+            continue
+
+        if not isinstance(data, dict) or not data:
+            continue
+
+        sys_name, sys_content = next(iter(data.items()))
+
+        if sys_name.lower() in IGNORED_SYSTEMS:
+            _logger.info(
+                "Skipping '%s' (listed in [core] ignore_systems): %s",
+                sys_name, yaml_path,
+            )
+            continue
+
+        system_elem = ET.SubElement(root, "system")
+        name_elem = ET.SubElement(system_elem, "name")
+        name_elem.text = sys_name
+        if "path" not in sys_content:
+            sys_content["path"] = str(Path(f"{ROMS}/{sys_name}"))
+
+        # Ensure the 'command' field is present if it's missing from the YAML
+        if "command" not in sys_content:
+            sys_content["command"] = " ".join(DEFAULT_COMMAND)
+
+        for key, value in sys_content.items():
+            if key == "name":
                 continue
 
-            yaml_path = os.path.join(root_dir, file)
-            try:
-                with open(yaml_path, 'r', encoding='utf-8') as f:
-                    data = yaml.safe_load(f)
-            except (ScannerError, ParserError) as e:
-                _logger.error("YAML syntax error while reading %s: %s", yaml_path, e)
-                continue
+            child_elem = ET.SubElement(system_elem, key)
 
-            if not isinstance(data, dict) or not data:
-                continue
-
-            sys_name, sys_content = next(iter(data.items()))
-
-            if sys_name.lower() in IGNORED_SYSTEMS:
-                _logger.info(
-                    "Skipping '%s' (listed in [core] ignore_systems): %s",
-                    sys_name, yaml_path,
-                )
-                continue
-
-            system_elem = ET.SubElement(root, "system")
-            name_elem = ET.SubElement(system_elem, "name")
-            name_elem.text = sys_name
-            if "path" not in sys_content:
-                sys_content["path"] = str(Path(f"{ROMS}/{sys_name}"))
-
-            # Ensure the 'command' field is present if it's missing from the YAML
-            if "command" not in sys_content:
-                sys_content["command"] = " ".join(DEFAULT_COMMAND)
-
-            for key, value in sys_content.items():
-                if key == "name":
-                    continue
-
-                child_elem = ET.SubElement(system_elem, key)
-
-                if key in ["platform", "extension"]:
-                    child_elem.text = " ".join(value) if isinstance(value, list) else str(value)
-                elif key == "emulators":
-                    _append_emulator_nodes(child_elem, value)
-                else:
-                    child_elem.text = str(value) if value is not None else ""
+            if key in ["platform", "extension"]:
+                child_elem.text = " ".join(value) if isinstance(value, list) else str(value)
+            elif key == "emulators":
+                _append_emulator_nodes(child_elem, value)
+            else:
+                child_elem.text = str(value) if value is not None else ""
 
     rough_string = ET.tostring(root, 'utf-8')
     reparsed = minidom.parseString(rough_string)

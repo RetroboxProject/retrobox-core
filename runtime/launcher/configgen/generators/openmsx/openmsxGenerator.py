@@ -12,7 +12,6 @@ from .openmsxPaths import _OPENMSX_INST, _OPENMSX_CFGDIR
 from runtime.paths import (
     BIOS,
     SCREENSHOTS,
-    USERDATA,
     mkdir_if_not_exists
 )
 
@@ -102,7 +101,7 @@ class OpenmsxGenerator(Generator):
             # set the screenshot
             file.write("\n")
             file.write("# -= Screenshots =-\n")
-            file.write('bind F5 {screenshot [utils::get_next_numbered_filename ' + f"{USERDATA}" + '/screenshots/openmsx "[guess_title] " ".png"]}\n')
+            file.write('bind F5 {screenshot [utils::get_next_numbered_filename ' + f"{SCREENSHOTS}" + '/openmsx "[guess_title] " ".png"]}\n')
             # setup the controller
             file.write("\n")
             file.write("# -= Controller config =-\n")

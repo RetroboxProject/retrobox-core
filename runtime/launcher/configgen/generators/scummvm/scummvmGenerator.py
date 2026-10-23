@@ -8,7 +8,7 @@ from runtime.launcher.configgen import Command
 from runtime.launcher.configgen.controller import Controller, generate_sdl_game_controller_config
 from runtime.launcher.configgen.generators.Generator import Generator
 from runtime.launcher.configgen.generators.scummvm.scummvm_paths import _SCUMMVM_EXTRA, _SCUMMVM_SAVES, _SCUMMVM_XDG, SCUMMVM_CFG
-from runtime.paths import CACHE, SCREENSHOTS, USERDATA, ensure_parents_and_open, mkdir_if_not_exists
+from runtime.paths import CACHE, LOGS, SCREENSHOTS, ensure_parents_and_open, mkdir_if_not_exists
 from runtime.launcher.configgen.utils.configparser import CaseSensitiveConfigParser
 
 if TYPE_CHECKING:
@@ -93,7 +93,7 @@ class ScummVMGenerator(Generator):
             commandArray.extend(["-q", f"{language}"])
 
         # logging
-        commandArray.append(f"--logfile={USERDATA}/logs/scummvm.log")
+        commandArray.append(f"--logfile={LOGS}/scummvm.log")
 
         commandArray.extend(
             [f"--joystick={id}",

@@ -20,7 +20,7 @@ from typing import TYPE_CHECKING, TypedDict, cast
 import tomlkit
 
 from ... import Command
-from runtime.paths import EMULATORS, ROMS, BIOS, SAVES, SCREENSHOTS, mkdir_if_not_exists
+from runtime.paths import EMULATORS_CONFIG, ROMS, BIOS, SAVES, SCREENSHOTS, mkdir_if_not_exists
 from ...controller import write_sdl_controller_db
 from ..Generator import Generator
 
@@ -134,7 +134,7 @@ class YmirGenerator(Generator):
 
     def generate(self, system, rom, playersControllers, metadata, guns, wheels, gameResolution):
         # Set the paths using Path objects
-        configPath = EMULATORS / "ymir"
+        configPath = EMULATORS_CONFIG / "ymir"
         toml_file = configPath / "Ymir.toml"
         savesPath = Path(f"{SAVES}/ymir")
         backupPath = savesPath / "backup"

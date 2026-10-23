@@ -4,9 +4,9 @@
 # there's no shebang and no `set -euo pipefail` here: those would leak into
 # whatever sources this file. Callers are expected to check return codes.
 # Exposes:
-# is_setup_done              -> 0 if the marker file exists, 1 otherwise
-# full_setup                 -> runs platform setup + git submodules, then
-#                               writes the marker
+# full_setup                 -> runs platform setup + git submodules (only
+#                               needed for a git checkout: packages and
+#                               install.sh bring their own dependencies)
 # setup_emulator <name>      -> builds setup/emulators/<name>.sh from
 #                               source, auto-detecting which flag it wants
 # list_available_emulators   -> prints every setup/emulators/*.sh found,
@@ -32,8 +32,6 @@ RETROBOX_ROOTDIR="$(cd "${SETUP_DIR}/.." >/dev/null 2>&1 && pwd -P)"
 
 # shellcheck source=lib/log.sh
 source "${SETUP_DIR}/lib/log.sh"
-
-readonly SETUP_MARKER="${RETROBOX_ROOTDIR}/.retrobox_setup_done"
 
 # ---------------------------------------------------------------------------
 # Flag detection.
@@ -251,28 +249,15 @@ function list_available_bezels() {
     _list_available_installers "${SETUP_DIR}/decorations" "bezel"
 }
 
-function mark_setup_done() {
-    local family="$1"
-    {
-        echo "distro_family=${family}"
-        echo "date=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-    } > "${SETUP_MARKER}"
-}
-
-function is_setup_done() {
-    [[ -f "${SETUP_MARKER}" ]]
-}
-
 function full_setup() {
     local family status=0
     family="$(detect_distro_family)"
     run_platform_setup "${family}" || status=1
     init_submodules || status=1
     if [[ "${status}" -eq 0 ]]; then
-        mark_setup_done "${family}"
         log_ok "Retrobox setup complete."
     else
-        log_err "Retrobox setup finished with errors — not marking it as done."
+        log_err "Retrobox setup finished with errors."
     fi
     return "${status}"
 }

@@ -5,6 +5,6 @@ then
     export DISPLAY=$(getLocalXDisplay)
 fi
 
-"${USERDATA}/resources/emulatorlauncher/emulatorlauncher.sh" -system wiiu -emulator cemu -rom config
+"${RETROBOX_ROOTDIR}/resources/emulatorlauncher/emulatorlauncher.sh" -system wiiu -emulator cemu -rom config
 
 exit 0

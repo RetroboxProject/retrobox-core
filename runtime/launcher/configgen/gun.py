@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, ClassVar, Final, cast
 
-from runtime.paths import EMULATORS, RESOURCES_DIR, SAVES, mkdir_if_not_exists
+from runtime.paths import EMULATORS_CONFIG, RESOURCES_DIR, SAVES, mkdir_if_not_exists
 
 if TYPE_CHECKING:
     from .Emulator import Emulator
@@ -186,7 +186,7 @@ class Gun:
             elif system.name == 'namco2x6':  # noqa: SIM102
                 if emulator == 'play':
                     src = dir / 'play' / rom.stem
-                    dst = EMULATORS / 'play' / 'Play Data Files' / 'arcadesaves' / f'{rom.stem}.backupram'
+                    dst = EMULATORS_CONFIG / 'play' / 'Play Data Files' / 'arcadesaves' / f'{rom.stem}.backupram'
                     _copy_file(src, dst)
 
         return cls.get_all()

@@ -1,0 +1,24 @@
+Package: retrobox
+Version: @VERSION@
+Section: games
+Priority: optional
+Architecture: amd64
+Installed-Size: @INSTALLED_SIZE@
+Maintainer: Manu Romero <manu4.2012@gmail.com>
+Homepage: https://github.com/manu-romero-411/retrobox-core
+Depends: @DEPENDS@
+Recommends: @RECOMMENDS@
+Suggests: kscreen
+Description: Retrobox core: batocera-style backend for a Linux desktop
+ Port of the batocera backend stack (batocera-configgen) to a standard
+ Linux desktop. Writes emulator configuration automatically on game launch
+ and handles bezels, shaders and gamepad auto-configuration, to be used
+ with a compiled batocera-emulationstation frontend.
+ .
+ This package installs the project under /opt/retrobox (read-only) and an
+ optional system-wide configuration layer in /etc/retrobox. User data
+ (ROMs, saves, BIOS) lives in ~/.local/share/retrobox and user settings in
+ ~/.config/retrobox, never in /opt/retrobox.
+ .
+ It does not include the EmulationStation frontend binary, the patched
+ MangoHud build or any emulator: install them separately.

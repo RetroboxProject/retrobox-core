@@ -1,0 +1,30 @@
+# Runtime dependencies for Debian, Ubuntu and derivatives (apt package names).
+# Single source: setup-debian.sh installs them, the .deb's Depends is built
+# from them and install.sh uses them. One package per line; "a | b" = either.
+python3
+python3-yaml
+python3-pyudev
+python3-sdl2
+python3-pil
+python3-qrcode
+python3-evdev
+python3-pygame
+python3-ruamel.yaml
+python3-tomlkit
+python3-requests
+python3-typing-extensions
+python3-venv
+libfreeimage3
+libsdl2-2.0-0
+libsdl2-mixer-2.0-0
+libvlc5
+libice6
+libsm6
+libxtst6
+libxi6
+libnotify-bin
+inotify-tools
+jq
+unzip
+wget
+7zip | p7zip-full

@@ -67,6 +67,13 @@ BATOCERA_API_DIR_URL="https://api.github.com/repos/batocera-linux/batocera.linux
 
 PREFIX="${RETROBOX_ROOT}/resources/mangohud"
 PACKAGE_STATE_DIR="${RETROBOX_ROOT}/setup/.packages/utils/mangohud"
+
+# MangoHud is installed inside the Retrobox install tree (where the
+# retrobox-mangohud package puts it), so this needs write access to it.
+if [[ ! -w "${RETROBOX_ROOT}/resources" || ! -w "${RETROBOX_ROOT}/setup" ]]; then
+    echo "[ERR ] ${RETROBOX_ROOT} is not writable by this user. Run: sudo retrobox --setup-util mangohud" >&2
+    exit 1
+fi
 MANIFEST_FILE="${PACKAGE_STATE_DIR}/mangohud.manifest"
 VERSION_FILE="${PACKAGE_STATE_DIR}/mangohud.version"
 

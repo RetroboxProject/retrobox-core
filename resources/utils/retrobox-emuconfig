@@ -1,3 +1,3 @@
 #!/bin/bash
 
-exec "${USERDATA}/resources/emuconfig_scripts/batocera-config-$(cat "$1")"
+exec "${RETROBOX_ROOTDIR}/resources/emuconfig_scripts/batocera-config-$(cat "$1")"

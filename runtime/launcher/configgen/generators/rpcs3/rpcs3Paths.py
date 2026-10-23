@@ -3,11 +3,11 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Final
 
-from runtime.paths import EMULATORS
+from runtime.paths import EMULATORS, EMULATORS_CONFIG
 
 
 _RPCS3_DIR: Final = EMULATORS / 'rpcs3'
-_RPCS3_XDG: Final = _RPCS3_DIR / 'configs'
+_RPCS3_XDG: Final = EMULATORS_CONFIG / 'rpcs3'
 _RPCS3_CFGDIR: Final = _RPCS3_XDG / 'rpcs3'
 RPCS3_CONFIG: Final = _RPCS3_CFGDIR / 'config.yml'
 RPCS3_CURRENT_CONFIG: Final = _RPCS3_CFGDIR / 'GuiConfigs' / 'CurrentSettings.ini'

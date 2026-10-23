@@ -7,4 +7,4 @@ else
     export DISPLAY=$(getLocalXDisplay)
 fi
 
-exec "${USERDATA}/resources/emulatorlauncher/emulatorlauncher.sh" -system model2 -rom config
+exec "${RETROBOX_ROOTDIR}/resources/emulatorlauncher/emulatorlauncher.sh" -system model2 -rom config

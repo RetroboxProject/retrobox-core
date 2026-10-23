@@ -13,6 +13,7 @@ from __future__ import annotations
 import configparser
 import os
 import shutil
+import sys
 import time
 from contextlib import contextmanager
 from pathlib import Path
@@ -51,40 +52,42 @@ def check_env_dirs(variable: str, default_dir: Path) -> Path:
 
 
 # ---------------------------------------------------------------------------
-# retrobox.ini: bootstrap, auto-generation and self-healing
+# retrobox.ini: layered, read-only configuration
 #
-# Three sections with distinct contracts:
-#   [core]    -> Core behavior flags: autocorrect_paths, ignore_systems.
-#   [paths]   -> Keys managed by this module (roms_dir, saves_dir,
-#                bios_dir). Always present. If autocorrect_paths is true,
-#                they are guaranteed to be valid directories (auto-healed
-#                if missing or invalid). Read directly via get_configured_path().
-#   [environ] -> Literal dump to os.environ (API keys, STEAM_LIBRARY_DIR,
-#                etc.). No validation or self-healing: whatever is written
-#                there is respected as-is, case included (these become
-#                actual environment variable names).
+# Retrobox never writes retrobox.ini. Every setting has a default in code;
+# the file only holds what somebody wants to change. It is read from two
+# places, the later one overriding the earlier one key by key:
 #
-# [core] and [paths] key names are lowercase by convention (they're our
-# own parameters, not env var names). Older retrobox.ini files that still
-# have them UPPERCASE are transparently migrated to lowercase the first
-# time they're loaded -- see _normalize_section_keys().
+#   1. /etc/retrobox/retrobox.ini        + retrobox.ini.d/*.ini   (system-wide)
+#   2. ~/.config/retrobox/retrobox.ini   + retrobox.ini.d/*.ini   (per user)
+#
+# Inside each place the main file is read first, then the drop-ins in
+# alphabetical order, so `retrobox.ini.d/50-mypaths.ini` beats retrobox.ini.
+#
+# Sections:
+#   [core]    -> autocorrect_paths, ignore_systems, ...
+#   [paths]   -> roms_dir, saves_dir, bios_dir. If autocorrect_paths is true
+#                (default) an unset or invalid path falls back to its default
+#                directory, which is created. If false, nothing is created and
+#                the value is used as written.
+#   [environ] -> Literal dump to os.environ (API keys, STEAM_LIBRARY_DIR...).
+#                No validation; key case is respected (they are real variable
+#                names). Variables already set in the environment win.
+#   [advanced] and any other section are available through get_ini_value().
+#
+# [core] and [paths] key names are matched case-insensitively (older files
+# used UPPERCASE); the file itself is never rewritten.
 # ---------------------------------------------------------------------------
 
-# Path keys that retrobox.ini must always have, with their default
-# subdirectory relative to RETROBOX_ROOTDIR (never a fixed absolute path:
-# resolved at runtime against "rootdir").
+# Default subdirectory (relative to DATA_DIR) of each [paths] key.
 _PATH_DEFAULTS: Final[dict[str, str]] = {
     "roms_dir": "roms",
     "saves_dir": "saves",
     "bios_dir": "bios",
 }
 
-# [core] keys that aren't paths (no auto-healing/directory creation),
-# with their default value if missing.
-_CORE_DEFAULTS: Final[dict[str, str]] = {
-    "autocorrect_paths": "true",
-    "ignore_systems": "",
-}
+_CASE_INSENSITIVE_SECTIONS: Final[tuple[str, ...]] = ("core", "paths")
+_TRUE_VALUES: Final[frozenset[str]] = frozenset({"true", "1", "yes", "on"})
 
 
 class CaseSensitiveConfigParser(configparser.ConfigParser):
@@ -103,262 +106,246 @@ class CaseSensitiveConfigParser(configparser.ConfigParser):
         return optionstr
 
 
-def _default_path_value(rootdir: Path, subdir: str) -> str:
-    """
-    Compute the default absolute path for a given subdirectory.
-
-    Args:
-        rootdir: The base root directory.
-        subdir: The subdirectory name relative to rootdir.
-
-    Returns:
-        The resolved absolute path as a string.
-    """
-    return str((rootdir / subdir).resolve())
-
-
-def _normalize_section_keys(
-    config: CaseSensitiveConfigParser, section: str, canonical_keys: "Iterable[str]"
-) -> bool:
-    """
-    Rename any keys in `section` that case-insensitively match one of
-    `canonical_keys` to their canonical (lowercase) spelling.
-
-    [core] and [paths] key names used to be UPPERCASE (e.g. ROMS_DIR,
-    AUTOCORRECT_PATHS); they're now lowercase (roms_dir,
-    autocorrect_paths). This keeps older retrobox.ini files working by
-    renaming the key in place -- the value is preserved, only the key
-    spelling changes. Unrelated to [environ], which is never touched
-    (its keys are real environment variable names and keep whatever
-    case the user wrote).
-
-    Args:
-        config: The loaded ConfigParser.
-        section: Section name to normalize ("core" or "paths").
-        canonical_keys: The lowercase key names to normalize towards.
-
-    Returns:
-        True if any key was renamed (i.e. the ini needs to be rewritten).
-    """
-    changed = False
-    lookup = {k.lower(): k for k in canonical_keys}
-
-    for existing_key in list(config[section].keys()):
-        canonical = lookup.get(existing_key.lower())
-        if canonical and existing_key != canonical:
-            value = config.get(section, existing_key)
-            config.remove_option(section, existing_key)
-            config.set(section, canonical, value)
-            changed = True
-
-    return changed
+def _ini_files(*layer_dirs: Path) -> list[Path]:
+    """List the ini files of each layer, lowest priority first."""
+    files: list[Path] = []
+    for layer in layer_dirs:
+        main = layer / "retrobox.ini"
+        if main.is_file():
+            files.append(main)
+        dropin_dir = layer / "retrobox.ini.d"
+        try:
+            files.extend(sorted(p for p in dropin_dir.glob("*.ini") if p.is_file()))
+        except OSError:
+            pass
+    return files
 
 
-def _ensure_retrobox_ini(rootdir: Path, ini_path: Path) -> CaseSensitiveConfigParser:
-    """
-    Load retrobox.ini (if it exists) and guarantee that the [paths] section
-    behaves according to the [core] autocorrect_paths flag.
-
-    - If the .ini does not exist yet (first boot), it is created with
-      autocorrect_paths=true, ignore_systems empty, and the three path
-      keys pointing to their defaults (absolute paths, resolved against
-      rootdir).
-    - Any [core]/[paths] key still spelled UPPERCASE from an older
-      retrobox.ini (e.g. ROMS_DIR, AUTOCORRECT_PATHS) is renamed in
-      place to its current lowercase spelling, preserving its value.
-    - If autocorrect_paths is true and a path key is missing, empty, or
-      points to a non-existent/unreadable directory, it is replaced with
-      the default path and that default folder is created.
-    - If autocorrect_paths is false, invalid or missing paths are left
-      exactly as they are in the file, without creating directories or
-      overwriting the user's configuration.
-    - The [environ] section is left as-is: its contents (including key
-      case) are not validated or repaired here, only dumped literally
-      into os.environ by _bootstrap_env().
-
-    The file is rewritten to disk only if something has changed.
-
-    Args:
-        rootdir: The base root directory for resolving default paths.
-        ini_path: The path to the retrobox.ini file.
-
-    Returns:
-        The loaded and potentially repaired ConfigParser instance.
-    """
-    config = CaseSensitiveConfigParser()
-
-    if ini_path.is_file():
-        config.read(ini_path)
-
-    changed = not ini_path.is_file()
-
-    # Ensure all required sections exist
+def _load_layered_ini(files: "Iterable[Path]") -> CaseSensitiveConfigParser:
+    """Merge `files` (in order) into a single parser. Never touches the disk."""
+    merged = CaseSensitiveConfigParser(interpolation=None)
+    for path in files:
+        parser = CaseSensitiveConfigParser(interpolation=None)
+        try:
+            parser.read(path, encoding="utf-8")
+        except (configparser.Error, OSError, UnicodeDecodeError) as exc:
+            # A broken drop-in must not take the whole program down.
+            print(f"retrobox: ignoring unreadable config {path}: {str(exc).splitlines()[0]}", file=sys.stderr)
+            continue
+        for section in parser.sections():
+            if not merged.has_section(section):
+                merged.add_section(section)
+            for key, value in parser.items(section):
+                if section in _CASE_INSENSITIVE_SECTIONS:
+                    # Drop any spelling of the key set by a lower layer.
+                    for existing in [k for k in merged[section] if k.lower() == key.lower()]:
+                        merged.remove_option(section, existing)
+                    key = key.lower()
+                merged.set(section, key, value)
     for section in ("core", "paths", "environ"):
-        if not config.has_section(section):
-            config.add_section(section)
-            changed = True
-
-    # Migrate any leftover UPPERCASE keys from older retrobox.ini files to
-    # their current lowercase spelling. [environ] is intentionally left
-    # alone -- its keys are real environment variable names.
-    if _normalize_section_keys(config, "core", _CORE_DEFAULTS.keys()):
-        changed = True
-    if _normalize_section_keys(config, "paths", _PATH_DEFAULTS.keys()):
-        changed = True
-
-    # Determine if autocorrection is enabled (default to True for backward compatibility)
-    autocorrect_raw = config.get("core", "autocorrect_paths", fallback="true").strip().lower()
-    autocorrect = autocorrect_raw in ("true", "1", "yes", "on")
-
-    # Fill in any missing [core] keys (autocorrect_paths, ignore_systems)
-    # with their defaults, without touching keys that are already set.
-    for key, default_value in _CORE_DEFAULTS.items():
-        if key not in config["core"]:
-            config.set("core", key, default_value)
-            changed = True
-
-    for key, subdir in _PATH_DEFAULTS.items():
-        current = config.get("paths", key, fallback="").strip()
-        valid = bool(current) and Path(current).is_dir() and os.access(current, os.R_OK)
-
-        if not valid:
-            if autocorrect:
-                default_value = _default_path_value(rootdir, subdir)
-                # Ensure the default path actually exists on disk, so that
-                # whoever reads it later (get_configured_path) finds it available.
-                Path(default_value).mkdir(parents=True, exist_ok=True)
-                config.set("paths", key, default_value)
-                changed = True
-            else:
-                # Autocorrect is disabled: do not overwrite the invalid/missing path
-                # and do not create the directory. Leave it as the user specified (or empty).
-                pass
-
-    if changed:
-        ini_path.parent.mkdir(parents=True, exist_ok=True)
-        with ini_path.open("w", encoding="utf-8") as f:
-            config.write(f)
-
-    return config
+        if not merged.has_section(section):
+            merged.add_section(section)
+    return merged
 
 
-def _bootstrap_env(rootdir: Path) -> CaseSensitiveConfigParser:
+def _bootstrap_env(config: CaseSensitiveConfigParser) -> None:
     """
-    Bootstrap environment variables from retrobox.ini.
-
-    Lives here (and not in startup/env_handling.py) because it must run
-    BEFORE the Final constants of this package are computed, and we no
-    longer want to depend on whoever imports us remembering to call it
-    in the correct order on their own.
-
-    Only [environ] is dumped into os.environ. [paths] is left in the
-    returned ConfigParser, which get_configured_path() queries directly:
-    managed paths never reach environ.
-
-    Args:
-        rootdir: The base root directory.
-
-    Returns:
-        The parsed ConfigParser instance.
+    Dump [environ] into os.environ. Must run BEFORE the Final constants of
+    this package are computed, because they may be overridden from there.
     """
-    config = _ensure_retrobox_ini(rootdir, rootdir / "retrobox.ini")
     for key, value in config.items("environ"):
         value = value.strip()
-        # An empty value is interpreted as "undefined": it falls back to
-        # the default of whoever consumes it instead of overwriting with "".
+        # An empty value means "undefined": fall back to the consumer's
+        # default instead of overwriting with "".
         if key and value:
             os.environ.setdefault(key, value)
-    return config
+
+
+def _autocorrect() -> bool:
+    raw = _PATHS_CONFIG.get("core", "autocorrect_paths", fallback="true")
+    return raw.strip().lower() in _TRUE_VALUES
 
 
 def get_configured_path(key: str, default: Path) -> Path:
     """
-    Read `key` from the [paths] section of retrobox.ini, already validated
-    (or intentionally left as-is if autocorrect_paths=false) by 
-    _ensure_retrobox_ini during bootstrap.
+    Resolve a [paths] entry of retrobox.ini.
 
-    Does not touch os.environ or disk: it's a simple read from the
-    in-memory ConfigParser. If the key is missing or empty, it falls 
-    back to `default`.
-
-    Args:
-        key: The path key to retrieve (e.g., "roms_dir").
-        default: The fallback Path if the key is missing or empty.
-
-    Returns:
-        The configured Path.
+    With autocorrect_paths=true (default): the configured value is used if it
+    is a readable directory, otherwise `default` is used and created.
+    With autocorrect_paths=false: the configured value is returned as
+    written (even if missing); `default` only when nothing is configured.
     """
-    value = _PATHS_CONFIG.get("paths", key, fallback="").strip()
+    value = os.path.expandvars(_PATHS_CONFIG.get("paths", key, fallback="").strip())
+    value = os.path.expanduser(value)
+    if _autocorrect():
+        if value and Path(value).is_dir() and os.access(value, os.R_OK):
+            return Path(value)
+        try:
+            default.mkdir(parents=True, exist_ok=True)
+        except OSError:
+            pass
+        return default
     return Path(value) if value else default
 
 
 def get_ignored_systems() -> frozenset[str]:
     """
-    Read the [core] ignore_systems key from retrobox.ini.
-
-    ignore_systems is a comma-separated list of system names (matching
-    the top-level key used in each resources/systems_config/.../*.yaml
-    file, e.g. "gba", "psp") that should be skipped when generating
-    es_systems.cfg.
-
-    Does not touch os.environ or disk: like get_configured_path(), it's
-    a simple read from the in-memory ConfigParser already bootstrapped
-    by _ensure_retrobox_ini.
-
-    Returns:
-        A frozenset of lowercased, whitespace-stripped system names.
-        Empty if the key is missing or blank.
+    Read [core] ignore_systems: a comma-separated list of system names
+    (the top-level key of each systems_config *.yaml, e.g. "gba", "psp")
+    that are skipped when generating es_systems.cfg.
     """
     raw = _PATHS_CONFIG.get("core", "ignore_systems", fallback="")
     return frozenset(name.strip().lower() for name in raw.split(",") if name.strip())
 
 
+def get_ini_value(section: str, key: str, default: str = "") -> str:
+    """Read any value of the merged retrobox.ini (stripped)."""
+    if section in _CASE_INSENSITIVE_SECTIONS:
+        key = key.lower()
+    return _PATHS_CONFIG.get(section, key, fallback=default).strip()
+
+
 # ---------------------------------------------------------------------------
-# Bootstrap: retrobox.ini must be applied BEFORE computing any Final
-# constants in this package (here and in _configgen.py / _frontend.py /
-# _gamepadly.py, which import RETROBOX_ROOTDIR / RESOURCES_DIR / USERDATA
-# from here). By living in the package's own import, it no longer depends
-# on retrobox_run.py (or any future entrypoint) remembering to call it in
-# the correct order before importing retrobox_paths.
+# Installation layout: system side vs user side
+#
+# RETROBOX_ROOTDIR is where the project's code and bundled resources live
+# (a git checkout, /opt/retrobox from the .deb, the prefix install.sh was
+# given...). It is read-only: nothing is ever written there.
+#
+# The configuration is layered. Each layer mirrors the directory structure of
+# resources/ (systems_config/, emu_features/, hooks/...) and a file in a later
+# layer replaces the same file of an earlier one:
+#
+#   1. $RETROBOX_ROOTDIR/resources     shipped defaults (read-only)
+#   2. /etc/retrobox                   administrator's overrides (optional)
+#   3. ~/.config/retrobox              user's overrides (optional)
+#
+# What the user (or the program) writes lives in XDG directories, the same
+# ones whichever way Retrobox was installed:
+#
+#   CONFIG_DIR  ~/.config/retrobox     retrobox.ini(.d), overrides of
+#                                      resources/, .env, emulators/<emu>/ (each
+#                                      emulator's XDG_CONFIG_HOME), the
+#                                      EmulationStation home, pad2key profiles
+#   DATA_DIR    ~/.local/share/retrobox  roms, saves, bios, themes, bezels,
+#                                      shaders, menu music, emulators (the
+#                                      binaries), screenshots, recordings...
+#   STATE_DIR   ~/.local/state/retrobox  logs, installer manifests
+#
+# (~/.config, ~/.local/share and ~/.local/state when the XDG variables are
+# unset.) Each one can be moved with RETROBOX_CONFIGDIR / RETROBOX_DATADIR /
+# RETROBOX_STATEDIR, and /etc/retrobox with RETROBOX_SYSCONFDIR. The big
+# content directories (roms, saves, bios) can be moved on their own from the
+# [paths] section of retrobox.ini.
+#
+# The resolved values are exported back to os.environ (see _env.py) so child
+# processes (emulatorlauncher, shell scripts, hooks) see exactly the same
+# directories, and `python3 -m runtime.paths --shell` hands them to the bash
+# installers: this module is the single source of truth.
 # ---------------------------------------------------------------------------
 _ROOTDIR_GUESS: Final[Path] = Path(__file__).resolve().parents[2]
-_PATHS_CONFIG: Final[CaseSensitiveConfigParser] = _bootstrap_env(
-    Path(os.environ.get("RETROBOX_ROOTDIR", str(_ROOTDIR_GUESS)))
-)
+RETROBOX_ROOTDIR: Final[Path] = check_env_dirs("RETROBOX_ROOTDIR", _ROOTDIR_GUESS)
 
 # XDG Helpers
 _USER_HOME: Final[Path] = Path.home()
 _XDG_DATA: Final[Path] = Path.home() / ".local" / "share"
 _XDG_CACHE: Final[Path] = Path.home() / ".cache"
 _XDG_CONFIG: Final[Path] = Path.home() / ".config"
+_XDG_STATE: Final[Path] = Path.home() / ".local" / "state"
 _SYSTEM_LOCAL_BIN: Final[Path] = Path("/usr/local/bin")
 _SYSTEM_LOCAL_SHARE: Final[Path] = Path("/usr/local/share")
 
-# ---------------------------------------------------------------------------
-# System installation paths (same as in batocera)
-# ---------------------------------------------------------------------------
-RETROBOX_ROOTDIR: Final[Path] = check_env_dirs("RETROBOX_ROOTDIR", _ROOTDIR_GUESS)
 
-USERDATA: Final[Path] = RETROBOX_ROOTDIR
+def _resolve_dir(override: str, xdg_var: str, xdg_fallback: Path) -> Path:
+    """Resolve one mutable directory: explicit override > $XDG_* > default."""
+    value = os.environ.get(override, "").strip()
+    if value:
+        return Path(value)
+    xdg = os.environ.get(xdg_var, "").strip()
+    base = Path(xdg) if xdg and os.path.isabs(xdg) else xdg_fallback
+    return base / "retrobox"
 
-ENV_FILE: Final[Path] = RETROBOX_ROOTDIR / ".env"
-RETROBOX_INI: Final[Path] = RETROBOX_ROOTDIR / "retrobox.ini"
+
+SYSCONF_DIR: Final[Path] = Path(os.environ.get("RETROBOX_SYSCONFDIR", "").strip() or "/etc/retrobox")
+CONFIG_DIR: Final[Path] = _resolve_dir("RETROBOX_CONFIGDIR", "XDG_CONFIG_HOME", _XDG_CONFIG)
+DATA_DIR: Final[Path] = _resolve_dir("RETROBOX_DATADIR", "XDG_DATA_HOME", _XDG_DATA)
+STATE_DIR: Final[Path] = _resolve_dir("RETROBOX_STATEDIR", "XDG_STATE_HOME", _XDG_STATE)
+
+# Make sure the mutable directories exist. A failure here must not break
+# the import: whoever needs the directory will report a meaningful error
+# when it tries to use it.
+for _dir in (CONFIG_DIR, DATA_DIR, STATE_DIR):
+    try:
+        _dir.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        pass
 
 RESOURCES_DIR: Final[Path] = RETROBOX_ROOTDIR / "resources"
+
+# Layers, lowest priority first (see above).
+CONFIG_LAYERS: Final[tuple[Path, ...]] = (RESOURCES_DIR, SYSCONF_DIR, CONFIG_DIR)
+
+
+def layered_dirs(subdir: str) -> list[Path]:
+    """The existing `subdir` of every layer, lowest priority first."""
+    return [d for d in (layer / subdir for layer in CONFIG_LAYERS) if d.is_dir()]
+
+
+def layered_file(relpath: str) -> Path | None:
+    """The highest-priority existing file `relpath`, or None."""
+    for layer in reversed(CONFIG_LAYERS):
+        candidate = layer / relpath
+        if candidate.is_file():
+            return candidate
+    return None
+
+
+def layered_files(subdir: str, pattern: str = "*") -> dict[str, Path]:
+    """
+    Merge the files matching `pattern` under `subdir` (recursively) across
+    layers: {relative path -> file}, where a later layer replaces an earlier
+    one's file of the same relative path. Sorted by relative path.
+    """
+    found: dict[str, Path] = {}
+    for base in layered_dirs(subdir):
+        for path in base.rglob(pattern):
+            if path.is_file():
+                found[path.relative_to(base).as_posix()] = path
+    return dict(sorted(found.items()))
+
+
+# ---------------------------------------------------------------------------
+# Bootstrap: retrobox.ini must be applied BEFORE computing any Final
+# constants that may be overridden through its [environ] section (here and
+# in _configgen.py / _frontend.py / _gamepadly.py, which import
+# RETROBOX_ROOTDIR / RESOURCES_DIR / DATA_DIR from here).
+# ---------------------------------------------------------------------------
+_PATHS_CONFIG: Final[CaseSensitiveConfigParser] = _load_layered_ini(
+    _ini_files(SYSCONF_DIR, CONFIG_DIR)
+)
+_bootstrap_env(_PATHS_CONFIG)
+
+# ---------------------------------------------------------------------------
+# Installation paths (same as in batocera)
+# ---------------------------------------------------------------------------
+ENV_FILE: Final[Path] = CONFIG_DIR / ".env"
+RETROBOX_INI: Final[Path] = CONFIG_DIR / "retrobox.ini"  # the user's file; may not exist
+
 DATAINIT_DIR: Final[Path] = RESOURCES_DIR / "datainit"
 DEFAULTS_DIR: Final[Path] = RESOURCES_DIR / "configgen"
 
 HOME_INIT: Final[Path] = DATAINIT_DIR / "system"
 CONF_INIT: Final[Path] = HOME_INIT / "configs"
-EMULATORS: Final[Path] = USERDATA / "emulators"
-ROMS: Final[Path] = get_configured_path("roms_dir", USERDATA / "roms")
+EMULATORS: Final[Path] = DATA_DIR / "emulators"  # emulator binaries (installers)
+EMULATORS_CONFIG: Final[Path] = CONFIG_DIR / "emulators"  # <emu>/ = its XDG_CONFIG_HOME
+ROMS: Final[Path] = get_configured_path("roms_dir", DATA_DIR / "roms")
 
 IGNORED_SYSTEMS: Final[frozenset[str]] = get_ignored_systems()
 
 CACHE: Final[Path] = _XDG_CACHE / "retrobox"
-LOGS: Final[Path] = USERDATA / "logs"
+LOGS: Final[Path] = STATE_DIR / "logs"
 
-HOOKS: Final[Path] = USERDATA / "resources" / "hooks" / "retrohook"
+HOOKS: Final[Path] = RESOURCES_DIR / "hooks" / "retrohook"
 
 
 # ---------------------------------------------------------------------------

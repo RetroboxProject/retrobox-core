@@ -1,10 +1,10 @@
 
 from typing import Final
 
-from runtime.paths import BIOS, CHEATS, EMULATORS, ROMS, SAVES
+from runtime.paths import BIOS, CHEATS, EMULATORS_CONFIG, ROMS, SAVES
 
-_MELONDS_DIR: Final = EMULATORS / "melonds"
-_MELONDS_XDG: Final = _MELONDS_DIR / "configs"
+_MELONDS_DIR: Final = EMULATORS_CONFIG / "melonds"
+_MELONDS_XDG: Final = _MELONDS_DIR
 _MELONDS_CFGDIR: Final = _MELONDS_XDG / "melonDS"
 _MELONDS_SAVES: Final = SAVES / "nds"
 _MELONDS_ROMS: Final = ROMS / "nds"

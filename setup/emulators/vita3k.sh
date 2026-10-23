@@ -6,8 +6,9 @@ set -eo pipefail
 ## VARIABLES
 
 RETROBOX_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/../.. >/dev/null 2>&1 && pwd -P)"
-INSTALL_DIR="${RETROBOX_ROOT}/emulators/vita3k"
-SRC_DIR="${RETROBOX_ROOT}/emulators/_src"
+source "${RETROBOX_ROOT}/setup/lib/paths.sh"
+INSTALL_DIR="${RETROBOX_EMULATORS_DIR}/vita3k"
+SRC_DIR="${RETROBOX_EMULATORS_DIR}/_src"
 VITA3K_SRC="${SRC_DIR}/Vita3K"
 TMP_DIR="$(mktemp -d)"
 REPO="https://github.com/Vita3K/Vita3K.git"

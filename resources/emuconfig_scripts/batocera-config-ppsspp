@@ -7,4 +7,4 @@ else
      export DISPLAY=$(getLocalXDisplay)
 fi
 
-"${USERDATA}/resources/emulatorlauncher/emulatorlauncher.sh" -system psp -emulator ppsspp -rom config
+"${RETROBOX_ROOTDIR}/resources/emulatorlauncher/emulatorlauncher.sh" -system psp -emulator ppsspp -rom config

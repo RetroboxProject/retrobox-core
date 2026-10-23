@@ -35,7 +35,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import yaml
-from runtime.paths import EMU_FEATURES_DIR
+from runtime.paths import layered_file
 from runtime.utils.features_yaml import load_feature_yaml
 
 if TYPE_CHECKING:
@@ -132,16 +132,23 @@ def parse_core_features(data: Mapping[str, Any]) -> list[CoreFeature]:
     return [feature for feature in features if feature is not None]
 
 
-def _core_yaml_path(core: str, features_dir: Path) -> Path | None:
-    """Find the YAML file of a core: the file name may use "-" where the core uses "_"."""
+def _core_yaml_path(core: str, features_dir: Path | None = None) -> Path | None:
+    """Find the YAML file of a core: the file name may use "-" where the core uses "_".
+
+    Without `features_dir`, the highest-priority configuration layer wins.
+    """
     for stem in (core, core.replace("_", "-")):
-        candidate = features_dir / f"libretro_{stem}.yaml"
-        if candidate.is_file():
-            return candidate
+        name = f"libretro_{stem}.yaml"
+        if features_dir is None:
+            candidate = layered_file(f"emu_features/{name}")
+            if candidate is not None:
+                return candidate
+        elif (features_dir / name).is_file():
+            return features_dir / name
     return None
 
 
-def load_core_features(core: str, features_dir: Path = EMU_FEATURES_DIR) -> list[CoreFeature]:
+def load_core_features(core: str, features_dir: Path | None = None) -> list[CoreFeature]:
     """Load the core option features of a core, or an empty list if it has none."""
     path = _core_yaml_path(core, features_dir)
     if path is None:

@@ -5,7 +5,8 @@ set -o pipefail
 
 ## VARIABLES
 RETROBOX_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/../.. >/dev/null 2>&1 && pwd -P)"
-INSTALL_DIR="${RETROBOX_ROOT}/emulators/eden-emu"
+source "${RETROBOX_ROOT}/setup/lib/paths.sh"
+INSTALL_DIR="${RETROBOX_EMULATORS_DIR}/eden-emu"
 TMP_DIR="$(mktemp -d)"
 REPO_OWNER="eden-emu"
 REPO_NAME="eden"

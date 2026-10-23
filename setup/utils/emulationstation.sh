@@ -47,6 +47,13 @@ RETROBOX_ROOTDIR="$(cd "${SCRIPT_DIR}/../.." >/dev/null 2>&1 && pwd -P)"
 FRONTEND_DIR="${RETROBOX_ROOTDIR}/frontend"
 
 MANIFEST_FILE="${RETROBOX_ROOTDIR}/.retrobox_emulationstation.manifest"
+
+# EmulationStation lives inside the Retrobox install tree (where the
+# retrobox-emulationstation package puts it), so this needs write access to it.
+if [[ ! -w "${FRONTEND_DIR}" || ! -w "${RETROBOX_ROOTDIR}" ]]; then
+    log_err "${RETROBOX_ROOTDIR} is not writable by this user. Run: sudo retrobox --setup-util emulationstation"
+    exit 1
+fi
 VERSION_FILE="${RETROBOX_ROOTDIR}/.retrobox_emulationstation.version"
 
 ES_GIT_URL="https://github.com/batocera-linux/batocera-emulationstation.git"

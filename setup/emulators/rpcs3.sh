@@ -6,7 +6,8 @@ set -eo pipefail
 ## VARIABLES
 
 RETROBOX_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/../.. >/dev/null 2>&1 && pwd -P)"
-INSTALL_DIR="${RETROBOX_ROOT}/emulators/rpcs3"
+source "${RETROBOX_ROOT}/setup/lib/paths.sh"
+INSTALL_DIR="${RETROBOX_EMULATORS_DIR}/rpcs3"
 TMP_DIR="$(mktemp -d)"
 REPO="RPCS3/rpcs3-binaries-linux"
 API_URL="https://api.github.com/repos/$REPO/releases"

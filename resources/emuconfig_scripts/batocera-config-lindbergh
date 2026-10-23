@@ -1,7 +1,7 @@
 #!/bin/bash
 
 EMU_DIR="/usr/bin/lindbergh"
-CONF_BASE="/userdata/system/configs/lindbergh"
+CONF_BASE="${RETROBOX_EMUCONFIG_DIR}/lindbergh"
 CONFIG_INI="$CONF_BASE/lindbergh.ini"
 CONTROLS_INI="$CONF_BASE/controls.ini"
 

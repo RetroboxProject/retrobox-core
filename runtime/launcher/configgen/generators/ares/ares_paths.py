@@ -2,10 +2,10 @@
 
 from pathlib import Path
 
-from runtime.paths import BIOS, EMULATORS, SAVES, SCREENSHOTS
+from runtime.paths import BIOS, EMULATORS, EMULATORS_CONFIG, SAVES, SCREENSHOTS
 
 _ARES_EMUDIR: Path = EMULATORS / "ares"
-_ARES_XDG: Path = _ARES_EMUDIR / "configs"
+_ARES_XDG: Path = EMULATORS_CONFIG / 'ares'
 _ARES_CFGDIR: Path = _ARES_XDG / "ares"
 _ARES_LIBDIR: Path = _ARES_EMUDIR / "lib"
 _ARES_CFG: Path = _ARES_CFGDIR / "settings.bml"

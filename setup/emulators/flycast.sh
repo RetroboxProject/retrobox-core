@@ -10,9 +10,10 @@ set -eo pipefail
 ## VARIABLES
 
 RETROBOX_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/../.. >/dev/null 2>&1 && pwd -P)"
+source "${RETROBOX_ROOT}/setup/lib/paths.sh"
 GITHUB_REPO="flyinghead/flycast"
-INSTALL_DIR="${RETROBOX_ROOT}/emulators/flycast"
-SRC_DIR="${RETROBOX_ROOT}/emulators/_src"
+INSTALL_DIR="${RETROBOX_EMULATORS_DIR}/flycast"
+SRC_DIR="${RETROBOX_EMULATORS_DIR}/_src"
 FLYCAST_SRC="${SRC_DIR}/flycast"
 SOURCE_UPSTREAM="https://github.com/flyinghead/flycast.git"
 ARCH="$(uname -m)"

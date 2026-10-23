@@ -128,8 +128,9 @@ def get_bezel_infos(
     alt_decoration = str(get_alt_decoration(system_name, rom, emulator))
     rom_base = Path(rom).stem  # filename without extension
 
-    # user-provided bezels in $RETROBOX_ROOTDIR/decorations, then the defaults
-    # from RetroBat ($RETROBOX_ROOTDIR/resources/decorations)
+    # user-provided bezels in the bezels dir ($RETROBOX_DATADIR/decorations), then
+    # the RetroBat defaults ($RETROBOX_DATADIR/decorations-default, see
+    # setup/decorations/retrobat-bezels.sh)
     candidates = _candidates_for_root(
         Path(_DECORATIONS_DIR) / bezel, rom_base, system_name, alt_decoration, True
     ) + _candidates_for_root(

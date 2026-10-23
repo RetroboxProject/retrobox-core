@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 # Retrobox entrypoint.
 #
-# On a normal launch, runs the one-time platform setup automatically the
-# first time it's invoked (detecting Debian- vs Fedora-based systems), then
-# starts the frontend. Setup can also be triggered manually:
+# On a normal launch it checks that the essentials are in place (warning,
+# never stopping, if something is missing) and starts the frontend. The
+# install itself is read-only: nothing is written next to this script.
 #
-#   retrobox.sh --setup                     force the platform setup again
+#   retrobox.sh --setup                     install the system dependencies
+#                                            (git checkouts only; packages and
+#                                            install.sh already bring them)
 #   retrobox.sh --setup-emulator <name>      build a single emulator from
 #                                            source (repeatable)
 #   retrobox.sh --setup-emulator             list available emulators
@@ -17,18 +19,8 @@
 #                                            repeated. Called with no name,
 #                                            lists every installer available
 #                                            under setup/music/.
-#   retrobox.sh --bios-check [system...]    check installed RetroArch BIOS
-#                                            files against what the cores
-#                                            need (all systems if none given)
-#   retrobox.sh --bios-fetch [opts] [system...]
-#                                            download missing BIOS files for
-#                                            the given systems straight from
-#                                            the RetroBIOS project, one file
-#                                            at a time (no full repo clone).
-#                                            Run '--bios-fetch --list' for
-#                                            available systems, or
-#                                            '--bios-fetch --dry-run <system>'
-#                                            to preview without downloading.
+#   retrobox.sh --setup-bezel <name>         install a bezel/decoration pack
+#   retrobox.sh --version                    print the installed version
 #
 # All of the above are maintenance operations: they run and then exit,
 # they don't start the frontend afterwards. Any other argument is passed
@@ -39,23 +31,64 @@
 # remaining arguments reach EmulationStation. Without it, the sync is
 # skipped.
 set -eo pipefail
-RETROBOX_ROOTDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd -P)"
+# readlink -f (not just dirname) so this also works when invoked through a
+# symlink such as /usr/bin/retrobox -> /opt/retrobox/retrobox.sh.
+RETROBOX_SELF="$(readlink -f "${BASH_SOURCE[0]}")"
+RETROBOX_ROOTDIR="$(dirname "${RETROBOX_SELF}")"
 SETUP_DIR="${RETROBOX_ROOTDIR}/setup"
 RUN_SCRIPT="${RETROBOX_ROOTDIR}/runtime/startup/retrobox_run.py"
 
+# Interpreter: the install's own virtualenv when there is one (install.sh on
+# systems where the distro packages can't be used), else the system python3.
+if [[ -x "${RETROBOX_ROOTDIR}/venv/bin/python3" ]]; then
+    RETROBOX_PYTHON="${RETROBOX_ROOTDIR}/venv/bin/python3"
+else
+    RETROBOX_PYTHON="$(command -v python3 || true)"
+fi
+export RETROBOX_PYTHON
+
+# shellcheck source=setup/lib/paths.sh
+source "${SETUP_DIR}/lib/paths.sh"
 # shellcheck source=setup/setup.sh
 source "${SETUP_DIR}/setup.sh"
-# shellcheck source=setup/bios-check.sh
-#source "${SETUP_DIR}/bios/bios-check.sh"
-# shellcheck source=setup/bios-fetch.sh
-#source "${SETUP_DIR}/bios/bios-fetch.sh"
+
+function retrobox_version() {
+    if [[ -r "${RETROBOX_ROOTDIR}/VERSION" ]]; then
+        head -n1 "${RETROBOX_ROOTDIR}/VERSION"
+    elif git -C "${RETROBOX_ROOTDIR}" describe --tags --always --dirty 2>/dev/null; then
+        :
+    else
+        echo "unknown"
+    fi
+}
+
+# Warn (never abort) about what is missing, so a half-installed system says
+# so up front instead of failing deep inside the launcher.
+function preflight() {
+    if [[ -z "${RETROBOX_PYTHON}" ]]; then
+        log_err "python3 not found. Install it with your package manager."
+        exit 1
+    fi
+    if [[ ! -x "${RETROBOX_ES_EXECUTABLE}" ]]; then
+        log_warn "EmulationStation not found at ${RETROBOX_ES_EXECUTABLE}."
+        log_warn "Install it with: sudo retrobox --setup-util emulationstation"
+    fi
+    local missing
+    missing="$("${RETROBOX_PYTHON}" -W ignore -c '
+import importlib.util as u
+mods = ["yaml", "evdev", "pyudev", "sdl2", "PIL", "ruamel.yaml"]
+print(" ".join(m for m in mods if u.find_spec(m) is None))' 2>/dev/null || true)"
+    if [[ -n "${missing}" ]]; then
+        log_warn "Missing Python modules: ${missing}. Install the dependencies (see README) or re-run install.sh."
+    fi
+}
 
 function usage() {
 cat <<EOF
 Usage: $(basename "${BASH_SOURCE[0]}") [OPTIONS] [-- ARGS...]
---setup                     Force the platform setup (system packages,
-                            udev rules, git submodules) even if it has
-                            already run before.
+--setup                     Install the system dependencies, udev rules
+                            and git submodules. Only for a git checkout:
+                            the .deb and install.sh do this themselves.
 --setup-emulator <name>     Build/install a single emulator from source
                             (e.g. --setup-emulator retroarch). Can be
                             repeated to install several at once. Called
@@ -76,20 +109,7 @@ Usage: $(basename "${BASH_SOURCE[0]}") [OPTIONS] [-- ARGS...]
                             repeated to install several at once. Called
                             with no name, lists every installer available
                             under setup/decorations/.
---bios-check [system...]    Check installed RetroArch BIOS files under
-                            bios/<system>/ against what each system's
-                            cores require. With no system given, checks
-                            everything defined in resources/systems_config.
---bios-fetch [opts] [system...]
-                            Download BIOS files for the given system(s)
-                            (Batocera native_id, e.g. psx, gba, dreamcast,
-                            neocd) straight from the RetroBIOS project
-                            (github.com/Abdess/retrobios), one file at a
-                            time, verifying checksums. Everything after
-                            --bios-fetch is forwarded as-is; run
-                            '--bios-fetch --list' to see available
-                            systems, or '--bios-fetch --dry-run <system>'
-                            to preview without downloading.
+--version                   Print the installed version and exit.
 -h, --help                  Show this help and exit.
 
 Anything else is forwarded as-is to runtime/startup/retrobox_run.py,
@@ -109,14 +129,10 @@ EOF
 }
 
 force_setup=0
-do_bios_check=0
-do_bios_fetch=0
 declare -a emulators_to_setup=()
 declare -a utils_to_setup=()
 declare -a music_to_setup=()
 declare -a bezels_to_setup=()
-declare -a bios_check_systems=()
-declare -a bios_fetch_args=()
 declare -a frontend_args=()
 
 while [[ $# -gt 0 ]]; do
@@ -157,19 +173,9 @@ case "$1" in
     bezels_to_setup+=("$2")
     shift 2
     ;;
---bios-check)
-    do_bios_check=1
-    shift
-    while [[ -n "${1:-}" && "${1:0:1}" != "-" ]]; do
-        bios_check_systems+=("$1")
-        shift
-    done
-    ;;
---bios-fetch)
-    do_bios_fetch=1
-    shift
-    bios_fetch_args=("$@")
-    break
+--version)
+    retrobox_version
+    exit 0
     ;;
 -h | --help)
     usage
@@ -231,27 +237,10 @@ if [[ "${#bezels_to_setup[@]}" -gt 0 ]]; then
     [[ "${status}" -eq 0 ]] || exit "${status}"
 fi
 
-if [[ "${do_bios_check}" -eq 1 ]]; then
-    bios_check "${bios_check_systems[@]}"
-    status=$?
-    did_maintenance=1
-    [[ "${status}" -eq 0 ]] || exit "${status}"
-fi
-
-if [[ "${do_bios_fetch}" -eq 1 ]]; then
-    bios_fetch "${bios_fetch_args[@]}"
-    status=$?
-    did_maintenance=1
-    [[ "${status}" -eq 0 ]] || exit "${status}"
-fi
-
 if [[ "${did_maintenance}" -eq 1 ]]; then
     exit 0
 fi
 
-if ! is_setup_done; then
-    log_warn "Retrobox hasn't been set up on this machine yet. Running first-time setup..."
-    full_setup
-fi
+preflight
 
-exec "${RUN_SCRIPT}" "${frontend_args[@]}"
+exec "${RETROBOX_PYTHON}" "${RUN_SCRIPT}" "${frontend_args[@]}"

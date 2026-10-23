@@ -20,14 +20,18 @@ this __init__.py.
 
 from __future__ import annotations
 import logging
+import os
 from pathlib import Path
 
 from ._base import (
     CACHE,
     CONF_INIT,
+    CONFIG_DIR,
+    DATA_DIR,
     DATAINIT_DIR,
     DEFAULTS_DIR,
     EMULATORS,
+    EMULATORS_CONFIG,
     ENV_FILE,
     HOME_INIT,
     HOOKS,
@@ -37,16 +41,23 @@ from ._base import (
     RETROBOX_INI,
     RETROBOX_ROOTDIR,
     ROMS,
-    USERDATA,
+    STATE_DIR,
+    SYSCONF_DIR,
+    CONFIG_LAYERS,
     _SYSTEM_LOCAL_BIN,
     _SYSTEM_LOCAL_SHARE,
     _USER_HOME,
     _XDG_CACHE,
     _XDG_CONFIG,
     _XDG_DATA,
+    _XDG_STATE,
     check_env_dirs,
     ensure_parents_and_open,
     ensure_symlink,
+    get_ini_value,
+    layered_dirs,
+    layered_file,
+    layered_files,
     mkdir_if_not_exists,
 )
 from ._configgen import (
@@ -96,6 +107,9 @@ from ._frontend import (
     ES_WHEELS_METADATA,
     _ES_RESOURCES_DIR,
     FRONTEND_DIR,
+    FRONTEND_HOME,
+    MUSIC_DIR,
+    THEMES_DIR,
     _USER_ES_DIR,
 )
 from ._gamepadly import (
@@ -104,6 +118,11 @@ from ._gamepadly import (
     _GAMEPADLY_PROFILES,
     _GAMEPADLY_USER_PROFILES,
 )
+from ._env import exported_environment
+
+# Child processes (emulatorlauncher, shell hooks...) inherit the very same
+# directories this process resolved.
+os.environ.update({name: str(path) for name, path in exported_environment().items()})
 
 # The "real" public API (without the underscore-prefixed names, which
 # stay importable for compatibility but shouldn't be used in new code
@@ -112,10 +131,19 @@ __all__ = [
     # _base
     "CACHE",
     "CONF_INIT",
+    "CONFIG_DIR",
+    "DATA_DIR",
     "DATAINIT_DIR",
     "DEFAULTS_DIR",
     "EMULATORS",
+    "EMULATORS_CONFIG",
     "ENV_FILE",
+    "SYSCONF_DIR",
+    "CONFIG_LAYERS",
+    "get_ini_value",
+    "layered_dirs",
+    "layered_file",
+    "layered_files",
     "RETROBOX_INI",
     "HOME_INIT",
     "HOOKS",
@@ -124,7 +152,7 @@ __all__ = [
     "RESOURCES_DIR",
     "RETROBOX_ROOTDIR",
     "ROMS",
-    "USERDATA",
+    "STATE_DIR",
     "check_env_dirs",
     "ensure_parents_and_open",
     "ensure_symlink",
@@ -164,6 +192,10 @@ __all__ = [
     "ES_SYSTEMS_CFG",
     "ES_SYSTEMS_TMP",
     "ES_WHEELS_METADATA",
+    "FRONTEND_DIR",
+    "FRONTEND_HOME",
+    "MUSIC_DIR",
+    "THEMES_DIR",
     # _gamepadly
     "GAMEPADLY_MAPPER",
 ]

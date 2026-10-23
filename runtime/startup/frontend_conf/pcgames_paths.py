@@ -15,6 +15,7 @@ from runtime.paths import (
     _XDG_DATA,
     FRONTEND_DIR,
     SYSTEMS_CONF_DIR,
+    layered_file,
 )
 
 _logger = logging.getLogger(__name__)
@@ -59,9 +60,10 @@ _HEROIC_SIDELOAD_JSON = _HEROIC_CONFIG / "sideload_apps" / "library.json"
 
 # systems_config YAML files that define each PC-games system, used to look
 # up an optional ROM-directory override (see resolve_system_roms_dir below).
-_STEAM_SYSTEM_YAML = SYSTEMS_CONF_DIR / "valve" / "steam.yaml"
-_LUTRIS_SYSTEM_YAML = SYSTEMS_CONF_DIR / "lutris" / "lutris.yaml"
-_HEROIC_SYSTEM_YAML = SYSTEMS_CONF_DIR / "heroic" / "heroic.yaml"
+# The highest-priority layer (user > /etc/retrobox > shipped) wins.
+_STEAM_SYSTEM_YAML = layered_file("systems_config/valve/steam.yaml") or SYSTEMS_CONF_DIR / "valve" / "steam.yaml"
+_LUTRIS_SYSTEM_YAML = layered_file("systems_config/lutris/lutris.yaml") or SYSTEMS_CONF_DIR / "lutris" / "lutris.yaml"
+_HEROIC_SYSTEM_YAML = layered_file("systems_config/heroic/heroic.yaml") or SYSTEMS_CONF_DIR / "heroic" / "heroic.yaml"
 
 
 def resolve_system_roms_dir(yaml_path: Path, system_key: str, default: Path) -> Path:

@@ -6,7 +6,8 @@ set -eo pipefail
 ## VARIABLES
 
 RETROBOX_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/../.. >/dev/null 2>&1 && pwd -P)"
-INSTALL_DIR="${RETROBOX_ROOT}/emulators/redream"
+source "${RETROBOX_ROOT}/setup/lib/paths.sh"
+INSTALL_DIR="${RETROBOX_EMULATORS_DIR}/redream"
 TMP_DIR="$(mktemp -d)"
 DOWNLOAD_PAGE="https://redream.io/download"
 

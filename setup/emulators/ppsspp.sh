@@ -6,9 +6,10 @@ set -eo pipefail
 
 ## VARIABLES
 RETROBOX_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/../.. >/dev/null 2>&1 && pwd -P)"
+source "${RETROBOX_ROOT}/setup/lib/paths.sh"
 
 GITHUB_REPO="hrydgard/ppsspp"
-INSTALL_DIR="${RETROBOX_ROOT}/emulators/ppsspp"
+INSTALL_DIR="${RETROBOX_EMULATORS_DIR}/ppsspp"
 TMP_DIR="$(mktemp -d)"
 
 ## FUNCIONES

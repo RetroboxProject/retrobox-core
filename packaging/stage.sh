@@ -1,0 +1,129 @@
+#!/usr/bin/env bash
+# Stage Retrobox's installation tree into DESTDIR.
+#
+# Format-agnostic on purpose: build-deb.sh uses it today, and an .rpm
+# builder (e.g. nfpm) can reuse it as-is later. It only lays files out; it
+# knows nothing about package metadata.
+#
+#   packaging/stage.sh DESTDIR
+#
+# Layout produced (paths are relative to DESTDIR):
+#   ${INSTALL_ROOT}/                       the project (default /opt/retrobox)
+#   ${INSTALL_ROOT}/VERSION                the version string (PKG_VERSION)
+#   ${SYSCONF_DIR}/retrobox.ini            commented template (admin config)
+#   ${SYSCONF_DIR}/retrobox.ini.d/         drop-ins (empty)
+#   ${BIN_LINK}                            symlink -> ${INSTALL_ROOT}/retrobox.sh
+#   /usr/lib/udev/rules.d/                 udev rules
+#   /usr/share/applications/retrobox.desktop
+#   /usr/share/icons/hicolor/scalable/apps/retrobox.svg
+#   /usr/share/doc/retrobox/copyright
+#
+# Nothing in the tree is ever written to at runtime: user data lives in the
+# XDG directories (see runtime/paths/_base.py), the same ones as for any
+# other kind of install.
+#
+# Environment: PKG_VERSION   written to ${INSTALL_ROOT}/VERSION (default: git describe)
+#              SYSCONF_DIR   default /etc/retrobox
+#
+# The file list comes from `git ls-files --recurse-submodules`, so only
+# tracked files (including checked-out submodules) are shipped: no .git,
+# no build leftovers, no local junk. Initialise the submodules you want in
+# the package before running this.
+set -euo pipefail
+
+SRC="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." >/dev/null 2>&1 && pwd -P)"
+DESTDIR="${1:?usage: $(basename "$0") DESTDIR}"
+INSTALL_ROOT="${INSTALL_ROOT:-/opt/retrobox}"
+BIN_LINK="${BIN_LINK:-/usr/bin/retrobox}"
+SYSCONF_DIR="${SYSCONF_DIR:-/etc/retrobox}"
+
+# Tracked files that must NOT end up in the package.
+EXCLUDE_RE='^(\.vscode/|\.github/|packaging/|\.gitignore$|\.gitmodules$|\.retrobox_emulationstation\.version$|nvidia\.conf$|retrobox\.desktop$|runtime/launcher/pyproject\.toml$|install\.sh$)'
+
+ROOT_IN_PKG="${DESTDIR}${INSTALL_ROOT}"
+
+if [[ -e "${DESTDIR}" ]] && [[ -n "$(ls -A "${DESTDIR}" 2>/dev/null)" ]]; then
+    echo "stage.sh: ${DESTDIR} exists and is not empty" >&2
+    exit 1
+fi
+mkdir -p "${ROOT_IN_PKG}"
+
+# --- 1. The project tree ----------------------------------------------------
+git -C "${SRC}" ls-files -z --recurse-submodules \
+    | { grep -zvE "${EXCLUDE_RE}" || true; } \
+    | tar --null -C "${SRC}" -T - -cf - \
+    | tar -xf - -C "${ROOT_IN_PKG}"
+
+echo "${PKG_VERSION:-$(git -C "${SRC}" describe --tags --always 2>/dev/null || echo unknown)}" \
+    > "${ROOT_IN_PKG}/VERSION"
+
+# System-wide configuration layer: a commented template, and the drop-in dir.
+mkdir -p "${DESTDIR}${SYSCONF_DIR}/retrobox.ini.d"
+cat > "${DESTDIR}${SYSCONF_DIR}/retrobox.ini" <<'EOF'
+# Retrobox system-wide configuration.
+#
+# Read before ~/.config/retrobox/retrobox.ini, which overrides it key by key.
+# Drop-in files in retrobox.ini.d/*.ini (read in alphabetical order) override
+# this file. Nothing is written here by Retrobox; everything below is optional
+# and shows the default.
+#
+# The same layering applies to resources/ (systems_config/, emu_features/,
+# hooks/retrohook.d/...): a file under /etc/retrobox/<same relative path>, or
+# under ~/.config/retrobox/<same relative path>, replaces the shipped one.
+
+#[core]
+## Create the default directories when a configured path is missing/invalid.
+#autocorrect_paths = true
+## Systems to hide from the menu, e.g. gba,psp
+#ignore_systems =
+
+#[paths]
+## Where the big content lives (default: ~/.local/share/retrobox/<name>)
+#roms_dir  = /srv/games/roms
+#saves_dir = /srv/games/saves
+#bios_dir  = /srv/games/bios
+
+#[advanced]
+#labwc_tty = 1
+
+#[environ]
+## Literal environment variables for every Retrobox process.
+#STEAM_LIBRARY_DIR = /srv/games/steam
+EOF
+chmod 644 "${DESTDIR}${SYSCONF_DIR}/retrobox.ini"
+
+# Normalise modes: directories 755, executables 755, everything else 644.
+find "${ROOT_IN_PKG}" -type d -exec chmod 755 {} +
+find "${ROOT_IN_PKG}" -type f -perm /111 -exec chmod 755 {} +
+find "${ROOT_IN_PKG}" -type f ! -perm /111 -exec chmod 644 {} +
+
+# --- 2. Launcher symlink ----------------------------------------------------
+mkdir -p "${DESTDIR}$(dirname "${BIN_LINK}")"
+ln -s "${INSTALL_ROOT}/retrobox.sh" "${DESTDIR}${BIN_LINK}"
+
+# --- 3. udev rules ----------------------------------------------------------
+UDEV_DIR="${DESTDIR}/usr/lib/udev/rules.d"
+mkdir -p "${UDEV_DIR}"
+install -m 644 "${SRC}/resources/udev/64-retrobox.rules" "${UDEV_DIR}/64-retrobox.rules"
+# uinput access for gamepadly (pad -> keyboard/mouse). setup-debian.sh creates
+# the same rule inline; shipped as a real file here.
+cat > "${UDEV_DIR}/99-retrobox-input.rules" <<'EOF'
+KERNEL=="uinput", MODE="0660", GROUP="input", OPTIONS+="static_node=uinput"
+EOF
+chmod 644 "${UDEV_DIR}/99-retrobox-input.rules"
+
+# --- 4. Desktop entry + icon ------------------------------------------------
+mkdir -p "${DESTDIR}/usr/share/applications" \
+         "${DESTDIR}/usr/share/icons/hicolor/scalable/apps"
+sed -e "s|@BIN@|${BIN_LINK}|g" \
+    "${SRC}/packaging/retrobox.desktop.in" \
+    > "${DESTDIR}/usr/share/applications/retrobox.desktop"
+chmod 644 "${DESTDIR}/usr/share/applications/retrobox.desktop"
+install -m 644 "${SRC}/resources/icons/retrobox_logo.svg" \
+    "${DESTDIR}/usr/share/icons/hicolor/scalable/apps/retrobox.svg"
+
+# --- 5. Licence -------------------------------------------------------------
+mkdir -p "${DESTDIR}/usr/share/doc/retrobox"
+install -m 644 "${SRC}/LICENSE" "${DESTDIR}/usr/share/doc/retrobox/copyright"
+
+echo "stage.sh: staged ${INSTALL_ROOT} into ${DESTDIR}"

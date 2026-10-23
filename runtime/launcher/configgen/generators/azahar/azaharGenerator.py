@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 from runtime.launcher.configgen.generators.azahar.azahar_paths import _AZAHAR_XDG, AZAHAR_INI, AZAHAR_SAVES
 
 from ... import Command
-from runtime.paths import CACHE, SAVES, SCREENSHOTS, USERDATA, ensure_parents_and_open
+from runtime.paths import CACHE, SAVES, SCREENSHOTS, ensure_parents_and_open
 from ...controller import Controller, generate_sdl_game_controller_config
 from ...utils import vulkan
 from ...utils.configparser import CaseSensitiveRawConfigParser

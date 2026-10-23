@@ -13,6 +13,7 @@ downloads/
 eggs/
 .eggs/
 lib/
+!/setup/lib/
 lib64/
 parts/
 sdist/
@@ -116,9 +117,8 @@ __marimo__/
 /screenshots/
 /shaders/
 
-# Decorations (ignore root, allow submodule in resources)
+# Decorations (legacy location; bezels now live in the data dir)
 /decorations/
-!/resources/decorations/
 
 # ==============================================================================
 # RETROBOX: FRONTEND (RUNTIME)
@@ -178,6 +178,4 @@ __marimo__/
 *.AppImage
 *.gbc
 *.gb
-/.retrobox_setup_done
 /.retrobox_emulationstation.version
-/retrobox.ini

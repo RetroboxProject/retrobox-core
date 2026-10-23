@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Any
 from pathlib import Path
 import yaml
 
-from runtime.paths import SYSTEMS_CONF_DIR, DEFAULTS_DIR, ES_SETTINGS_CFG, _SHADERS_DIR, configure_emulator
+from runtime.paths import CONFIG_LAYERS, DEFAULTS_DIR, layered_file, ES_SETTINGS_CFG, _SHADERS_DIR, configure_emulator
 
 from .config import Config, SystemConfig
 from .exceptions import MissingEmulator, RetroboxException
@@ -88,8 +88,8 @@ def _load_system_config(system_name: str, rom: Path) -> dict[str, Any]:
         return data
 
     # 1. Cargar las opciones globales desde defaults.yml si existe en _ES_SYSTEMS_DIR
-    defaults_path = SYSTEMS_CONF_DIR / "defaults.yml"
-    if defaults_path.exists():
+    defaults_path = layered_file("systems_config/defaults.yml")
+    if defaults_path is not None:
         try:
             with open(defaults_path, 'r', encoding='utf-8') as f:
                 defaults_content = yaml.safe_load(f)
@@ -108,10 +108,12 @@ def _load_system_config(system_name: str, rom: Path) -> dict[str, Any]:
             raise RetroboxException("Error reading default configs file") from e
 
     # 2. Buscar el archivo YAML del sistema específico dentro de la estructura de _ES_SYSTEMS_DIR
+    # (the file of the highest-priority layer: user > /etc > shipped)
     sys_yaml_path = None
-    if SYSTEMS_CONF_DIR.exists():
-        for path in SYSTEMS_CONF_DIR.glob(f"**/{system_name}.yaml"):
-            sys_yaml_path = path
+    for layer in reversed(CONFIG_LAYERS):
+        found = next((layer / "systems_config").glob(f"**/{system_name}.yaml"), None)
+        if found is not None:
+            sys_yaml_path = found
             break
 
     if not sys_yaml_path or not sys_yaml_path.exists():

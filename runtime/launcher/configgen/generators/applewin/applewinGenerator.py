@@ -3,13 +3,13 @@ from __future__ import annotations
 from typing import Final
 
 from ... import Command
-from runtime.paths import EMULATORS, mkdir_if_not_exists
+from runtime.paths import EMULATORS_CONFIG, mkdir_if_not_exists
 from ...controller import generate_sdl_game_controller_config
 from ...settings.unixSettings import UnixSettings
 from ..Generator import Generator
 
-_APPLEWIN_DIR: Final = EMULATORS / 'applewin'
-_APPLEWIN_XDG: Final = EMULATORS / 'applewin' / 'configs'
+_APPLEWIN_DIR: Final = EMULATORS_CONFIG / 'applewin'
+_APPLEWIN_XDG: Final = EMULATORS_CONFIG / 'applewin'
 _CONFIG_DIR: Final = _APPLEWIN_XDG / 'applewin'
 _CONFIG_FILE: Final = _CONFIG_DIR / 'config.txt'
 

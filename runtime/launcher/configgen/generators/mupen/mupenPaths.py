@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from typing import Final
 
-from runtime.paths import DATAINIT_DIR, EMULATORS, SAVES
+from runtime.paths import DATAINIT_DIR, EMULATORS_CONFIG, SAVES
 
-MUPEN_CONFIG_DIR: Final = EMULATORS / 'mupen64plus'
+MUPEN_CONFIG_DIR: Final = EMULATORS_CONFIG / 'mupen64plus'
 MUPEN_CUSTOM: Final = MUPEN_CONFIG_DIR / 'mupen64plus.cfg'
 MUPEN_INPUT: Final = MUPEN_CONFIG_DIR / 'InputAutoCfg.ini'
 MUPEN_SAVES: Final = SAVES / 'n64'

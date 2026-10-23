@@ -5,13 +5,14 @@ set -eo pipefail
 
 ## VARIABLES
 RETROBOX_ROOTDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")"/../.. >/dev/null 2>&1 && pwd -P)"
-INSTALL_DIR="${RETROBOX_ROOTDIR}/decorations/switch-online"
+source "${RETROBOX_ROOTDIR}/setup/lib/paths.sh"
+INSTALL_DIR="${RETROBOX_BEZELS_DIR}/switch-online"
 TMP_DIR="$(mktemp -d)"
 # Nota: Se usa 'main' ya que es la rama por defecto visible en el repo. 
 # Si cambia a 'master', ajustar a: refs/heads/master.zip
 ZIP_URL="https://github.com/manu-creative-411/batocera-overlay-switchonline/archive/refs/heads/main.zip"
 PACK_NAME="switch-online"
-MANIFEST_DIR="${RETROBOX_ROOTDIR}/setup/.packages/decorations"
+MANIFEST_DIR="${RETROBOX_STATEDIR}/packages/decorations"
 MANIFEST_FILE="${MANIFEST_DIR}/${PACK_NAME}"
 
 ## FUNCTIONS
@@ -51,8 +52,8 @@ function install() {
     cp -r "${extracted_dir}"/* "${INSTALL_DIR}/"
 
     echo "[INFO] Generating manifest at ${MANIFEST_FILE}..."
-    # Generar manifiesto de archivos instalados relativo a RETROBOX_ROOTDIR
-    find "${INSTALL_DIR}" -type f | sed "s|^${RETROBOX_ROOTDIR}/||" > "${MANIFEST_FILE}"
+    # Generar manifiesto de archivos instalados relativo al directorio de bezels
+    find "${INSTALL_DIR}" -type f | sed "s|^${RETROBOX_BEZELS_DIR}/||" > "${MANIFEST_FILE}"
 
     rm -rf "${TMP_DIR}"
     echo "[INFO] Installation of ${PACK_NAME} completed."
@@ -66,8 +67,8 @@ function uninstall() {
     fi
 
     while IFS= read -r file; do
-        if [[ -f "${RETROBOX_ROOTDIR}/${file}" ]]; then
-            rm -f "${RETROBOX_ROOTDIR}/${file}"
+        if [[ -f "${RETROBOX_BEZELS_DIR}/${file}" ]]; then
+            rm -f "${RETROBOX_BEZELS_DIR}/${file}"
             echo "[INFO] Removed ${file}"
         fi
     done < "${MANIFEST_FILE}"

@@ -1,10 +1,10 @@
 
 from typing import Final
 
-from runtime.paths import EMULATORS
+from runtime.paths import EMULATORS_CONFIG
 
 
-_GSPLUS_DIR: Final = EMULATORS / 'gsplus'
-_GSPLUS_XDG: Final = _GSPLUS_DIR / 'configs'
+_GSPLUS_DIR: Final = EMULATORS_CONFIG / 'gsplus'
+_GSPLUS_XDG: Final = _GSPLUS_DIR
 _GSPLUS_CFGDIR: Final = _GSPLUS_XDG / 'GSplus'
 GSPLUS_CFG: Final = _GSPLUS_CFGDIR / 'config.txt'

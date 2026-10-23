@@ -6,7 +6,8 @@ set -eo pipefail
 ## VARIABLES
 
 RETROBOX_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/../.. >/dev/null 2>&1 && pwd -P)"
-INSTALL_DIR="${RETROBOX_ROOT}/emulators/supermodel"
+source "${RETROBOX_ROOT}/setup/lib/paths.sh"
+INSTALL_DIR="${RETROBOX_EMULATORS_DIR}/supermodel"
 TMP_DIR="$(mktemp -d)"
 REPO="trzy/Supermodel"
 API_URL="https://api.github.com/repos/$REPO/releases"

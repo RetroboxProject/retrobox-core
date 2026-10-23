@@ -27,25 +27,48 @@ EmulationStation
                     └── gamepadly (custom-made new solution for hotkeys and pad2key configs on supported emulators and platforms)
 ```
 
-This repo can be cloned and used everywhere. Paths have been adapted to replace `/userdata` hierarchy. The `retrobox.sh` adapts paths if the directory is moved.
+This repo can be cloned and used from anywhere, or installed from the `.deb` into `/opt/retrobox`. Paths have been adapted to replace the `/userdata` hierarchy: see [Paths](#paths).
 
 ## Key changes vs upstream batocera-configgen
 
-### Path remapping (`batoceraPaths.py`)
+### Paths
 
-All `/userdata` paths are redirected to XDG-compliant locations:
+Configuration is layered, read-only code and writable user data are separate, and the layout is the same whichever way Retrobox was installed (`.deb`, `install.sh`, a checkout).
+
+**Read-only install** (`/opt/retrobox`, the `install.sh` prefix, or a checkout) is never written to.
+
+**Configuration layers**, lowest priority first. Each mirrors the `resources/` tree (`systems_config/`, `emu_features/`, `hooks/retrohook.d/`, ...) and a file with the same relative path replaces the one below it; extra files add systems/features/hooks:
+
+1. `<install dir>/resources` — shipped defaults
+2. `/etc/retrobox` — administrator (optional; `RETROBOX_SYSCONFDIR`)
+3. `~/.config/retrobox` — user (`RETROBOX_CONFIGDIR`)
+
+`retrobox.ini` is merged the same way, key by key: `/etc/retrobox/retrobox.ini`, `/etc/retrobox/retrobox.ini.d/*.ini`, `~/.config/retrobox/retrobox.ini`, `~/.config/retrobox/retrobox.ini.d/*.ini` (drop-ins in alphabetical order). Retrobox never writes these files: defaults live in code and the files only hold changes. The package ships a commented template in `/etc/retrobox/retrobox.ini`.
+
+**User directories:**
+
+| Directory | Default | Override | Holds |
+|---|---|---|---|
+| config | `~/.config/retrobox` | `RETROBOX_CONFIGDIR` | `retrobox.ini(.d)`, overrides of `resources/` (same tree), `emulators/<emu>/` (each emulator's `XDG_CONFIG_HOME`), `frontend/` (EmulationStation home), `pad2key/profiles/`, `hooks/` |
+| data | `~/.local/share/retrobox` | `RETROBOX_DATADIR` | `roms/`, `saves/`, `bios/`, `themes/` (the shipped *iconic* is linked in), `music/`, `decorations/` (+ `decorations-default/`), `shaders/`, `emulators/` (installed binaries), `screenshots/`, `recordings/`, `cheats/`, `overlay/` |
+| state | `~/.local/state/retrobox` | `RETROBOX_STATEDIR` | `logs/`, installer manifests |
+
+`$XDG_CONFIG_HOME`, `$XDG_DATA_HOME` and `$XDG_STATE_HOME` are honoured. `roms`, `saves` and `bios` can be moved on their own from `[paths]` in `retrobox.ini` (`roms_dir`, `saves_dir`, `bios_dir`); the first value found in the layers wins.
+
+`runtime/paths` is the single place where all of this is resolved. Shell scripts get the result as `RETROBOX_*` variables (`python3 -m runtime.paths` prints them, `--get section.key` reads a merged ini value; `setup/lib/paths.sh` loads them).
+
+Compared with batocera:
 
 | batocera | here |
 |---|---|
-| `/userdata` | `.` |
-| `/userdata/system` | no equivalent |
-| `/userdata/system/configs` | no global equivalent -- all emulators have a `config` directory with all their config data |
-| `/userdata/bios` | `./bios` |
-| `/userdata/saves` | `./saves` |
-| `/userdata/roms` | `./roms` |
+| `/userdata` | data dir (see above) |
+| `/userdata/system/configs/<emu>` | `~/.config/retrobox/emulators/<emu>` |
+| `/userdata/bios`, `/userdata/saves`, `/userdata/roms` | `bios/`, `saves/`, `roms/` in the data dir (or wherever `[paths]` says) |
 | `/var/run/*` | `/tmp/batocera-run/*` |
-| `/usr/share/batocera` | `./resources` |
-| `/usr/share/batocera/evmapy` | `./resources/utils/gamepadly/profiles` |
+| `/usr/share/batocera` | `<install dir>/resources` |
+| `/usr/share/batocera/evmapy` | `<install dir>/resources/pad2key/profiles` (user profiles: `~/.config/retrobox/pad2key/profiles`) |
+
+Emulators that keep their binary and their config together (redream, supermodel, model2emu, xenia, x16emu) still use `~/.local/share/retrobox/emulators/<emu>`.
 
 ### Stubs for batocera-only binaries
 
@@ -113,54 +136,73 @@ It's expected to add support for other browsers such as Brave, since all Chromiu
 
 ## Setup
 
-1. Clone this repo
-2. Install EmulationStation (build from [batocera-emulationstation](https://github.com/batocera-linux/batocera-emulationstation)) and put the executable and its resources in `./emulationstation`.
-2. Install [MangoHud](https://github.com/flightlessmango/Mangohud) from source and apply [batocera](https://github.com/batocera-linux/batocera.linux/tree/master/package/batocera/utils/mangohud) patches before building.
-3. Install dependences:
+### From a release (recommended)
 
-**On Debian (and maybe Ubuntu):**
+**Debian / Ubuntu (.deb):**
 
 ```bash
-sudo apt-get install \
-libfreeimage3 libsdl2-2.0-0 libsdl2-mixer-2.0-0 libvlc5 \
-p7zip-full jq \
-python3-pyudev python3-pip python3-venv python3-sdl2 \
-python3-yaml python3-qrcode python3-pil python3-evdev \
-libice6 libsm6 libxtst6 libxi6 inotify-tools antimicro
+sudo apt install ./retrobox_<version>_amd64.deb      # installs into /opt/retrobox, /usr/bin/retrobox
 ```
 
-**On Fedora:**
+**Any supported distro (install.sh):**
 
 ```bash
-# coming soon
+curl -fsSL https://github.com/manu-romero-411/retrobox-core/releases/latest/download/install.sh | bash
+# options: --prefix DIR  --user  --version X.Y.Z  --no-deps  --uninstall  (see --help)
 ```
 
-**Python dependencies for use in `venv`:**
+It installs the same layout as the package: `/opt/retrobox` (or `/var/opt/retrobox` if `/opt` isn't writable, or `--prefix`), a `retrobox` launcher in `/usr/local/bin`, udev rules and the optional `/etc/retrobox`. Dependencies come from apt/dnf (`setup/deps/*.list`); on immutable systems (ostree) or with `--no-deps` the Python ones go into a virtualenv inside the install and the script prints the system libraries to layer (e.g. with `rpm-ostree install`). Without root, `--user` installs under `~/.local`.
+
+EmulationStation and MangoHud are not part of these packages yet (they will be CI-built): `sudo retrobox --setup-util emulationstation`. If it's missing, `retrobox` warns when it starts.
+
+### From a checkout
+
+1. Clone this repo and run `./retrobox.sh --setup` (installs the dependencies from `setup/deps/` with apt or dnf, the udev rules and the git submodules).
+2. `./retrobox.sh --setup-util emulationstation` (and `mangohud`).
+
+Python dependencies for a virtualenv: `pip install -r requirements.txt`.
+
+### Building the packages
 
 ```bash
-source /path/to/venv/bin/activate
-pip install --no-user pyudev pysdl2 PyYAML lxml evdev requests qrcode[pil]
+packaging/deb/build-deb.sh           # dist/retrobox_<version>_amd64.deb
+packaging/tarball/build-tarball.sh   # dist/retrobox-linux-amd64.tar.gz + SHA256SUMS (the install.sh payload)
 ```
+
+The GitHub Actions workflow builds both, smoke-tests them in Ubuntu 24.04 and Debian 13 containers and, for `v*` tags, publishes them with `install.sh` as a release.
 
 ## Directory layout
 
+Install directory (read-only):
+
 ```
-.
-├── retrobox.sh            # main executable
-├── bios/                  # BIOS files
-├── saves/                 # save states and SRAM
-├── screenshots/
-├── decorations/           # bezels
-├── shaders/               # user shader overrides
-├── roms                   # roms dir
-└── resources/
-    ├── emulatorlauncher/  # all configgen scripts
-    ├── shaders/           # system shaders (slang/glsl packs)
-    ├── datainit/
-    │   └── decorations/   # default bezels
-    └── configgen/
-        └── data/          # gamesbuttonsdb.xml etc.
+<install dir>/                 # a checkout, or /opt/retrobox
+├── retrobox.sh                # main executable (/usr/bin/retrobox in the .deb)
+├── VERSION                    # (packages only)
+├── runtime/                   # launcher, configgen, startup, paths
+├── resources/                 # systems, emulator features, hooks, helpers
+├── frontend/                  # EmulationStation binary, shipped theme
+├── setup/                     # installers (emulators, utils, music, bezels) and deps/*.list
+└── venv/                      # (install.sh on immutable systems only)
 ```
+
+System and user directories (see [Paths](#paths)):
+
+```
+/etc/retrobox/                 # optional admin layer: retrobox.ini, retrobox.ini.d/, <resources tree overrides>
+~/.config/retrobox/            # retrobox.ini(.d), overrides, hooks/, pad2key/, frontend/ (ES home)
+└── emulators/<emu>/           # each emulator's XDG_CONFIG_HOME
+~/.local/share/retrobox/
+├── roms/  saves/  bios/       # moveable from retrobox.ini
+├── themes/  music/            # iconic is linked in; add your own
+├── decorations/               # your bezels (and --setup-bezel packs)
+├── decorations-default/       # RetroBat bezels (retrobox.sh --setup-bezel retrobat-bezels)
+├── emulators/                 # installed by retrobox.sh --setup-emulator
+└── shaders/  screenshots/  recordings/  cheats/  overlay/
+~/.local/state/retrobox/       # logs/, packages/ (installer manifests)
+```
+
+EmulationStation (`--setup-util emulationstation`) and MangoHud (`--setup-util mangohud`) are part of the install directory, so installing them into `/opt/retrobox` needs `sudo`.
 
 ## License
 

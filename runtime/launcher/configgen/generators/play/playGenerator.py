@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Final, cast
 from runtime.paths import (
     CACHE,
     SAVES,
-    EMULATORS,
+    EMULATORS_CONFIG,
     ROMS,
     configure_emulator,
     mkdir_if_not_exists
@@ -20,8 +20,8 @@ from ..Generator import Generator
 if TYPE_CHECKING:
     from ...batoceraTypes import HotkeysContext
 
-_PLAY2_EMUDIR: Final = EMULATORS / 'play'
-_PLAY2_XDG: Final = _PLAY2_EMUDIR / 'configs'
+_PLAY2_EMUDIR: Final = EMULATORS_CONFIG / 'play'
+_PLAY2_XDG: Final = _PLAY2_EMUDIR
 _PLAY2_CFGDIR: Final = _PLAY2_XDG / 'play'
 _PLAY2_SAVES: Final = SAVES / 'play2'
 PLAY2_CFG: Final = _PLAY2_CFGDIR / 'Play Data Files' / 'config.xml'

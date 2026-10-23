@@ -13,12 +13,14 @@ from runtime.paths import (
     _GAMEPADLY_PROFILES,
     _GAMEPADLY_USER_PROFILES,
     _SHADERS_DIR,
+    DATA_DIR,
     ES_INI_CFG,
     ES_INI_TMP,
     LOGS,
+    MUSIC_DIR,
     SAVES,
     SCREENSHOTS,
-    USERDATA
+    THEMES_DIR,
 )
 
 _logger = logging.getLogger(__name__)
@@ -26,7 +28,7 @@ _logger = logging.getLogger(__name__)
 
 INI_CONTENT = f"""
 # ROOT AND LOGS
-root={USERDATA}
+root={DATA_DIR}
 log={LOGS}
 
 # SAVES
@@ -36,10 +38,10 @@ saves={SAVES}
 screenshots={SCREENSHOTS}
 
 # THEMES (GET MORE AT THEME DOWNLOADER)
-themes={USERDATA}/frontend/themes
+themes={THEMES_DIR}
 
 # BACKGROUND MUSIC FOR MENUS
-music={USERDATA}/frontend/music
+music={MUSIC_DIR}
 
 # DECORATIONS/BEZELS
 system.decorations={_DECORATIONS_DEF_DIR}
@@ -55,7 +57,7 @@ videofilters={_RETROARCH_VIDEO_FILTERS}
 audiofilters={_RETROARCH_AUDIO_FILTERS}
 
 # RETROACHIEVEMENT SOUNDS
-retroachievementsounds={USERDATA}/frontend/retroachievements-sounds
+retroachievementsounds={DATA_DIR}/retroachievements-sounds
 
 # PAD-TO-KEYBOARD (gamepadly) MAPPINGS
 system.padtokey={_GAMEPADLY_PROFILES}

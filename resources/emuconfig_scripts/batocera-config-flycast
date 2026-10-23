@@ -7,10 +7,10 @@ else
     export DISPLAY=$(getLocalXDisplay)
 fi
 
-export XDG_CONFIG_HOME="${USERDATA}/configs"
-export XDG_CONFIG_DIRS="${USERDATA}/configs"
-export XDG_DATA_HOME="${USERDATA}/saves/dreamcast"
-export FLYCAST_DATADIR="${USERDATA}/saves/dreamcast"
-export FLYCAST_BIOS_PATH="${USERDATA}/bios"
+export XDG_CONFIG_HOME="${RETROBOX_EMUCONFIG_DIR}/flycast"
+export XDG_CONFIG_DIRS="${RETROBOX_EMUCONFIG_DIR}/flycast"
+export XDG_DATA_HOME="${RETROBOX_SAVES_DIR}/dreamcast"
+export FLYCAST_DATADIR="${RETROBOX_SAVES_DIR}/dreamcast"
+export FLYCAST_BIOS_PATH="${RETROBOX_BIOS_DIR}"
 
 /usr/local/bin/flycast

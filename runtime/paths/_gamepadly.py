@@ -12,9 +12,11 @@ from __future__ import annotations
 
 from typing import Final
 
-from ._base import RESOURCES_DIR, USERDATA
+from ._base import CONFIG_DIR, RESOURCES_DIR, RETROBOX_ROOTDIR
 
-_GAMEPADLY_DIR: Final = USERDATA / "runtime" / "gamepadly"
+_GAMEPADLY_DIR: Final = RETROBOX_ROOTDIR / "runtime" / "gamepadly"
 _GAMEPADLY_PROFILES: Final = RESOURCES_DIR / "pad2key" / "profiles"
-_GAMEPADLY_USER_PROFILES: Final = _GAMEPADLY_DIR / "pad2key" / "user_profiles"
+# User profiles are configuration (they override the shipped ones), so they
+# live in the config dir, mirroring resources/pad2key/profiles.
+_GAMEPADLY_USER_PROFILES: Final = CONFIG_DIR / "pad2key" / "profiles"
 GAMEPADLY_MAPPER: Final = _GAMEPADLY_DIR / "gamepadly_mapper.py"

@@ -7,4 +7,4 @@ if test -z "${DISPLAY}"; then
     export DISPLAY=$(getLocalXDisplay)
 fi
 
-exec "${USERDATA}/resources/emulatorlauncher/emulatorlauncher.sh" -system ps2 -emulator pcsx2 -rom config
+exec "${RETROBOX_ROOTDIR}/resources/emulatorlauncher/emulatorlauncher.sh" -system ps2 -emulator pcsx2 -rom config

@@ -12,7 +12,7 @@ else
     QT_QPA_PLATFORM=xcb
 fi
 
-XDG_CONFIG_HOME=/userdata/system/configs \
+XDG_CONFIG_HOME="${RETROBOX_EMUCONFIG_DIR}/duckstation" \
 LD_LIBRARY_PATH=/usr/stenzek-shaderc/lib:/usr/lib \
 QT_QPA_PLATFORM="$QT_QPA_PLATFORM" \
 /usr/bin/duckstation-qt

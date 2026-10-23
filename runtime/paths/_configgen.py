@@ -10,7 +10,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Final
 
-from ._base import RESOURCES_DIR, USERDATA, check_env_dirs, get_configured_path
+from ._base import DATA_DIR, RESOURCES_DIR, check_env_dirs, get_configured_path
 
 EMU_FEATURES_DIR: Final = RESOURCES_DIR / "emu_features"
 SYSTEMS_CONF_DIR: Final = RESOURCES_DIR / "systems_config"
@@ -21,18 +21,20 @@ SYSTEMS_CONF_DIR: Final = RESOURCES_DIR / "systems_config"
 # ROMS in _base.py): always read from retrobox.ini via get_configured_path,
 # never from os.environ. os.environ is only ever populated from [environ]
 # -- it plays no part in resolving these.
-SAVES: Final = get_configured_path("saves_dir", USERDATA / "saves")
-SCREENSHOTS: Final = check_env_dirs("SCREENSHOTS_DIR", USERDATA / "screenshots")
-RECORDINGS: Final = check_env_dirs("RECORDINGS_DIR", USERDATA / "recordings")
-BIOS: Final = get_configured_path("bios_dir", USERDATA / "bios")
-OVERLAYS: Final = check_env_dirs("OVERLAYS_DIR", USERDATA / "overlay")
-CHEATS: Final = check_env_dirs("CHEATS_DIR", USERDATA / "cheats")
+SAVES: Final = get_configured_path("saves_dir", DATA_DIR / "saves")
+SCREENSHOTS: Final = check_env_dirs("SCREENSHOTS_DIR", DATA_DIR / "screenshots")
+RECORDINGS: Final = check_env_dirs("RECORDINGS_DIR", DATA_DIR / "recordings")
+BIOS: Final = get_configured_path("bios_dir", DATA_DIR / "bios")
+OVERLAYS: Final = check_env_dirs("OVERLAYS_DIR", DATA_DIR / "overlay")
+CHEATS: Final = check_env_dirs("CHEATS_DIR", DATA_DIR / "cheats")
 
-_SHADERS_DIR: Final = check_env_dirs("SHADERS_DIR", USERDATA / "shaders")
+_SHADERS_DIR: Final = check_env_dirs("SHADERS_DIR", DATA_DIR / "shaders")
 _SHADERS_DEF_DIR: Final = check_env_dirs("SHADERS_DEFAULT_DIR", RESOURCES_DIR / "shaders")
 
-_DECORATIONS_DIR: Final = check_env_dirs("BEZELS_DIR", USERDATA / "decorations")
-_DECORATIONS_DEF_DIR: Final = check_env_dirs("BEZELS_DEFAULT_DIR", RESOURCES_DIR / "decorations")
+_DECORATIONS_DIR: Final = check_env_dirs("BEZELS_DIR", DATA_DIR / "decorations")
+# Default (RetroBat) bezels are not shipped: setup/decorations/retrobat-bezels.sh
+# downloads them here.
+_DECORATIONS_DEF_DIR: Final = check_env_dirs("BEZELS_DEFAULT_DIR", DATA_DIR / "decorations-default")
 
 _SYSTEM_SCRIPTS: Final = RESOURCES_DIR / "scripts"
 UTILS_DIR: Final = RESOURCES_DIR / "utils"

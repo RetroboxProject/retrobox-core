@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from typing import Final
 
-from runtime.paths import BIOS, CHEATS, DEFAULTS_DIR, EMULATORS, ROMS, SAVES
+from runtime.paths import BIOS, CHEATS, DEFAULTS_DIR, EMULATORS_CONFIG, ROMS, SAVES
 
 # directorios y ejecutable de retroarch y su config
-_MAME_DIR: Final = EMULATORS / "mame"
+_MAME_DIR: Final = EMULATORS_CONFIG / "mame"
 _MAME_BIN: Final = _MAME_DIR / "mame.AppImage"
-_MAME_XDG: Final = _MAME_DIR / "configs"
+_MAME_XDG: Final = _MAME_DIR
 MAME_CONFIG: Final = _MAME_XDG / "retroarch"
 
 MAME_SAVES: Final = SAVES / "mame"

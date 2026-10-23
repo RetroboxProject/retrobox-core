@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Final
 
 from . import viceConfig
 from ... import Command
-from runtime.paths import EMULATORS, mkdir_if_not_exists
+from runtime.paths import EMULATORS_CONFIG, mkdir_if_not_exists
 from ...controller import generate_sdl_game_controller_config
 from ..Generator import Generator
 from . import viceControllers
@@ -14,7 +14,7 @@ from . import viceControllers
 if TYPE_CHECKING:
     from ...batoceraTypes import HotkeysContext
 
-_VICE_CONFIG_DIR: Final = EMULATORS / 'vice'
+_VICE_CONFIG_DIR: Final = EMULATORS_CONFIG / 'vice'
 
 class ViceGenerator(Generator):
 
@@ -55,7 +55,7 @@ class ViceGenerator(Generator):
         return Command.Command(
             array=commandArray,
             env={
-                "XDG_CONFIG_HOME": EMULATORS,
+                "XDG_CONFIG_HOME": EMULATORS_CONFIG,
                 "SDL_GAMECONTROLLERCONFIG": generate_sdl_game_controller_config(playersControllers),
                 "SDL_JOYSTICK_HIDAPI": "0"
             }

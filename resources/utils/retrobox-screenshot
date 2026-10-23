@@ -3,6 +3,8 @@ set -x
 set -euo pipefail
 
 RETROBOX_ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." &> /dev/null && pwd)
+# shellcheck source=/dev/null
+source "${RETROBOX_ROOT}/setup/lib/paths.sh"
 ES_METADATA_FILE="/tmp/game.xml"
 
 if [[ ! -f "${ES_METADATA_FILE}" ]]; then
@@ -13,7 +15,7 @@ else
     NAME="${NAME%.*}"
 fi
 
-SCREENSHOT_DIR="${RETROBOX_ROOT}/screenshots"
+SCREENSHOT_DIR="${RETROBOX_SCREENSHOTS_DIR}"
 mkdir -p "${SCREENSHOT_DIR}"
 OUTPUT="${SCREENSHOT_DIR}/${NAME}_$(date +%Y%m%d-%H%M%S).png"
 

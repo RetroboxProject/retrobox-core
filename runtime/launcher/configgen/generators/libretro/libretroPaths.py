@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from typing import Final
 
-from runtime.paths import EMULATORS
+from runtime.paths import EMULATORS, EMULATORS_CONFIG
 
 # directorios y ejecutable de retroarch y su config
 _RETROARCH_DIR: Final = EMULATORS / "retroarch"
 _RETROARCH_BIN: Final = _RETROARCH_DIR / "app" / "bin" / "retroarch"
-_RETROARCH_XDG: Final = _RETROARCH_DIR / "config"
+_RETROARCH_XDG: Final = EMULATORS_CONFIG / 'retroarch'
 _RETROARCH_CFGDIR: Final = _RETROARCH_XDG / "retroarch"
 
 _RETROARCH_SHARE: Final = _RETROARCH_DIR / "app" / "share" / "retroarch"

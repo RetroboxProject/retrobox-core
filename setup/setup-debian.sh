@@ -9,36 +9,15 @@ RETROBOX_ROOTDIR="$(cd "${SCRIPT_DIR}/.." >/dev/null 2>&1 && pwd -P)"
 # shellcheck source=lib/log.sh
 source "${SCRIPT_DIR}/lib/log.sh"
 
+# shellcheck source=lib/deps.sh
+source "${SCRIPT_DIR}/lib/deps.sh"
+
 log_info "Installing system dependencies (apt)..."
+mapfile -t _pkgs < <(deps_apt_args "${SCRIPT_DIR}/deps/debian.list")
+mapfile -t _rec < <(deps_apt_args "${SCRIPT_DIR}/deps/recommended-debian.list")
 sudo apt-get update
-sudo apt-get install -y \
-    git \
-    libnotify-bin \
-    unzip \
-    7zip \
-    wget \
-    libfreeimage3 \
-    libsdl2-2.0-0 \
-    libsdl2-mixer-2.0-0 \
-    libvlc5 \
-    p7zip-full \
-    jq \
-    inotify-tools \
-    libice6 \
-    libsm6 \
-    libxtst6 \
-    libxi6 \
-    python3-pyudev \
-    python3-pip \
-    python3-venv \
-    python3-sdl2 \
-    python3-yaml \
-    python3-qrcode \
-    python3-pil \
-    python3-evdev \
-    python3-pygame \
-    power-profiles-daemon \
-    python3-ruamel.yaml
+sudo apt-get install -y "${_pkgs[@]}"
+sudo apt-get install -y "${_rec[@]}" || log_warn "Some recommended packages could not be installed."
 
 log_info "Installing udev rules..."
 sudo cp "${RETROBOX_ROOTDIR}/resources/udev/"*.rules /etc/udev/rules.d/

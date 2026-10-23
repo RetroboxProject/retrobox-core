@@ -1,0 +1,15 @@
+#!/bin/sh
+set -e
+
+case "$1" in
+    remove|purge)
+        if command -v udevadm >/dev/null 2>&1; then
+            udevadm control --reload-rules >/dev/null 2>&1 || true
+        fi
+        ;;
+esac
+
+# User data (ROMs, saves, BIOS, settings) lives under the users' XDG
+# directories and is deliberately never touched here, not even on purge.
+
+exit 0

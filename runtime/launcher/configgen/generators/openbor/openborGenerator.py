@@ -6,7 +6,7 @@ import re
 from typing import TYPE_CHECKING
 
 from ... import Command
-from runtime.paths import EMULATORS, ROMS, SAVES, mkdir_if_not_exists
+from runtime.paths import EMULATORS_CONFIG, ROMS, SAVES, mkdir_if_not_exists
 from ...settings.unixSettings import UnixSettings
 from ..Generator import Generator
 from . import openborControllers
@@ -28,7 +28,7 @@ class OpenborGenerator(Generator):
 
     # Main entry of the module
     def generate(self, system, rom, playersControllers, metadata, guns, wheels, gameResolution):
-        configDir = EMULATORS / 'openbor' / 'configs' / 'openbor'
+        configDir = EMULATORS_CONFIG / 'openbor' / 'configs' / 'openbor'
         mkdir_if_not_exists(configDir)
         mkdir_if_not_exists(SAVES / 'openbor')
 

@@ -1,7 +1,3 @@
-[submodule "resources/decorations"]
-	path = resources/decorations
-	url = https://github.com/RetroBat-Official/retrobat-bezels.git
-	shallow = true
 [submodule "runtime/gamepadly"]
 	path = runtime/gamepadly
 	url = https://github.com/manu-romero-411/gamepadly.git

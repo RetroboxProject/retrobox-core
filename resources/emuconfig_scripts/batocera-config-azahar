@@ -8,8 +8,8 @@ then
     export DISPLAY=$(getLocalXDisplay)
 fi
 
-XDG_CONFIG_HOME="${USERDATA}/emuconfigs" \
-XDG_DATA_HOME="${USERDATA}/saves/3ds" \
+XDG_CONFIG_HOME="${RETROBOX_EMUCONFIG_DIR}/azahar" \
+XDG_DATA_HOME="${RETROBOX_SAVES_DIR}/3ds" \
 XDG_CACHE_HOME="${HOME}/.cache" \
 SDL_JOYSTICK_HIDAPI=0 \
 /usr/local/bin/azahar

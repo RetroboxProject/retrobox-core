@@ -5,8 +5,9 @@
 
 ## VARIABLES
 RETROBOX_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/../.. >/dev/null 2>&1 && pwd -P)"
+source "${RETROBOX_ROOT}/setup/lib/paths.sh"
 GITHUB_REPO="cemu-project/Cemu"
-APPIMAGE_DIR="${RETROBOX_ROOT}/emulators/cemu"
+APPIMAGE_DIR="${RETROBOX_EMULATORS_DIR}/cemu"
 BIN_LINK="/usr/local/bin/cemu"
 
 ## FUNCIONES

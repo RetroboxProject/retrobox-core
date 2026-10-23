@@ -1,0 +1,24 @@
+#!/bin/sh
+set -e
+
+case "$1" in
+    configure)
+        # Byte-compile the runtime: the install tree is read-only for users,
+        # so Python could never cache it on its own and every game launch
+        # would re-parse ~250 modules. py3clean (prerm) removes these again.
+        if command -v py3compile >/dev/null 2>&1; then
+            py3compile -p retrobox /opt/retrobox/runtime || true
+        fi
+
+        if command -v udevadm >/dev/null 2>&1; then
+            udevadm control --reload-rules >/dev/null 2>&1 || true
+            udevadm trigger --subsystem-match=input --subsystem-match=hidraw \
+                --action=change >/dev/null 2>&1 || true
+        fi
+
+        echo "retrobox: to use gamepad-to-keyboard remapping, add your user to the" >&2
+        echo "retrobox: 'input' group (sudo usermod -aG input \$USER) and log in again." >&2
+        ;;
+esac
+
+exit 0

@@ -39,10 +39,9 @@ sys.path.insert(0, str(_RETROBOX_ROOTDIR / "runtime" / "launcher"))
 
 # the paths are added to sys.path above, so pylint cannot tell first party imports
 # pylint: disable=wrong-import-position,wrong-import-order
-# The bootstrap of retrobox.ini (including its auto-generation/repair on
-# first boot) is already handled by runtime.paths._base at import time,
-# BEFORE its Final constants are computed. No separate call is needed
-# before this import.
+# retrobox.ini (layered: /etc/retrobox + ~/.config/retrobox) is loaded by
+# runtime.paths._base at import time, BEFORE its Final constants are
+# computed. No separate call is needed before this import.
 from runtime.paths import (
     ES_EXECUTABLE,
     ES_FEATURES_CFG,
@@ -52,9 +51,11 @@ from runtime.paths import (
     ES_SYSTEMS_CFG,
     ES_SYSTEMS_TMP,
     FRONTEND_DIR,
+    FRONTEND_HOME,
+    RETROBOX_ROOTDIR,
     ROMS,
     RUNTIME_DIR,
-    USERDATA,
+    THEMES_DIR,
     _USER_ES_DIR,
     DirectoryCreationError,
     mkdir_if_not_exists,
@@ -110,6 +111,54 @@ def is_emulationstation_running(es_binary: Path) -> bool:
     return False
 
 
+def seed_user_es_dir() -> None:
+    """
+    Copy the default user-level EmulationStation files shipped with the
+    install (frontend/.emulationstation, e.g. collections) into the user's
+    EmulationStation home, without overwriting anything already there.
+
+    The shipped copy is read-only; the writable home lives in the data
+    directory. If both ever coincide (RETROBOX_DATADIR pointing at the
+    frontend dir) there is nothing to copy.
+    """
+    seed_dir = FRONTEND_DIR / ".emulationstation"
+    if not seed_dir.is_dir() or seed_dir.resolve() == _USER_ES_DIR.resolve():
+        return
+
+    for source in seed_dir.rglob("*"):
+        if not source.is_file():
+            continue
+        target = _USER_ES_DIR / source.relative_to(seed_dir)
+        if target.exists() or target.is_symlink():
+            continue
+        mkdir_if_not_exists(target.parent)
+        shutil.copy2(source, target)
+
+
+def link_shipped_themes() -> None:
+    """
+    Make the themes shipped with the install (frontend/themes, e.g. iconic)
+    available in the user's themes directory, next to any theme the user
+    adds there. Links only: the shipped copy stays read-only and updates
+    with the package. A user theme with the same name is left alone.
+    """
+    shipped = FRONTEND_DIR / "themes"
+    if not shipped.is_dir():
+        return
+    mkdir_if_not_exists(THEMES_DIR)
+    for theme in shipped.iterdir():
+        if not theme.is_dir():
+            continue
+        link = THEMES_DIR / theme.name
+        if link.is_symlink():
+            if link.resolve() == theme.resolve():
+                continue
+            link.unlink()  # stale link (e.g. the install moved)
+        elif link.exists():
+            continue
+        link.symlink_to(theme)
+
+
 def setup_emulationstation_config() -> None:
     """
     Ensure the user's EmulationStation configuration directory exists
@@ -117,6 +166,8 @@ def setup_emulationstation_config() -> None:
     """
     if not _USER_ES_DIR.is_dir():
         mkdir_if_not_exists(_USER_ES_DIR)
+    seed_user_es_dir()
+    link_shipped_themes()
 
     generate_emulationstation_ini()
     generate_es_systems()
@@ -155,7 +206,7 @@ def run_emulationstation(args: list[str]) -> int:
     es_env["SDL_VIDEODRIVER"] = "wayland,x11"
 
     result = subprocess.run(
-        [str(ES_EXECUTABLE), "--home", str(FRONTEND_DIR), *map(str, args)],
+        [str(ES_EXECUTABLE), "--home", str(FRONTEND_HOME), *map(str, args)],
         cwd=str(FRONTEND_DIR),
         env=es_env,
         check=False,
@@ -235,8 +286,8 @@ def main() -> int:
     if do_pcgames_sync:
         args = [arg for arg in args if arg != _PCGAMES_SYNC_FLAG]
 
-    if not USERDATA.is_dir():
-        _logger.error("Invalid Retrobox directory: %s", USERDATA)
+    if not RETROBOX_ROOTDIR.is_dir():
+        _logger.error("Invalid Retrobox directory: %s", RETROBOX_ROOTDIR)
         return 1
 
     if is_emulationstation_running(ES_EXECUTABLE):

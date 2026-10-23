@@ -5,7 +5,7 @@ import subprocess
 from typing import TYPE_CHECKING
 
 from ... import Command
-from runtime.paths import BIOS, EMULATORS, mkdir_if_not_exists
+from runtime.paths import BIOS, EMULATORS_CONFIG, mkdir_if_not_exists
 from ...controller import generate_sdl_game_controller_config
 from ..Generator import Generator
 
@@ -22,7 +22,7 @@ class XroarGenerator(Generator):
 
     def generate(self, system, rom, playersControllers, metadata, guns, wheels, gameResolution):
 
-        xroarConfigDir = EMULATORS / "xroar"
+        xroarConfigDir = EMULATORS_CONFIG / "xroar"
         mkdir_if_not_exists(xroarConfigDir)
         confFile = xroarConfigDir / "xroar.conf"
 

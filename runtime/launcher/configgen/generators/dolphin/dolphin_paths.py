@@ -1,10 +1,10 @@
 from __future__ import annotations
 from pathlib import Path
 from typing import Final
-from runtime.paths import BIOS, EMULATORS, SAVES
+from runtime.paths import BIOS, EMULATORS, EMULATORS_CONFIG, SAVES
 
 _DOLPHIN_DIR:  Final = EMULATORS / 'dolphin-emu'
-_DOLPHIN_XDG:  Final = _DOLPHIN_DIR / 'config'
+_DOLPHIN_XDG:  Final = EMULATORS_CONFIG / 'dolphin-emu'
 _DOLPHIN_CFGDIR:  Final = _DOLPHIN_XDG / 'dolphin-emu'
 _DOLPHIN_DATA:    Final = _DOLPHIN_DIR / 'app' / 'share' / 'dolphin-emu'
 #DOLPHIN_BIN: Final = _DOLPHIN_DIR / "dolphin.AppImage"

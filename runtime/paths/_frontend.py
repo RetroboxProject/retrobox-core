@@ -9,11 +9,21 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Final
 
-from ._base import DEFAULTS_DIR, RETROBOX_ROOTDIR
+from ._base import CONFIG_DIR, DATA_DIR, DEFAULTS_DIR, RETROBOX_ROOTDIR
 
+# FRONTEND_DIR: the (read-only) frontend install: binary, resources, the
+# shipped theme (iconic).
+# FRONTEND_HOME: EmulationStation's writable home (settings, generated
+# es_systems.cfg, gamelists, collections), seeded from FRONTEND_DIR. It is
+# configuration, so it lives under ~/.config/retrobox.
+# THEMES_DIR / MUSIC_DIR: user content, under ~/.local/share/retrobox. The
+# themes shipped in FRONTEND_DIR/themes are linked into THEMES_DIR at startup.
 FRONTEND_DIR: Final = RETROBOX_ROOTDIR / "frontend"
+FRONTEND_HOME: Final = CONFIG_DIR / "frontend"
+THEMES_DIR: Final = DATA_DIR / "themes"
+MUSIC_DIR: Final = DATA_DIR / "music"
 
-_USER_ES_DIR: Final = FRONTEND_DIR / ".emulationstation"
+_USER_ES_DIR: Final = FRONTEND_HOME / ".emulationstation"
 ES_SETTINGS_CFG: Final = _USER_ES_DIR / "es_settings.cfg"
 ES_FEATURES_CFG: Final = _USER_ES_DIR / "es_features.cfg"
 ES_SYSTEMS_CFG: Final = _USER_ES_DIR / "es_systems.cfg"

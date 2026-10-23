@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Final
 
 from ... import Command
-from runtime.paths import BIOS, EMULATORS, SAVES, SCREENSHOTS, USERDATA, mkdir_if_not_exists
+from runtime.paths import BIOS, EMULATORS_CONFIG, LOGS, SAVES, SCREENSHOTS, mkdir_if_not_exists
 from ...controller import generate_sdl_game_controller_config, write_sdl_controller_db
 from ...settings.unixSettings import UnixSettings
 from ..Generator import Generator
@@ -17,8 +17,8 @@ if TYPE_CHECKING:
 
 _logger = logging.getLogger(__name__)
 
-_AMIBERRY_PATH: Final = EMULATORS / 'amiberry' 
-_AMIBERRY_XDG: Final = _AMIBERRY_PATH / 'configs'
+_AMIBERRY_PATH: Final = EMULATORS_CONFIG / 'amiberry'
+_AMIBERRY_XDG: Final = _AMIBERRY_PATH
 _CONFIG_DIR: Final = _AMIBERRY_XDG / 'amiberry'
 _CONFIG: Final = _CONFIG_DIR / 'amiberry.conf'
 _RETROARCH_CUSTOM: Final = _CONFIG_DIR / 'retroarch' / 'overlay.cfg'
@@ -28,7 +28,7 @@ _WHDBOOT_DIR: Final = _CONFIG_DIR / 'whdboot'
 _SAVES_DIR: Final = Path(f'{SAVES}/amiga')
 _SCREENSHOTS_DIR: Final = Path(f'{SCREENSHOTS}')
 _BIOS_DIR: Final = Path(f'{BIOS}/amiga')
-_LOG_FILE: Final = Path(f'{USERDATA}/system/logs/amiberry.log')
+_LOG_FILE: Final = Path(f'{LOGS}/amiberry.log')
 _AMIBERRY_BIN: Final = Path('/usr/bin/amiberry')
 _AMIBERRY_DATA: Final = Path('/usr/share/amiberry/data')
 

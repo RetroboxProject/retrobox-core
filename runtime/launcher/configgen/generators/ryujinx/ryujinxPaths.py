@@ -1,10 +1,10 @@
 from typing import Final
 
-from runtime.paths import DEFAULTS_DIR, EMULATORS, SAVES
+from runtime.paths import DEFAULTS_DIR, EMULATORS, EMULATORS_CONFIG, SAVES
 
 _RYUJINX_EMUDIR: Final = EMULATORS / "ryujinx"
 RYUJINX_BIN: Final = _RYUJINX_EMUDIR / "ryujinx.AppImage"
-_RYUJINX_XDG: Final = _RYUJINX_EMUDIR / "config"
+_RYUJINX_XDG: Final = EMULATORS_CONFIG / 'ryujinx'
 
 RYUJINX_CONFIG: Final = _RYUJINX_XDG / "Ryujinx"
 RYUJINX_CONFIG_FILE: Final = RYUJINX_CONFIG / "Config.json"

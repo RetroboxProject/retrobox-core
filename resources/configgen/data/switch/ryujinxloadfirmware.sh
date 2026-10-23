@@ -4,11 +4,11 @@
 start=$(date +%s.%N)
 
 # --- Répertoires ---
-NCA_SRC_DIR="${USERDATA}/bios/switch/firmware"
-KEYS_SRC_DIR="${USERDATA}/bios/switch/keys"
-RYUJINX_SYSTEM_DIR="${USERDATA}/emuconfigs/Ryujinx/system"
-REGISTERED_DIR="${USERDATA}/emuconfigs/Ryujinx/bis/system/Contents/registered"
-CHECKSUM_FILE="${USERDATA}/configs/Ryujinx/checksum_firmware.txt"
+NCA_SRC_DIR="${RETROBOX_BIOS_DIR}/switch/firmware"
+KEYS_SRC_DIR="${RETROBOX_BIOS_DIR}/switch/keys"
+RYUJINX_SYSTEM_DIR="${RETROBOX_EMUCONFIG_DIR}/ryujinx/Ryujinx/system"
+REGISTERED_DIR="${RETROBOX_EMUCONFIG_DIR}/ryujinx/Ryujinx/bis/system/Contents/registered"
+CHECKSUM_FILE="${RETROBOX_EMUCONFIG_DIR}/ryujinx/Ryujinx/checksum_firmware.txt"
 
 # --- Copier les keys (inchangé) ---
 if [ -d "$KEYS_SRC_DIR" ]; then

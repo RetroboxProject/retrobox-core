@@ -5,11 +5,12 @@ set -eo pipefail
 
 ## VARIABLES
 RETROBOX_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/../.. >/dev/null 2>&1 && pwd -P)"
-INSTALL_DIR="${RETROBOX_ROOT}/frontend/music"
+source "${RETROBOX_ROOT}/setup/lib/paths.sh"
+INSTALL_DIR="${RETROBOX_MUSIC_DIR}"
 TMP_DIR="$(mktemp -d)"
 TARBALL_URL="https://store.batocera.org/music-pack-vol-4-1.0.0-1-any.pkg.tar.zst"
 PACK_NAME="music-pack-4"
-MANIFEST_DIR="${RETROBOX_ROOT}/setup/.packages/music"
+MANIFEST_DIR="${RETROBOX_STATEDIR}/packages/music"
 MANIFEST_FILE="${MANIFEST_DIR}/${PACK_NAME}"
 
 ## FUNCTIONS
@@ -44,7 +45,7 @@ function install() {
     tar -tf "${TMP_DIR}/pack.tar" \
         | grep "^userdata/music/" \
         | grep -v "/$" \
-        | sed "s|^userdata/music/|frontend/music/|" \
+        | sed "s|^userdata/music/|music/|" \
         > "${MANIFEST_FILE}"
 
     rm -rf "${TMP_DIR}"
@@ -59,8 +60,8 @@ function uninstall() {
     fi
 
     while IFS= read -r file; do
-        if [[ -f "${RETROBOX_ROOT}/${file}" ]]; then
-            rm -f "${RETROBOX_ROOT}/${file}"
+        if [[ -f "${RETROBOX_DATADIR}/${file}" ]]; then
+            rm -f "${RETROBOX_DATADIR}/${file}"
             echo "[INFO] Removed ${file}"
         fi
     done < "${MANIFEST_FILE}"

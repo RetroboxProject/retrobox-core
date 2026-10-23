@@ -4,7 +4,7 @@ from shutil import copyfile
 from typing import TYPE_CHECKING
 
 from ... import Command
-from runtime.paths import EMULATORS, mkdir_if_not_exists
+from runtime.paths import EMULATORS_CONFIG, mkdir_if_not_exists
 from ...controller import generate_sdl_game_controller_config
 from ..Generator import Generator
 from . import xemuConfig
@@ -32,7 +32,7 @@ class XemuGenerator(Generator):
         commandArray.extend(["-config_path", XEMU_CONFIG])
 
         environment = {
-            "XDG_CONFIG_HOME": EMULATORS,
+            "XDG_CONFIG_HOME": EMULATORS_CONFIG,
             "SDL_GAMECONTROLLERCONFIG": generate_sdl_game_controller_config(playersControllers),
             "LC_NUMERIC": "C"
         }

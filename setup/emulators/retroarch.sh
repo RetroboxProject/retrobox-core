@@ -6,8 +6,9 @@ set -eo pipefail
 ## VARIABLES
 
 RETROBOX_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/../.. >/dev/null 2>&1 && pwd -P)"
-INSTALL_DIR="${RETROBOX_ROOT}/emulators/retroarch"
-SRC_DIR="${RETROBOX_ROOT}/emulators/_src"
+source "${RETROBOX_ROOT}/setup/lib/paths.sh"
+INSTALL_DIR="${RETROBOX_EMULATORS_DIR}/retroarch"
+SRC_DIR="${RETROBOX_EMULATORS_DIR}/_src"
 RETROARCH_SRC="${SRC_DIR}/RetroArch"
 TMP_DIR="$(mktemp -d)"
 SOURCE_UPSTREAM="https://github.com/libretro/RetroArch.git"

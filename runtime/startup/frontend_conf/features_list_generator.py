@@ -28,7 +28,7 @@ ROOTDIR = Path(__file__).resolve().parents[2]
 sys.path.append(str(ROOTDIR))
 
 # pylint: disable=wrong-import-position
-from runtime.paths import EMU_FEATURES_DIR, ES_FEATURES_CFG, ES_FEATURES_TMP
+from runtime.paths import ES_FEATURES_CFG, ES_FEATURES_TMP, layered_files
 from runtime.utils.features_yaml import load_feature_yaml
 
 # pylint: enable=wrong-import-position
@@ -264,10 +264,10 @@ def _append_global_features(
             _append_shared_feature(container, entry, context)
 
 
-def _load_sources(yaml_dir: Path) -> _Sources:
-    """Parse every YAML file of ``yaml_dir`` and sort it by role."""
+def _load_sources(yaml_files: Iterable[Path]) -> _Sources:
+    """Parse every YAML file given and sort it by role."""
     sources = _Sources()
-    for yaml_file in sorted(yaml_dir.glob("*.yaml")):
+    for yaml_file in yaml_files:
         try:
             with yaml_file.open(encoding="utf-8") as file:
                 data = load_feature_yaml(file)
@@ -363,24 +363,40 @@ def _link_features_file(output_path: Path) -> None:
         raise
 
 
-def generate_es_features(
-    yaml_dir: Path = EMU_FEATURES_DIR, output_path: Path = ES_FEATURES_TMP
-) -> None:
+def _feature_yaml_files(yaml_dir: Path | None) -> list[Path]:
+    """The feature YAML files to use, sorted by name.
+
+    Without `yaml_dir` the layers (shipped resources, /etc/retrobox, the user's
+    config) are merged: a file of a later layer replaces the one with the same
+    name and extra files add features.
+    """
+    if yaml_dir is None:
+        found = {
+            rel: path for rel, path in layered_files("emu_features", "*.yaml").items() if "/" not in rel
+        }
+        if not found:
+            raise FileNotFoundError("No emu_features found in any configuration layer")
+        return list(found.values())
+    if not yaml_dir.exists():
+        raise FileNotFoundError(f"Features dir not found: {yaml_dir}")
+    if not yaml_dir.is_dir():
+        raise NotADirectoryError(f"Features dir isn't a directory: {yaml_dir}")
+    return sorted(yaml_dir.glob("*.yaml"))
+
+
+def generate_es_features(yaml_dir: Path | None = None, output_path: Path = ES_FEATURES_TMP) -> None:
     """Entry point for the es_features.cfg generator.
 
     Args:
         yaml_dir: Directory holding the per-emulator/core feature YAML files.
+            None (default) merges emu_features/ across the configuration layers.
         output_path: Where to write the generated es_features.cfg.
 
     Raises:
-        FileNotFoundError: If `yaml_dir` doesn't exist.
+        FileNotFoundError: If there are no feature files (or `yaml_dir` doesn't exist).
         NotADirectoryError: If `yaml_dir` exists but isn't a directory.
     """
-    if not yaml_dir.exists():
-        raise FileNotFoundError(f"Features dir not found: {yaml_dir}")
-
-    if not yaml_dir.is_dir():
-        raise NotADirectoryError(f"Features dir isn't a directory: {yaml_dir}")
+    yaml_files = _feature_yaml_files(yaml_dir)
 
     if output_path.exists() or output_path.is_symlink():
         output_path.unlink()
@@ -391,7 +407,7 @@ def generate_es_features(
         ES_FEATURES_CFG.unlink()
 
     _logger.info("Begin generating: %s", output_path)
-    final_xml = _pretty_xml(_build_tree(_load_sources(yaml_dir)))
+    final_xml = _pretty_xml(_build_tree(_load_sources(yaml_files)))
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(final_xml, encoding="utf-8")

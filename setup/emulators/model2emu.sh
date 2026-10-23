@@ -5,9 +5,10 @@
 
 ## VARIABLES
 RETROBOX_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/../.. >/dev/null 2>&1 && pwd -P)"
+source "${RETROBOX_ROOT}/setup/lib/paths.sh"
 
 DOWNLOAD_URL="https://github.com/batocera-linux/model2emu/raw/refs/heads/main/m2emulator.zip"
-INSTALL_DIR="${RETROBOX_ROOT}/emulators/model2emu"
+INSTALL_DIR="${RETROBOX_EMULATORS_DIR}/model2emu"
 EMU_DIR="$INSTALL_DIR/drive_c/model2emu"
 
 ## FUNCIONES

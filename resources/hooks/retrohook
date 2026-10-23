@@ -13,10 +13,17 @@ set -e
 PLATFORM="$1"
 GAME="$2"
 STATE="$3"
-USERDATA="$(cd "$(dirname "${BASH_SOURCE[0]}")"/../.. && pwd)"
-
-HOOKPATH="$USERDATA/resources/hooks/retrohook.d/$PLATFORM/$GAME/$STATE"
-mkdir -p "$HOOKPATH"
+# Hooks come from three layers, run in this order (like the rest of the
+# configuration): shipped with Retrobox, the administrator's (/etc/retrobox)
+# and the user's (~/.config/retrobox). Every layer has the same layout:
+#   <layer>/hooks/retrohook.d/<platform>/<game>/<state>/
+# The launcher exports the RETROBOX_* variables; when called by hand, ask the
+# shared path library.
+if [ -z "${RETROBOX_CONFIGDIR:-}" ]; then
+	# shellcheck source=/dev/null
+	source "$(cd "$(dirname "${BASH_SOURCE[0]}")"/../.. && pwd)/setup/lib/paths.sh"
+fi
+LAYERS=("${RETROBOX_ROOTDIR}/resources" "${RETROBOX_SYSCONFDIR:-/etc/retrobox}" "${RETROBOX_CONFIGDIR}")
 
 failed=0
 
@@ -38,12 +45,15 @@ run_hook() {
 	fi
 }
 
-if [ -f "$HOOKPATH" ]; then
-	run_hook "$HOOKPATH" "$@"
-elif [ -d "$HOOKPATH" ]; then
-	while IFS= read -r file; do
-		run_hook "$file" "$@"
-	done < <(find -L "$HOOKPATH" -maxdepth 1 -type f -executable -print | sort)
-fi
+for layer in "${LAYERS[@]}"; do
+	HOOKPATH="$layer/hooks/retrohook.d/$PLATFORM/$GAME/$STATE"
+	if [ -f "$HOOKPATH" ]; then
+		run_hook "$HOOKPATH" "$@"
+	elif [ -d "$HOOKPATH" ]; then
+		while IFS= read -r file; do
+			run_hook "$file" "$@"
+		done < <(find -L "$HOOKPATH" -maxdepth 1 -type f -executable -print | sort)
+	fi
+done
 
 exit "$failed"

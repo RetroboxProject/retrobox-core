@@ -11,26 +11,14 @@ RETROBOX_ROOTDIR="$(cd "${SCRIPT_DIR}/.." >/dev/null 2>&1 && pwd -P)"
 # shellcheck source=lib/log.sh
 source "${SCRIPT_DIR}/lib/log.sh"
 
+# shellcheck source=lib/deps.sh
+source "${SCRIPT_DIR}/lib/deps.sh"
+
 log_info "Installing system dependencies (dnf)..."
-sudo dnf install -y \
-    freeimage \
-    SDL2_mixer \
-    vlc-libs \
-    jq \
-    p7zip \
-    inotify-tools \
-    python3-pyudev \
-    python3-pip \
-    python3-virtualenv \
-    python3-pysdl2 \
-    python3-pyyaml \
-    python3-qrcode \
-    python3-pillow \
-    python3-evdev \
-    python3-pygame \
-    python-ruamel-yaml \
-    python3-tomlkit \
-    python3-ruamel-yaml
+mapfile -t _pkgs < <(deps_list "${SCRIPT_DIR}/deps/fedora.list")
+mapfile -t _rec < <(deps_list "${SCRIPT_DIR}/deps/recommended-fedora.list")
+sudo dnf install -y "${_pkgs[@]}"
+sudo dnf install -y "${_rec[@]}" || log_warn "Some recommended packages could not be installed."
 
 log_info "Installing udev rules..."
 # NOTE: this used to be "../resources/udev/*.rules", which only worked if you

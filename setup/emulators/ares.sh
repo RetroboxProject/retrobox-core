@@ -6,8 +6,9 @@ set -eo pipefail
 ## VARIABLES
 
 RETROBOX_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/../.. >/dev/null 2>&1 && pwd -P)"
-INSTALL_DIR="${RETROBOX_ROOT}/ares"
-SRC_DIR="${RETROBOX_ROOT}/_src"
+source "${RETROBOX_ROOT}/setup/lib/paths.sh"
+INSTALL_DIR="${RETROBOX_EMULATORS_DIR}/ares"
+SRC_DIR="${RETROBOX_EMULATORS_DIR}/_src"
 ARES_SRC="${SRC_DIR}/ares"
 LIBRASHADER_SRC="${SRC_DIR}/librashader"
 ARES_REPO="https://github.com/ares-emulator/ares.git"
