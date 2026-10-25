@@ -18,7 +18,7 @@ log_info "Installing system dependencies (dnf)..."
 mapfile -t _pkgs < <(deps_list "${SCRIPT_DIR}/deps/fedora.list")
 mapfile -t _rec < <(deps_list "${SCRIPT_DIR}/deps/recommended-fedora.list")
 sudo dnf install -y "${_pkgs[@]}"
-sudo dnf install -y "${_rec[@]}" || log_warn "Some recommended packages could not be installed."
+sudo dnf install -y --setopt=strict=0 "${_rec[@]}" || log_warn "Some recommended packages could not be installed."
 
 log_info "Installing udev rules..."
 # NOTE: this used to be "../resources/udev/*.rules", which only worked if you

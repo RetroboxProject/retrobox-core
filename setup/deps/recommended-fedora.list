@@ -1,2 +1,4 @@
+# vlc-libs lives in RPM Fusion (free), so it is recommended, not required.
 power-profiles-daemon
 vulkan-tools
+vlc-libs

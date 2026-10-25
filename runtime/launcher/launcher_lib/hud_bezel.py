@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING, Any
 from configgen.exceptions import RetroboxException
 from configgen.utils import bezels as bezels_util
 from configgen.utils.bezel_policy import resolve_bezel_settings
+from runtime.paths import RUNTIME_DIR
 
 if TYPE_CHECKING:
     from configgen.batoceraTypes import Resolution
@@ -32,10 +33,10 @@ _DEFAULT_BEZEL_STRETCH = True
 _MAX_COVER = 0.05  # 5%
 _MAX_RATIO_DELTA = 0.01
 
-_TRANSPARENT_BEZEL_PNG = Path("/tmp/bezel_transhud_black.png")
-_TRANSPARENT_BEZEL_INFO = Path("/tmp/bezel_transhud_black.info")
-_RESIZED_BEZEL_PNG = Path("/tmp/bezel.png")
-_RESIZED_BEZEL_INFO = Path("/tmp/bezel.info")
+_TRANSPARENT_BEZEL_PNG = RUNTIME_DIR / "bezel_transhud_black.png"
+_TRANSPARENT_BEZEL_INFO = RUNTIME_DIR / "bezel_transhud_black.info"
+_RESIZED_BEZEL_PNG = RUNTIME_DIR / "bezel.png"
+_RESIZED_BEZEL_INFO = RUNTIME_DIR / "bezel.info"
 
 
 @dataclass

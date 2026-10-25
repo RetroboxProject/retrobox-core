@@ -35,6 +35,12 @@ jobs:
       - name: Build the .deb
         run: packaging/deb/build-deb.sh --outdir dist
 
+      - name: Build the .rpm
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq rpm
+          packaging/rpm/build-rpm.sh --outdir dist
+
       - name: Build the install.sh tarball
         run: packaging/tarball/build-tarball.sh --outdir dist
 
@@ -84,12 +90,39 @@ jobs:
       - name: Install, run and purge the .deb
         run: bash packaging/deb/smoke-test.sh dist/*.deb
 
+  smoke-test-rpm:
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        image: ["fedora:latest", "fedora:42"]
+    runs-on: ubuntu-24.04
+    container: ${{ matrix.image }}
+    steps:
+      - name: Install git (for the sparse checkout)
+        run: dnf install -y -q git
+
+      - name: Check out (for the test script only)
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: packaging/rpm/smoke-test.sh
+          sparse-checkout-cone-mode: false
+
+      - name: Download the packages
+        uses: actions/download-artifact@v4
+        with:
+          name: retrobox-dist
+          path: dist
+
+      - name: Install, run and remove the .rpm
+        run: bash packaging/rpm/smoke-test.sh dist/*.rpm
+
   install-test:
     needs: build
     strategy:
       fail-fast: false
       matrix:
-        image: ["ubuntu:24.04", "debian:trixie"]
+        image: ["ubuntu:24.04", "debian:trixie", "fedora:latest"]
     runs-on: ubuntu-24.04
     container: ${{ matrix.image }}
     steps:
@@ -112,7 +145,7 @@ jobs:
 
   release:
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [build, smoke-test, install-test]
+    needs: [build, smoke-test, smoke-test-rpm, install-test]
     runs-on: ubuntu-24.04
     permissions:
       contents: write

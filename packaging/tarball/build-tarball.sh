@@ -26,15 +26,8 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-if [[ -z "${VERSION}" ]]; then
-    if exact="$(git -C "${SRC}" describe --tags --exact-match --match 'v[0-9]*' 2>/dev/null)"; then
-        VERSION="${exact#v}"
-    else
-        base="$(git -C "${SRC}" describe --tags --abbrev=0 --match 'v[0-9]*' 2>/dev/null || true)"
-        VERSION="${base#v}"
-        VERSION="${VERSION:-0.0.0}+git$(date -u -d "@$(git -C "${SRC}" log -1 --format=%ct)" +%Y%m%d).$(git -C "${SRC}" rev-parse --short=7 HEAD)"
-    fi
-fi
+. "${SRC}/packaging/version.sh"
+[[ -n "${VERSION}" ]] || VERSION="$(derive_version "${SRC}")"
 
 SOURCE_DATE_EPOCH="$(git -C "${SRC}" log -1 --format=%ct)"
 export SOURCE_DATE_EPOCH

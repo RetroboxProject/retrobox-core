@@ -208,7 +208,7 @@ class FlycastGenerator(Generator):
 
         # Here is the trick to make flycast find files :
         # emu.cfg is in $XDG_CONFIG_DIRS or $XDG_CONFIG_HOME.
-        # VMU will be in $XDG_DATA_HOME / $FLYCAST_DATADIR because it needs rw access -> /userdata/saves/dreamcast
+        # VMU will be in $XDG_DATA_HOME / $FLYCAST_DATADIR because it needs rw access (user data dir)/saves/dreamcast
         # $FLYCAST_BIOS_PATH is where Flaycast should find the bios files
         # controller cfg files are set with an absolute path, so no worry
         return Command.Command(

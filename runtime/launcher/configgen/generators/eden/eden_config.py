@@ -3,7 +3,9 @@ import os
 from pathlib import Path
 import sys
 
-from .edenPaths import SWITCH_DLC_DIR, SWITCH_ROMS, SWITCH_UPDATE_DIR
+from runtime.paths import SCREENSHOTS
+
+from .edenPaths import EDEN_DATA, SWITCH_DLC_DIR, SWITCH_ROMS, SWITCH_UPDATE_DIR
 from .eden_controllers import _eden_write_controller_config
 from ...utils.configparser import CaseSensitiveRawConfigParser
 _logger = logging.getLogger(__name__)
@@ -31,6 +33,19 @@ def _eden_write_config(edenConfigFile, edenConfigTemplateFile, system, playersCo
     # Sinon première création depuis template
     elif os.path.exists(edenConfigTemplateFile):
         eden_config.read(edenConfigTemplateFile)
+        # The template carries placeholders instead of fixed paths.
+        tokens = {
+            "@EDEN_DATA@": str(EDEN_DATA),
+            "@SWITCH_ROMS@": str(SWITCH_ROMS),
+            "@SCREENSHOTS@": str(SCREENSHOTS),
+        }
+        for section in eden_config.sections():
+            for key, value in eden_config.items(section):
+                new = value
+                for token, real in tokens.items():
+                    new = new.replace(token, real)
+                if new != value:
+                    eden_config.set(section, key, new)
 
 # UI section
     if not eden_config.has_section("UI"):

@@ -5,7 +5,7 @@ import subprocess
 from typing import TYPE_CHECKING
 
 from ... import Command
-from runtime.paths import BIOS, EMULATORS_CONFIG, mkdir_if_not_exists
+from runtime.paths import BIOS, EMULATORS_CONFIG, mkdir_if_not_exists, RUNTIME_DIR
 from ...controller import generate_sdl_game_controller_config
 from ..Generator import Generator
 
@@ -76,8 +76,8 @@ class XroarGenerator(Generator):
                 if proc.returncode == 10:
                     for line in proc.stdout.splitlines():
                         if pathlib.Path(line).suffix.lower() in [".rom", ".dsk", ".cas", ".ccc", ".wav"]:
-                            subprocess.run(['batocera-xtract', 'pyx', str(rom), '/tmp', line], check=True)
-                            rom_path = "/tmp/" + line
+                            subprocess.run(['batocera-xtract', 'pyx', str(rom), str(RUNTIME_DIR), line], check=True)
+                            rom_path = str(RUNTIME_DIR / line)
                             break
 
                 if rom_path == str(rom):

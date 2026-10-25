@@ -5,7 +5,7 @@ then
 	export DISPLAY=:0.0
 fi
 
-WINE_BOTTLE="/userdata/system/wine-bottles/demul"
+WINE_BOTTLE="${RETROBOX_EMULATORS_DIR}/demul"
 EXE_PATH="${WINE_BOTTLE}/demul/demul.exe"
 PATH=$PATH:/usr/wine/wine-proton/bin
 

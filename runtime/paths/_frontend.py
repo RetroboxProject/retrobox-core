@@ -9,7 +9,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Final
 
-from ._base import CONFIG_DIR, DATA_DIR, DEFAULTS_DIR, RETROBOX_ROOTDIR
+from ._base import CONFIG_DIR, DATA_DIR, DEFAULTS_DIR, RETROBOX_ROOTDIR, RUNTIME_DIR
 
 # FRONTEND_DIR: the (read-only) frontend install: binary, resources, the
 # shipped theme (iconic).
@@ -28,10 +28,10 @@ _USER_ES_DIR: Final = FRONTEND_HOME / ".emulationstation"
 ES_SETTINGS_CFG: Final = _USER_ES_DIR / "es_settings.cfg"
 ES_FEATURES_CFG: Final = _USER_ES_DIR / "es_features.cfg"
 ES_SYSTEMS_CFG: Final = _USER_ES_DIR / "es_systems.cfg"
-ES_FEATURES_TMP: Final = Path("/tmp/retrobox_es_features.cfg")
-ES_SYSTEMS_TMP: Final = Path("/tmp/retrobox_es_systems.cfg")
+ES_FEATURES_TMP: Final = RUNTIME_DIR / "es_features.cfg"
+ES_SYSTEMS_TMP: Final = RUNTIME_DIR / "es_systems.cfg"
 ES_INPUT_CFG: Final = _USER_ES_DIR / "es_input.cfg"
-ES_INI_TMP: Final = Path("/tmp/retrobox-emulationstation.ini")
+ES_INI_TMP: Final = RUNTIME_DIR / "emulationstation.ini"
 ES_INI_CFG: Final = _USER_ES_DIR / "emulationstation.ini"
 ES_EXECUTABLE: Final = FRONTEND_DIR / "emulationstation"
 

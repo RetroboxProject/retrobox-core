@@ -14,7 +14,6 @@ python3-requests
 python3-typing-extensions
 freeimage
 SDL2_mixer
-vlc-libs
 libnotify
 inotify-tools
 jq

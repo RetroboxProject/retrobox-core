@@ -11,6 +11,7 @@ from ...controller import generate_sdl_game_controller_config
 from ..Generator import Generator
 from . import fsuaeControllers
 from .fsuaePaths import FSUAE_BIOS_DIR, FSUAE_CONFIG_DIR, FSUAE_SAVES
+from runtime.paths import RUNTIME_DIR
 
 if TYPE_CHECKING:
     from ...batoceraTypes import HotkeysContext
@@ -77,7 +78,7 @@ class FsuaeGenerator(Generator):
             device_type = "cdrom"
 
         # extract zip here
-        TEMP_DIR = Path("/tmp/fsuae")
+        TEMP_DIR = RUNTIME_DIR / "fsuae"
         diskNames: list[str] = []
         zf: zipfile.ZipFile | None = None
 

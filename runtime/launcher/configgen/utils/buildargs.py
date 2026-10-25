@@ -66,7 +66,7 @@ def parse_args(launch_args: list[str | Path], rom_path: Path) -> Result:
         if key not in build_args:
             errors += [ParseError(i, f"KEY '{key}' is not valid")]
             continue
-        # Paths that begin with "/" denote absolute path from emulator roms directory e.g. /userdata/roms/raze
+        # Paths that begin with "/" denote absolute path from emulator roms directory e.g. <roms dir>/raze
         # These paths are expected to exist on physical filesystem
         # Otherwise, no "/", they are expected to exist on the virtual filesystem
         val_path = (rom_path.parent / val[1:]) if val.startswith("/") else val

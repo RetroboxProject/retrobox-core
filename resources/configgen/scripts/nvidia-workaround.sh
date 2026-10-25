@@ -1,6 +1,8 @@
 #!/bin/bash
 
-log="/userdata/system/logs/nvidia.log"
+log_dir="${RETROBOX_STATEDIR:-${HOME}/.local/state/retrobox}/logs"
+mkdir -p "${log_dir}"
+log="${log_dir}/nvidia.log"
 prime_file="/var/tmp/nvidia.prime"
 
 if [[ -e "$prime_file" && ( "$2" == "model2" || "$2" == "xbox360" || "$2" == "wine") ]]; then

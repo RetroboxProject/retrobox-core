@@ -20,7 +20,7 @@ This project brings the parts that matter most to a desktop Linux installation:
 ```
 EmulationStation
     └── on game launch → emulatorlauncher.sh
-            ├── sync_settings.py   (es_settings.cfg → temporal batocera.conf in /tmp)
+            ├── sync_settings.py   (es_settings.cfg → temporal batocera.conf in the runtime dir)
             └── configgen          (writes emulator configs, launches game)
                     ├── batocera-resolution  (stub → kscreen-doctor)
                     ├── batocera-vulkan      (stub → vulkaninfo)
@@ -64,7 +64,7 @@ Compared with batocera:
 | `/userdata` | data dir (see above) |
 | `/userdata/system/configs/<emu>` | `~/.config/retrobox/emulators/<emu>` |
 | `/userdata/bios`, `/userdata/saves`, `/userdata/roms` | `bios/`, `saves/`, `roms/` in the data dir (or wherever `[paths]` says) |
-| `/var/run/*` | `/tmp/batocera-run/*` |
+| `/var/run/*` | `$XDG_RUNTIME_DIR/retrobox` (per user, 0700; `RETROBOX_RUNTIME_DIR`) |
 | `/usr/share/batocera` | `<install dir>/resources` |
 | `/usr/share/batocera/evmapy` | `<install dir>/resources/pad2key/profiles` (user profiles: `~/.config/retrobox/pad2key/profiles`) |
 
@@ -142,6 +142,12 @@ It's expected to add support for other browsers such as Brave, since all Chromiu
 
 ```bash
 sudo apt install ./retrobox_<version>_amd64.deb      # installs into /opt/retrobox, /usr/bin/retrobox
+```
+
+**Fedora (.rpm):**
+
+```bash
+sudo dnf install ./retrobox-core-<version>.x86_64.rpm   # same layout as the .deb; vlc-libs (RPM Fusion) is only recommended
 ```
 
 **Any supported distro (install.sh):**

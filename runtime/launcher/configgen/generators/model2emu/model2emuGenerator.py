@@ -66,7 +66,7 @@ class Model2EmuGenerator(Generator):
             copy_updated_files(M2EMU_RESOURCES / "CFG", cfg_dest)
             xinput_cfg_done.touch()
         
-        # .resolve() convierte "../roms/model2" en "/userdata/roms/model2" (o la ruta real de Debian)
+        # .resolve() convierte "../roms/model2" en the real roms path (o la ruta real de Debian)
         #absolute_rom_dir = Path(os.path.realpath(rom)).parent.resolve()
         
         # Reemplazar barras de Linux (/) a Windows (\) para el emulador

@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from configgen.exceptions import BadCommandLineArguments, UnexpectedEmulatorExit
+from runtime.paths import RUNTIME_DIR
 
 if TYPE_CHECKING:
     from types import FrameType
@@ -19,7 +20,7 @@ if TYPE_CHECKING:
 
 _logger = logging.getLogger(__name__)
 
-_ENV_DUMP_FILE = Path("/tmp/env-launcher.txt")
+_ENV_DUMP_FILE = RUNTIME_DIR / "env-launcher.txt"
 
 
 @dataclass

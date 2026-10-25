@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 from ...controller import generate_sdl_game_controller_config
 from ... import Command
 from ..Generator import Generator
+from runtime.paths import RUNTIME_DIR, SAVES
 
 if TYPE_CHECKING:
     from ...batoceraTypes import HotkeysContext
@@ -105,7 +106,7 @@ export QT_SCALE_FACTOR="1.5"
 echo "[chrome-wrapper] Chrome cerrado."
 exit 0
 """
-    fd, path = tempfile.mkstemp(prefix="chrome_wrapper_", suffix=".sh")
+    fd, path = tempfile.mkstemp(prefix="chrome_wrapper_", suffix=".sh", dir=RUNTIME_DIR)
     os.write(fd, script.encode())
     os.close(fd)
     os.chmod(path, stat.S_IRWXU)
@@ -113,14 +114,14 @@ exit 0
 
 class ChromeGenerator(Generator):
     def generate(self, system, rom, playersControllers, metadata, guns, wheels, gameResolution):
-        for old in glob.glob("/tmp/chrome_wrapper_*.sh"):
+        for old in glob.glob(str(RUNTIME_DIR / "chrome_wrapper_*.sh")):
             try:
                 os.remove(old)
             except OSError:
                 pass
 
         chrome_bin = _find_chrome_binary()
-        user_data_dir = os.path.join(system.config.get("saves_dir", "/userdata/saves"), "chrome")
+        user_data_dir = os.path.join(system.config.get("saves_dir", str(SAVES)), "chrome")
         _seed_profile(user_data_dir)
 
         url = "about:blank"

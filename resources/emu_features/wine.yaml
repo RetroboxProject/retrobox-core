@@ -10,7 +10,7 @@ groups:
     items:
       - name: WINE RUNNER
         value: "wine-runner"
-        description: Runners simplify compatibility of running Windows games. You must have a runner in it's own directory under /userdata/system/wine/custom.
+        description: Runners simplify compatibility of running Windows games.
         preset: runners
       - name: DXVK FEATURE
         value: dxvk

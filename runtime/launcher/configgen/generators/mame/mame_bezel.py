@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING, Any
 from xml.dom import minidom
 
 from PIL import Image
-from runtime.paths import MAME_ARTWORK_DIR, RESOURCES_DIR
+from runtime.paths import MAME_ARTWORK_DIR, RESOURCES_DIR, RUNTIME_DIR
 
 from ...exceptions import RetroboxException
 from ...utils import bezels as bezels_util
@@ -33,8 +33,8 @@ if TYPE_CHECKING:
 _logger = logging.getLogger(__name__)
 
 _MAME_BIN = "/usr/bin/mame/mame"
-_TRANSPARENT_BEZEL_PNG = Path("/tmp/bezel_transmame_black.png")
-_TATTOOED_BEZEL_PNG = Path("/tmp/bezel_tattooed.png")
+_TRANSPARENT_BEZEL_PNG = RUNTIME_DIR / "bezel_transmame_black.png"
+_TATTOOED_BEZEL_PNG = RUNTIME_DIR / "bezel_tattooed.png"
 # below this screen ratio (4:3 and the like) a bezel leaves no room for the game
 _MIN_BEZEL_SCREEN_RATIO = 1.6
 # 240 = half of the difference between 4:3 and 16:9 on 1920px (0.5 * 1920 / 16 * 4)

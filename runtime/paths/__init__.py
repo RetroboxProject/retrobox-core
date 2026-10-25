@@ -39,6 +39,7 @@ from ._base import (
     LOGS,
     RESOURCES_DIR,
     RETROBOX_INI,
+    RUNTIME_DIR,
     RETROBOX_ROOTDIR,
     ROMS,
     STATE_DIR,

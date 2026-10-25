@@ -24,7 +24,7 @@ class ScummVMGenerator(Generator):
         }
 
     def generate(self, system, rom, playersControllers, metadata, guns, wheels, gameResolution):
-        # create /userdata/bios/scummvm/extra folder if it doesn't exist
+        # create <bios dir>/scummvm/extra folder if it doesn't exist
         mkdir_if_not_exists(_SCUMMVM_EXTRA)
 
         # create / modify scummvm config file as needed

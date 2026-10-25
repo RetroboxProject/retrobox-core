@@ -2,7 +2,7 @@
 
 if [ -n "$WAYLAND_DISPLAY" ]; then
     export SDL_VIDEODRIVER=wayland
-    export SDL_VIDEO_WAYLAND_WMCLASS="batocera-config-vita3k"
+    export SDL_VIDEO_WAYLAND_WMCLASS="emuconfig-vita3k"
 else
     export DISPLAY=$(getLocalXDisplay)
 fi

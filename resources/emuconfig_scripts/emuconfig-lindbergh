@@ -20,7 +20,7 @@ Note:
   Default Controls: $CONTROLS_INI
 
 Example:
-  $(basename "$0") /userdata/roms/lindbergh/Hummer --create
+  $(basename "$0") "${RETROBOX_ROMS_DIR}/lindbergh/Hummer" --create
 EOF
     exit 0
 }
@@ -49,7 +49,7 @@ export LD_LIBRARY_PATH="$LD_PATH"
 
 # User-specified Environment Variables
 export GST_PLUGIN_SYSTEM_PATH_1_0="/lib32/gstreamer-1.0:/usr/lib/gstreamer-1.0"
-export GST_REGISTRY_1_0="/userdata/system/.cache/gstreamer-1.0/registry..bin:/userdata/system/.cache/gstreamer-1.0/registry.x86_64.bin"
+export GST_REGISTRY_1_0="${XDG_CACHE_HOME:-${HOME}/.cache}/gstreamer-1.0/registry.x86_64.bin"
 export LIBGL_DRIVERS_PATH="/lib32/dri:/usr/lib/dri"
 export SPA_PLUGIN_DIR="/lib32/spa-0.2:/usr/lib/spa-0.2"
 export PIPEWIRE_MODULE_DIR="/lib32/pipewire-0.3:/usr/lib/pipewire-0.3"

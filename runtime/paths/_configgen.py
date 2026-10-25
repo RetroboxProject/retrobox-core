@@ -10,7 +10,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Final
 
-from ._base import DATA_DIR, RESOURCES_DIR, check_env_dirs, get_configured_path
+from ._base import DATA_DIR, RESOURCES_DIR, RUNTIME_DIR, check_env_dirs, get_configured_path
 
 EMU_FEATURES_DIR: Final = RESOURCES_DIR / "emu_features"
 SYSTEMS_CONF_DIR: Final = RESOURCES_DIR / "systems_config"
@@ -55,8 +55,7 @@ MANGOHUD_PREFIX_DIR: Final = RESOURCES_DIR / "mangohud"
 MANGOHUD_BIN: Final = MANGOHUD_PREFIX_DIR / "bin" / "mangohud"
 MANGOHUD_VULKAN_LAYER_DIR: Final = MANGOHUD_PREFIX_DIR / "share" / "vulkan" / "implicit_layer.d"
 
-# Runtime dir (ephemeral state of an in-progress game session)
-RUNTIME_DIR: Final = Path("/tmp/retrobox-run")
+# Runtime dir (ephemeral state of an in-progress game session): see _base.py
 
 SQUASHFS_DIR: Final = RUNTIME_DIR / "squashfs"
 ROTATION_FILE: Final = RUNTIME_DIR / "rk-rotation"

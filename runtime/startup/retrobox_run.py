@@ -219,7 +219,6 @@ def teardown() -> None:
         Path("/tmp/game.xml"),
         Path("/tmp/emulationstation.ready"),
         Path("/tmp/gameoverlay_ui.txt"),
-        Path("/tmp/env-launcher.txt"),
         RUNTIME_DIR,
     ]
 
@@ -229,9 +228,6 @@ def teardown() -> None:
         elif path.is_dir():
             shutil.rmtree(path, ignore_errors=True)
 
-    # Clean up any leftover wrapper scripts in /tmp
-    for wrapper_file in Path("/tmp").glob("*wrapper*.sh"):
-        wrapper_file.unlink(missing_ok=True)
 
 
 def _handle_sigterm(signum: int, frame: types.FrameType | None) -> None:

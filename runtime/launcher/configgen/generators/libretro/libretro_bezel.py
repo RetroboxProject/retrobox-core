@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from runtime.paths import SHADER_BEZELS_DIR
+from runtime.paths import SHADER_BEZELS_DIR, RUNTIME_DIR
 
 from ...exceptions import RetroboxException
 from ...utils import bezels as bezels_util
@@ -30,9 +30,9 @@ if TYPE_CHECKING:
 
 _logger = logging.getLogger(__name__)
 
-_GUN_BEZEL_PNG = Path("/tmp/bezel_gun_black.png")
-_GUN_BEZEL_INFO = Path("/tmp/bezel_gun_black.info")
-_PER_GAME_BEZEL_PNG = Path("/tmp/bezel_per_game.png")
+_GUN_BEZEL_PNG = RUNTIME_DIR / "bezel_gun_black.png"
+_GUN_BEZEL_INFO = RUNTIME_DIR / "bezel_gun_black.info"
+_PER_GAME_BEZEL_PNG = RUNTIME_DIR / "bezel_per_game.png"
 
 # below this screen ratio (4:3 and the like) a bezel leaves no room for the game
 _MIN_BEZEL_SCREEN_RATIO = 1.6

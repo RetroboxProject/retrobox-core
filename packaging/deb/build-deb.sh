@@ -27,20 +27,9 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-derive_version() {
-    local exact base sha date
-    if exact="$(git -C "${SRC}" describe --tags --exact-match --match 'v[0-9]*' 2>/dev/null)"; then
-        echo "${exact#v}"
-        return
-    fi
-    base="$(git -C "${SRC}" describe --tags --abbrev=0 --match 'v[0-9]*' 2>/dev/null || true)"
-    base="${base#v}"
-    sha="$(git -C "${SRC}" rev-parse --short=7 HEAD)"
-    date="$(date -u -d "@$(git -C "${SRC}" log -1 --format=%ct)" +%Y%m%d)"
-    echo "${base:-0.0.0}+git${date}.${sha}"
-}
+. "${SRC}/packaging/version.sh"
 
-[[ -n "${VERSION}" ]] || VERSION="$(derive_version)"
+[[ -n "${VERSION}" ]] || VERSION="$(derive_version "${SRC}")"
 VERSION="${VERSION//-/\~}"
 if [[ ! "${VERSION}" =~ ^[0-9][A-Za-z0-9.+~]*$ ]]; then
     echo "build-deb.sh: '${VERSION}' is not a valid Debian version" >&2

@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Final, Literal, Self, TypedDict, Unpack, cast
 
 import evdev
 
-from runtime.paths import FRONTEND_DIR, _USER_HOME, ES_INPUT_CFG
+from runtime.paths import FRONTEND_DIR, _USER_HOME, ES_INPUT_CFG, RUNTIME_DIR
 
 _logger: Final = logging.getLogger(__name__)
 
@@ -541,7 +541,7 @@ def generate_sdl_game_controller_config(controllers: Controllers, /, ignore_butt
     return "\n".join(controller.generate_sdl_game_db_line(ignore_buttons = ignore_buttons) for controller in controllers)
 
 def write_sdl_controller_db(
-    controllers: Controllers, outputFile: str | Path = "/tmp/gamecontrollerdb.txt", /,
+    controllers: Controllers, outputFile: str | Path = RUNTIME_DIR / "gamecontrollerdb.txt", /,
 ) -> Path:
     outputFile = Path(outputFile)
 

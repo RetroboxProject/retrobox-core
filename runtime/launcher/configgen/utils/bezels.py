@@ -14,6 +14,7 @@ from PIL import Image, ImageDraw, ImageFont, ImageOps
 
 from configgen.utils.language import _detect_language
 from runtime.paths import (
+    RUNTIME_DIR,
     _DECORATIONS_DEF_DIR,
     _DECORATIONS_DIR,
     ES_GUNS_ART_METADATA,
@@ -41,9 +42,9 @@ _logger = logging.getLogger(__name__)
 
 _GUN_OVERLAYS_DIR = Path("/usr/share/batocera/guns-overlays")
 _GUN_HELP_FONT = Path("/usr/share/fonts/dejavu/DejaVuSans.ttf")
-_TATTOOED_BEZEL_PNG = Path("/tmp/bezel_tattooed.png")
-_QRCODE_BEZEL_PNG = Path("/tmp/bezel_qrcode.png")
-_GUN_BORDERS_BEZEL_PNG = Path("/tmp/bezel_gunborders.png")
+_TATTOOED_BEZEL_PNG = RUNTIME_DIR / "bezel_tattooed.png"
+_QRCODE_BEZEL_PNG = RUNTIME_DIR / "bezel_qrcode.png"
+_GUN_BORDERS_BEZEL_PNG = RUNTIME_DIR / "bezel_gunborders.png"
 _GUN_BORDER_COLORS = {
     "red": "#ff0000",
     "green": "#00ff00",

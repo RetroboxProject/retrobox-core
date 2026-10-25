@@ -21,8 +21,10 @@
 #
 # users can set a higher or lower manufacturer TDP accordingly.
 
-log="/userdata/system/logs/amd-tdp.log"
-STATE_FILE="/var/run/amd-tdp.changed"
+log_dir="${RETROBOX_STATEDIR:-${HOME}/.local/state/retrobox}/logs"
+mkdir -p "${log_dir}"
+log="${log_dir}/amd-tdp.log"
+STATE_FILE="${RETROBOX_RUNTIME_DIR:-${XDG_RUNTIME_DIR:-/tmp}}/amd-tdp.changed"
 
 # Check we have a max system TDP value
 CPU_TDP=$(/usr/bin/batocera-settings-get system.cpu.tdp)

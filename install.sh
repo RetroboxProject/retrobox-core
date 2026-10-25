@@ -203,7 +203,7 @@ install_deps() {
         mapfile -t pkgs < <(deps_list "${tree}/setup/deps/fedora.list")
         priv dnf install -y "${pkgs[@]}"
         mapfile -t rec < <(deps_list "${tree}/setup/deps/recommended-fedora.list")
-        priv dnf install -y "${rec[@]}" || warn "Some recommended packages could not be installed."
+        priv dnf install -y --setopt=strict=0 "${rec[@]}" || warn "Some recommended packages could not be installed."
     else
         warn "No apt or dnf found: using a virtualenv for the Python dependencies."
         USE_VENV=1

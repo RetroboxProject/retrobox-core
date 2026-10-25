@@ -5,7 +5,7 @@ if [ -n "$WAYLAND_DISPLAY" ]; then
     # SDL should use the Wayland driver
     export SDL_VIDEODRIVER=wayland
     # Set the 'app_id' that labwc looks for in rc.xml
-    export SDL_VIDEO_WAYLAND_WMCLASS="batocera-config-scummvm"
+    export SDL_VIDEO_WAYLAND_WMCLASS="emuconfig-scummvm"
 else
     export DISPLAY=$(getLocalXDisplay)
 fi

@@ -16,6 +16,7 @@ from ... import Command
 from ...exceptions import RetroboxException
 from ...controller import generate_sdl_game_controller_config
 from ..Generator import Generator
+from runtime.paths import RUNTIME_DIR
 
 if TYPE_CHECKING:
     from ...batoceraTypes import HotkeysContext
@@ -253,7 +254,7 @@ echo "[lutris-wrapper] Limpieza completada."
 exit 0
 """
 
-    fd, path = tempfile.mkstemp(prefix="lutris_wrapper_", suffix=".sh")
+    fd, path = tempfile.mkstemp(prefix="lutris_wrapper_", suffix=".sh", dir=RUNTIME_DIR)
     os.write(fd, script.encode())
     os.close(fd)
     os.chmod(path, stat.S_IRWXU)
@@ -274,7 +275,7 @@ class LutrisGenerator(Generator):
 
     def generate(self, system, rom, playersControllers, metadata, guns, wheels, gameResolution):
         # Limpiar wrappers anteriores huérfanos
-        for old in glob.glob("/tmp/lutris_wrapper_*.sh"):
+        for old in glob.glob(str(RUNTIME_DIR / "lutris_wrapper_*.sh")):
             try:
                 os.remove(old)
             except OSError:

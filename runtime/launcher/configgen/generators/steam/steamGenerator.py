@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 from ... import Command
 from ..Generator import Generator
+from runtime.paths import RUNTIME_DIR
 
 if TYPE_CHECKING:
     from ...batoceraTypes import HotkeysContext
@@ -218,7 +219,7 @@ echo "[steam-wrapper] Lanzando Steam..."
 {monitor}
 exit 0
 """
-    fd, path = tempfile.mkstemp(prefix="steam_wrapper_", suffix=".sh")
+    fd, path = tempfile.mkstemp(prefix="steam_wrapper_", suffix=".sh", dir=RUNTIME_DIR)
     os.write(fd, script.encode())
     os.close(fd)
     os.chmod(path, stat.S_IRWXU)
@@ -227,7 +228,7 @@ exit 0
 class SteamGenerator(Generator):
 
     def generate(self, system, rom, playersControllers, metadata, guns, wheels, gameResolution):
-        for old in glob.glob("/tmp/steam_wrapper_*.sh"):
+        for old in glob.glob(str(RUNTIME_DIR / "steam_wrapper_*.sh")):
             try:
                 os.remove(old)
             except OSError:

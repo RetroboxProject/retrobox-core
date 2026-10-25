@@ -84,7 +84,7 @@ def mount_overlayfs(read_only_dir: Path, writable_dir: Path, /) -> Iterator[Path
 
     Typically the read-only directory will be a ROM's squashfs mount point, and
     the writable directory will be the ROM's 'saves' path, while the returned
-    mount-point will be /var/run/overlays/<...> (named after the ROM).
+    mount-point will be <runtime dir>/overlays/<...> (named after the ROM).
 
     This also means the user is free to manage their saved changes: they can
     delete them to reset the state of the game or they can back them up, etc.

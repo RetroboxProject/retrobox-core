@@ -23,6 +23,7 @@ from ._base import (
     RETROBOX_INI,
     RETROBOX_ROOTDIR,
     ROMS,
+    RUNTIME_DIR,
     STATE_DIR,
     SYSCONF_DIR,
 )
@@ -38,6 +39,7 @@ def exported_environment() -> dict[str, Path]:
         "RETROBOX_CONFIGDIR": CONFIG_DIR,
         "RETROBOX_DATADIR": DATA_DIR,
         "RETROBOX_STATEDIR": STATE_DIR,
+        "RETROBOX_RUNTIME_DIR": RUNTIME_DIR,
         "RETROBOX_INI": RETROBOX_INI,
         "RETROBOX_ROMS_DIR": ROMS,
         "RETROBOX_SAVES_DIR": SAVES,

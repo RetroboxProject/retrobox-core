@@ -14,6 +14,7 @@ import configparser
 import os
 import shutil
 import sys
+import tempfile
 import time
 from contextlib import contextmanager
 from pathlib import Path
@@ -329,6 +330,32 @@ _bootstrap_env(_PATHS_CONFIG)
 # Installation paths (same as in batocera)
 # ---------------------------------------------------------------------------
 ENV_FILE: Final[Path] = CONFIG_DIR / ".env"
+
+
+def _resolve_runtime_dir() -> Path:
+    """
+    Per-user directory for ephemeral files (generated configs, wrapper scripts,
+    overlays...): RETROBOX_RUNTIME_DIR > $XDG_RUNTIME_DIR/retrobox >
+    <tmp>/retrobox-<uid>. Always private (0700): never a shared, predictable
+    path in /tmp.
+    """
+    override = os.environ.get("RETROBOX_RUNTIME_DIR", "").strip()
+    if override:
+        path = Path(override)
+    else:
+        xdg = os.environ.get("XDG_RUNTIME_DIR", "").strip()
+        if xdg and os.path.isabs(xdg) and os.access(xdg, os.W_OK):
+            path = Path(xdg) / "retrobox"
+        else:
+            path = Path(tempfile.gettempdir()) / f"retrobox-{os.getuid()}"
+    try:
+        path.mkdir(mode=0o700, parents=True, exist_ok=True)
+    except OSError:
+        pass
+    return path
+
+
+RUNTIME_DIR: Final[Path] = _resolve_runtime_dir()
 RETROBOX_INI: Final[Path] = CONFIG_DIR / "retrobox.ini"  # the user's file; may not exist
 
 DATAINIT_DIR: Final[Path] = RESOURCES_DIR / "datainit"
