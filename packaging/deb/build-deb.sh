@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build the retrobox-core .deb (amd64), installing into /opt/retrobox.
+# Build the retrobox-core .deb (architecture: all), installing into /opt/retrobox.
 #
 #   packaging/deb/build-deb.sh [--version VERSION] [--outdir DIR]
 #
@@ -42,7 +42,7 @@ export SOURCE_DATE_EPOCH
 
 WORK="$(mktemp -d)"
 trap 'rm -rf "${WORK}"' EXIT
-PKG="${WORK}/retrobox-core_${VERSION}_amd64"
+PKG="${WORK}/retrobox-core_${VERSION}_all"
 
 PKG_VERSION="${VERSION}" "${SRC}/packaging/stage.sh" "${PKG}"
 
@@ -69,7 +69,7 @@ chmod 644 "${PKG}/DEBIAN/md5sums"
 chmod 644 "${PKG}/DEBIAN/conffiles"
 
 mkdir -p "${OUTDIR}"
-DEB="${OUTDIR}/retrobox-core_${VERSION}_amd64.deb"
+DEB="${OUTDIR}/retrobox-core_${VERSION}_all.deb"
 dpkg-deb --root-owner-group -Zxz --build "${PKG}" "${DEB}"
 
 echo "build-deb.sh: built ${DEB}"

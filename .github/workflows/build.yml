@@ -1,7 +1,7 @@
 name: Build packages
 
-# Builds retrobox-core_<version>_amd64.deb, retrobox-core-<version>.x86_64.rpm and
-# retrobox-core-linux-amd64.tar.gz (the payload of install.sh), smoke-tests them
+# Builds retrobox-core_<version>_all.deb, retrobox-core-<version>-1.noarch.rpm and
+# retrobox-core-all.tar.gz (the payload of install.sh), smoke-tests them
 # on Ubuntu 24.04, Debian 13 and Fedora, and,
 # for tags like v1.2.3, publishes them (plus install.sh and SHA256SUMS) as a
 # GitHub Release.
@@ -63,7 +63,7 @@ jobs:
           path: |
             dist/*.deb
             dist/*.rpm
-            dist/retrobox-core-linux-amd64.tar.gz
+            dist/retrobox-core-all.tar.gz
             dist/SHA256SUMS
             dist/install.sh
           if-no-files-found: error
@@ -142,7 +142,7 @@ jobs:
           else
             dnf install -y -q curl
           fi
-          bash dist/install.sh --tarball dist/retrobox-core-linux-amd64.tar.gz
+          bash dist/install.sh --tarball dist/retrobox-core-all.tar.gz
           test "$(retrobox --version)" != ""
           test -f /opt/retrobox/retrobox.sh
           test -f /etc/retrobox/retrobox.ini

@@ -4,7 +4,7 @@ Conflicts: retrobox
 Version: @VERSION@
 Section: games
 Priority: optional
-Architecture: amd64
+Architecture: all
 Installed-Size: @INSTALLED_SIZE@
 Maintainer: Manu Romero <manu4.2012@gmail.com>
 Homepage: https://github.com/manu-romero-411/retrobox-core

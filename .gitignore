@@ -25,6 +25,7 @@ wheels/
 MANIFEST
 *.manifest
 *.spec
+!/packaging/rpm/*.spec
 pip-log.txt
 pip-delete-this-directory.txt
 htmlcov/

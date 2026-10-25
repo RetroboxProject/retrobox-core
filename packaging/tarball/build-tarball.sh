@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build the install.sh payload: retrobox-core-linux-amd64.tar.gz (+ SHA256SUMS).
+# Build the install.sh payload: retrobox-core-all.tar.gz (+ SHA256SUMS).
 #
 #   packaging/tarball/build-tarball.sh [--version VERSION] [--outdir DIR]
 #
@@ -35,7 +35,7 @@ export SOURCE_DATE_EPOCH
 WORK="$(mktemp -d)"
 trap 'rm -rf "${WORK}"' EXIT
 STAGE="${WORK}/stage"
-TOP="${WORK}/retrobox-core-linux-amd64"
+TOP="${WORK}/retrobox-core-all"
 
 PKG_VERSION="${VERSION}" "${SRC}/packaging/stage.sh" "${STAGE}" >/dev/null
 
@@ -47,10 +47,10 @@ cp "${SRC}/packaging/retrobox.desktop.in" "${TOP}/extras/retrobox.desktop.in"
 cp "${STAGE}/usr/share/icons/hicolor/scalable/apps/retrobox.svg" "${TOP}/extras/retrobox.svg"
 
 mkdir -p "${OUTDIR}"
-OUT="${OUTDIR}/retrobox-core-linux-amd64.tar.gz"
+OUT="${OUTDIR}/retrobox-core-all.tar.gz"
 tar --sort=name --owner=0 --group=0 --numeric-owner \
-    --mtime="@${SOURCE_DATE_EPOCH}" -C "${WORK}" -cf - retrobox-core-linux-amd64 \
+    --mtime="@${SOURCE_DATE_EPOCH}" -C "${WORK}" -cf - retrobox-core-all \
     | gzip -n -9 > "${OUT}"
-(cd "${OUTDIR}" && sha256sum retrobox-core-linux-amd64.tar.gz > SHA256SUMS)
+(cd "${OUTDIR}" && sha256sum retrobox-core-all.tar.gz > SHA256SUMS)
 
 echo "build-tarball.sh: built ${OUT} (version ${VERSION})"

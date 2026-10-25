@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build the retrobox-core .rpm (x86_64), installing into /opt/retrobox.
+# Build the retrobox-core .rpm (noarch), installing into /opt/retrobox.
 #
 #   packaging/rpm/build-rpm.sh [--version VERSION] [--outdir DIR]
 #
@@ -62,4 +62,4 @@ rpmbuild -bb "${WORK}/retrobox-core.spec" \
     --define "source_date_epoch_from_changelog 0" \
     >"${WORK}/rpmbuild.log" 2>&1 || { cat "${WORK}/rpmbuild.log" >&2; exit 1; }
 
-echo "build-rpm.sh: built ${OUTDIR}/retrobox-core-${VERSION}-1.x86_64.rpm"
+echo "build-rpm.sh: built ${OUTDIR}/retrobox-core-${VERSION}-1.noarch.rpm"

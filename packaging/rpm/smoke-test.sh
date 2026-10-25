@@ -2,7 +2,7 @@
 # Smoke test for the retrobox-core .rpm. Meant for a throwaway container/VM:
 # it installs the package system-wide and purges it afterwards.
 #
-#   sudo packaging/rpm/smoke-test.sh path/to/retrobox-core-X.x86_64.rpm
+#   sudo packaging/rpm/smoke-test.sh path/to/retrobox-core-X.noarch.rpm
 #
 # Checks, in order:
 #   1. dnf resolves every Requires from the distro's own repositories.

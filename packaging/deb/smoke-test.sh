@@ -2,7 +2,7 @@
 # Smoke test for the retrobox .deb. Meant for a throwaway container/VM:
 # it installs the package system-wide and purges it afterwards.
 #
-#   sudo packaging/deb/smoke-test.sh path/to/retrobox_X_amd64.deb
+#   sudo packaging/deb/smoke-test.sh path/to/retrobox-core_X_all.deb
 #
 # Checks, in order:
 #   1. apt resolves every Depends from the distro's own repositories.

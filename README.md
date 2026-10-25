@@ -141,20 +141,20 @@ It's expected to add support for other browsers such as Brave, since all Chromiu
 **Debian / Ubuntu (.deb):**
 
 ```bash
-sudo apt install ./retrobox-core_<version>_amd64.deb   # use apt, not dpkg -i: it pulls the dependencies
+sudo apt install ./retrobox-core_<version>_all.deb   # use apt, not dpkg -i: it pulls the dependencies
                                                       # installs into /opt/retrobox, /usr/bin/retrobox
 ```
 
 **Fedora (.rpm):**
 
 ```bash
-sudo dnf install ./retrobox-core-<version>.x86_64.rpm   # same layout as the .deb; vlc-libs (RPM Fusion) is only recommended
+sudo dnf install ./retrobox-core-<version>-1.noarch.rpm   # same layout as the .deb; vlc-libs (RPM Fusion) is only recommended
 ```
 
 **Fedora (.rpm):**
 
 ```bash
-sudo dnf install ./retrobox-core-<version>.x86_64.rpm   # same layout as the .deb; vlc-libs (RPM Fusion) is only recommended
+sudo dnf install ./retrobox-core-<version>-1.noarch.rpm   # same layout as the .deb; vlc-libs (RPM Fusion) is only recommended
 ```
 
 **Any supported distro (install.sh):**
@@ -180,9 +180,9 @@ Python dependencies for a virtualenv: `pip install -r requirements.txt`.
 ### Building the packages
 
 ```bash
-packaging/deb/build-deb.sh           # dist/retrobox-core_<version>_amd64.deb
-packaging/rpm/build-rpm.sh           # dist/retrobox-core-<version>-1.x86_64.rpm (needs rpmbuild)
-packaging/tarball/build-tarball.sh   # dist/retrobox-core-linux-amd64.tar.gz + SHA256SUMS (the install.sh payload)
+packaging/deb/build-deb.sh           # dist/retrobox-core_<version>_all.deb
+packaging/rpm/build-rpm.sh           # dist/retrobox-core-<version>-1.noarch.rpm (needs rpmbuild)
+packaging/tarball/build-tarball.sh   # dist/retrobox-core-all.tar.gz + SHA256SUMS (the install.sh payload)
 ```
 
 The GitHub Actions workflow builds the three, smoke-tests them in Ubuntu 24.04, Debian 13 and Fedora containers and, for `v*` tags, publishes them with `install.sh` as a release.

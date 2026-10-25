@@ -13,7 +13,7 @@
 #   --user            no root: install under ~/.local (opt/retrobox, bin/,
 #                     share/), no udev rules, no /etc
 #   --version X.Y.Z   install that release instead of the latest
-#   --tarball FILE    install from a local retrobox-core-linux-amd64.tar.gz
+#   --tarball FILE    install from a local retrobox-core-all.tar.gz
 #                     (skips the download; checksum checked if a SHA256SUMS
 #                     file sits next to it)
 #   --base-url URL    download from URL instead of the GitHub release
@@ -41,7 +41,7 @@
 set -euo pipefail
 
 REPO="manu-romero-411/retrobox-core"
-ASSET="retrobox-core-linux-amd64.tar.gz"
+ASSET="retrobox-core-all.tar.gz"
 
 PREFIX=""
 USER_MODE=0
@@ -76,7 +76,6 @@ while [[ $# -gt 0 ]]; do
 done
 
 [[ "$(uname -s)" == "Linux" ]] || die "Retrobox only runs on Linux."
-[[ "$(uname -m)" == "x86_64" ]] || die "Only x86_64 builds are published (this is $(uname -m))."
 
 # --- privileges --------------------------------------------------------------
 # priv CMD...: run as root (directly, or through sudo).
@@ -294,6 +293,10 @@ record() { echo "$1" >> "${WORK}/manifest"; }
 : > "${WORK}/components"
 install_component() {  # install_component NAME[=SRC]
     local name="${1%%=*}" src="" asset cdir="${WORK}/c-${1%%=*}"
+    if [[ "$(uname -m)" != "x86_64" ]]; then
+        warn "Component '${name}' is only published for x86_64 (this is $(uname -m)); skipping it."
+        return 0
+    fi
     [[ "$1" == *=* ]] && src="${1#*=}"
     asset="retrobox-${name}-linux-amd64.tar.gz"
     info "Installing component '${name}'..."
