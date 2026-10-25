@@ -13,14 +13,25 @@
 #   --user            no root: install under ~/.local (opt/retrobox, bin/,
 #                     share/), no udev rules, no /etc
 #   --version X.Y.Z   install that release instead of the latest
-#   --tarball FILE    install from a local retrobox-linux-amd64.tar.gz
+#   --tarball FILE    install from a local retrobox-core-linux-amd64.tar.gz
 #                     (skips the download; checksum checked if a SHA256SUMS
 #                     file sits next to it)
 #   --base-url URL    download from URL instead of the GitHub release
+#   --with NAME[=SRC] also install the component NAME (e.g. emulationstation):
+#                     the retrobox-NAME-linux-amd64.tar.gz of the latest release
+#                     of github.com/<owner>/retrobox-NAME, or SRC = a local
+#                     tarball or a base URL. Repeatable. A component already
+#                     installed is updated together with the core.
 #   --no-deps         don't install system dependencies
 #   --uninstall       remove what this script installed (user data and
 #                     /etc/retrobox are kept)
 #   -h, --help
+#
+# Components (EmulationStation, MangoHud, ...) are separate tarballs with the
+# same layout rules as the .deb packages: a top directory holding `retrobox/`
+# (merged into the install prefix, e.g. retrobox/frontend/emulationstation)
+# and optionally a `links` file with lines "<command> <path under the prefix>"
+# that become launchers in the bin directory.
 #
 # Dependencies: on Debian/Ubuntu/Fedora systems with a normal root
 # filesystem they come from apt/dnf, exactly as with the packages. On
@@ -30,7 +41,7 @@
 set -euo pipefail
 
 REPO="manu-romero-411/retrobox-core"
-ASSET="retrobox-linux-amd64.tar.gz"
+ASSET="retrobox-core-linux-amd64.tar.gz"
 
 PREFIX=""
 USER_MODE=0
@@ -39,6 +50,7 @@ TARBALL=""
 BASE_URL=""
 DO_DEPS=1
 UNINSTALL=0
+declare -a COMPONENTS=()
 
 if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then B=$'\033[1m'; R=$'\033[0m'; else B=""; R=""; fi
 info() { echo "${B}[INFO]${R} $*"; }
@@ -55,6 +67,7 @@ while [[ $# -gt 0 ]]; do
         --version)   VERSION="${2:?--version needs a value}"; shift 2 ;;
         --tarball)   TARBALL="${2:?--tarball needs a file}"; shift 2 ;;
         --base-url)  BASE_URL="${2:?--base-url needs a URL}"; shift 2 ;;
+        --with)      COMPONENTS+=("${2:?--with needs a component name}"); shift 2 ;;
         --no-deps)   DO_DEPS=0; shift ;;
         --uninstall) UNINSTALL=1; shift ;;
         -h|--help)   usage; exit 0 ;;
@@ -216,6 +229,16 @@ else
 fi
 
 # --- install the tree (swap in, keep the old one until the new one is in place) --
+# Components of the install being replaced come back with the new core.
+if [[ -f "${PREFIX}/.components" ]]; then
+    while IFS= read -r c; do
+        [[ -z "${c}" ]] && continue
+        already=0
+        for have in "${COMPONENTS[@]}"; do [[ "${have%%=*}" == "${c}" ]] && already=1; done
+        [[ "${already}" -eq 1 ]] || COMPONENTS+=("${c}")
+    done < "${PREFIX}/.components"
+fi
+
 priv mkdir -p "$(dirname "${PREFIX}")"
 STAGING="${PREFIX}.new.$$"
 priv rm -rf "${STAGING}"
@@ -268,6 +291,43 @@ priv rm -rf "${PREFIX}.old.$$"
 : > "${WORK}/manifest"
 record() { echo "$1" >> "${WORK}/manifest"; }
 
+: > "${WORK}/components"
+install_component() {  # install_component NAME[=SRC]
+    local name="${1%%=*}" src="" asset cdir="${WORK}/c-${1%%=*}"
+    [[ "$1" == *=* ]] && src="${1#*=}"
+    asset="retrobox-${name}-linux-amd64.tar.gz"
+    info "Installing component '${name}'..."
+    mkdir -p "${cdir}"
+    if [[ -f "${src}" ]]; then
+        cp "${src}" "${cdir}/${asset}"
+        [[ -f "$(dirname "${src}")/SHA256SUMS" ]] && cp "$(dirname "${src}")/SHA256SUMS" "${cdir}/SHA256SUMS"
+    else
+        local base="${src%/}"
+        [[ -n "${base}" ]] || base="https://github.com/${REPO%%/*}/retrobox-${name}/releases/latest/download"
+        fetch "${base}/${asset}" "${cdir}/${asset}" || { warn "Could not download ${asset}; skipping '${name}'."; return 0; }
+        fetch "${base}/SHA256SUMS" "${cdir}/SHA256SUMS" || { warn "No SHA256SUMS for '${name}'; skipping it."; return 0; }
+    fi
+    if [[ -f "${cdir}/SHA256SUMS" ]]; then
+        (cd "${cdir}" && grep " ${asset}\$" SHA256SUMS | sha256sum -c --quiet -) \
+            || { warn "Checksum mismatch for ${asset}; skipping '${name}'."; return 0; }
+    fi
+    mkdir "${cdir}/x"
+    tar -xzf "${cdir}/${asset}" -C "${cdir}/x" --strip-components=1
+    [[ -d "${cdir}/x/retrobox" ]] || { warn "${asset} has no retrobox/ directory; skipping '${name}'."; return 0; }
+    priv cp -a "${cdir}/x/retrobox/." "${PREFIX}/"
+    priv chmod -R a+rX,go-w "${PREFIX}"
+    if [[ -f "${cdir}/x/links" ]]; then
+        local cmd target
+        while read -r cmd target; do
+            [[ -z "${cmd}" || "${cmd}" == \#* ]] && continue
+            priv ln -sfn "${PREFIX}/${target}" "${BIN_DIR}/${cmd}"
+            record "${BIN_DIR}/${cmd}"
+        done < "${cdir}/x/links"
+    fi
+    echo "$1" >> "${WORK}/components"
+    ok "Component '${name}' installed."
+}
+
 priv mkdir -p "${BIN_DIR}"
 priv ln -sfn "${PREFIX}/retrobox.sh" "${BIN_DIR}/retrobox"
 record "${BIN_DIR}/retrobox"
@@ -295,6 +355,10 @@ if [[ -n "${SYSCONF_DIR}" && ! -e "${SYSCONF_DIR}/retrobox.ini" ]]; then
     priv cp -a "${WORK}/x/extras/etc/retrobox/." "${SYSCONF_DIR}/"
 fi
 
+for c in "${COMPONENTS[@]}"; do install_component "${c}"; done
+priv cp "${WORK}/components" "${PREFIX}/.components"
+priv chmod 644 "${PREFIX}/.components"
+
 priv cp "${WORK}/manifest" "${MANIFEST}"
 priv chmod 644 "${MANIFEST}"
 
@@ -303,4 +367,6 @@ ok "Retrobox ${NEW_VERSION} installed in ${PREFIX}."
 if [[ -n "${UDEV_DIR}" ]]; then
     info "For gamepad-to-keyboard remapping: sudo usermod -aG input \$USER, then log in again."
 fi
-info "The EmulationStation frontend is not part of this install: sudo retrobox --setup-util emulationstation"
+if ! grep -q "^emulationstation" "${WORK}/components"; then
+    info "The EmulationStation frontend is a separate component: re-run with --with emulationstation."
+fi

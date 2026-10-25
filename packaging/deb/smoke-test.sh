@@ -29,7 +29,7 @@ echo "--- /usr/bin/retrobox --help / --version"
 retrobox --help | head -3
 retrobox --version
 [[ -f /etc/retrobox/retrobox.ini ]] || fail "/etc/retrobox/retrobox.ini was not installed"
-grep -q '^/etc/retrobox/retrobox.ini$' /var/lib/dpkg/info/retrobox.conffiles \
+grep -q '^/etc/retrobox/retrobox.ini$' /var/lib/dpkg/info/retrobox-core.conffiles \
     || fail "/etc/retrobox/retrobox.ini is not a conffile"
 
 echo "--- startup as an unprivileged user"
@@ -55,9 +55,12 @@ grep -qiE "first-time setup|Running platform setup" <<<"${output}" \
     || fail "default EmulationStation collections were not seeded"
 [[ -d "${user_home}/.local/share/retrobox/roms" ]] \
     || fail "default ROMs directory was not created under ~/.local/share/retrobox"
-grep -q '^system.themes=/opt/retrobox/frontend/themes$' \
-    "${user_home}/.config/retrobox/frontend/.emulationstation/emulationstation.ini" \
-    || fail "emulationstation.ini does not point system.themes at the shipped themes"
+# (emulationstation.ini itself is removed again when retrobox exits, so check
+# what generates it and that the theme it points at is really installed.)
+grep -q 'system.themes={FRONTEND_DIR}/themes' /opt/retrobox/runtime/startup/frontend_conf/es_ini_generator.py \
+    || fail "the generated emulationstation.ini does not set system.themes"
+[[ -d /opt/retrobox/frontend/themes/es-theme-iconic ]] \
+    || fail "the iconic theme is missing from /opt/retrobox/frontend/themes"
 [[ ! -e "${user_home}/.config/retrobox/retrobox.ini" ]] \
     || fail "retrobox.ini must not be written by retrobox itself"
 
@@ -85,7 +88,7 @@ written="$(find /opt/retrobox -type f ! -name '*.pyc' -newer /opt/retrobox/VERSI
 [[ -z "${written}" ]] || fail "files modified inside /opt/retrobox: ${written}"
 
 echo "--- purge"
-apt-get purge -y -qq retrobox
+apt-get purge -y -qq retrobox-core
 [[ ! -e /opt/retrobox ]] || fail "/opt/retrobox still exists after purge: $(ls -A /opt/retrobox)"
 [[ ! -e /usr/bin/retrobox ]] || fail "/usr/bin/retrobox still exists after purge"
 

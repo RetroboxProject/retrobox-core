@@ -6,6 +6,7 @@ resource metadata (guns/wheels/gamesdb).
 
 from __future__ import annotations
 
+import shutil
 from pathlib import Path
 from typing import Final
 
@@ -33,7 +34,14 @@ ES_SYSTEMS_TMP: Final = RUNTIME_DIR / "es_systems.cfg"
 ES_INPUT_CFG: Final = _USER_ES_DIR / "es_input.cfg"
 ES_INI_TMP: Final = RUNTIME_DIR / "emulationstation.ini"
 ES_INI_CFG: Final = _USER_ES_DIR / "emulationstation.ini"
-ES_EXECUTABLE: Final = FRONTEND_DIR / "emulationstation"
+# The retrobox-emulationstation package installs it in FRONTEND_DIR and links it
+# as `retrobox-emulationstation` in the PATH; the PATH name is the fallback when
+# it lives elsewhere (e.g. a distro package with another prefix).
+ES_EXECUTABLE: Final = (
+    FRONTEND_DIR / "emulationstation"
+    if (FRONTEND_DIR / "emulationstation").exists()
+    else Path(shutil.which("retrobox-emulationstation") or FRONTEND_DIR / "emulationstation")
+)
 
 # Recursos de ES y configgen (sistema)
 _ES_RESOURCES_DIR: Final = FRONTEND_DIR / "resources"

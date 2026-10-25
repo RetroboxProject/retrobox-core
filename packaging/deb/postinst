@@ -7,7 +7,7 @@ case "$1" in
         # so Python could never cache it on its own and every game launch
         # would re-parse ~250 modules. py3clean (prerm) removes these again.
         if command -v py3compile >/dev/null 2>&1; then
-            py3compile -p retrobox /opt/retrobox/runtime || true
+            py3compile -p retrobox-core /opt/retrobox/runtime || true
         fi
 
         if command -v udevadm >/dev/null 2>&1; then

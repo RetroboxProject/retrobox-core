@@ -54,8 +54,12 @@ grep -qiE "first-time setup|Running platform setup" <<<"${output}" \
     || fail "default EmulationStation collections were not seeded"
 [[ -d "${user_home}/.local/share/retrobox/roms" ]] \
     || fail "default ROMs directory was not created under ~/.local/share/retrobox"
-[[ -L "${user_home}/.local/share/retrobox/themes/es-theme-iconic" ]] \
-    || fail "the shipped theme was not linked into ~/.local/share/retrobox/themes"
+# (emulationstation.ini itself is removed again when retrobox exits, so check
+# what generates it and that the theme it points at is really installed.)
+grep -q 'system.themes={FRONTEND_DIR}/themes' /opt/retrobox/runtime/startup/frontend_conf/es_ini_generator.py \
+    || fail "the generated emulationstation.ini does not set system.themes"
+[[ -d /opt/retrobox/frontend/themes/es-theme-iconic ]] \
+    || fail "the iconic theme is missing from /opt/retrobox/frontend/themes"
 [[ ! -e "${user_home}/.config/retrobox/retrobox.ini" ]] \
     || fail "retrobox.ini must not be written by retrobox itself"
 

@@ -16,7 +16,7 @@
 #   /usr/lib/udev/rules.d/                 udev rules
 #   /usr/share/applications/retrobox.desktop
 #   /usr/share/icons/hicolor/scalable/apps/retrobox.svg
-#   /usr/share/doc/retrobox/copyright
+#   /usr/share/doc/retrobox-core/copyright
 #
 # Nothing in the tree is ever written to at runtime: user data lives in the
 # XDG directories (see runtime/paths/_base.py), the same ones as for any
@@ -123,7 +123,7 @@ install -m 644 "${SRC}/resources/icons/retrobox_logo.svg" \
     "${DESTDIR}/usr/share/icons/hicolor/scalable/apps/retrobox.svg"
 
 # --- 5. Licence -------------------------------------------------------------
-mkdir -p "${DESTDIR}/usr/share/doc/retrobox"
-install -m 644 "${SRC}/LICENSE" "${DESTDIR}/usr/share/doc/retrobox/copyright"
+mkdir -p "${DESTDIR}/usr/share/doc/retrobox-core"
+install -m 644 "${SRC}/LICENSE" "${DESTDIR}/usr/share/doc/retrobox-core/copyright"
 
 echo "stage.sh: staged ${INSTALL_ROOT} into ${DESTDIR}"

@@ -141,7 +141,14 @@ It's expected to add support for other browsers such as Brave, since all Chromiu
 **Debian / Ubuntu (.deb):**
 
 ```bash
-sudo apt install ./retrobox_<version>_amd64.deb      # installs into /opt/retrobox, /usr/bin/retrobox
+sudo apt install ./retrobox-core_<version>_amd64.deb   # use apt, not dpkg -i: it pulls the dependencies
+                                                      # installs into /opt/retrobox, /usr/bin/retrobox
+```
+
+**Fedora (.rpm):**
+
+```bash
+sudo dnf install ./retrobox-core-<version>.x86_64.rpm   # same layout as the .deb; vlc-libs (RPM Fusion) is only recommended
 ```
 
 **Fedora (.rpm):**
@@ -154,28 +161,31 @@ sudo dnf install ./retrobox-core-<version>.x86_64.rpm   # same layout as the .de
 
 ```bash
 curl -fsSL https://github.com/manu-romero-411/retrobox-core/releases/latest/download/install.sh | bash
-# options: --prefix DIR  --user  --version X.Y.Z  --no-deps  --uninstall  (see --help)
+# options: --prefix DIR  --user  --version X.Y.Z  --with COMPONENT  --no-deps  --uninstall  (see --help)
 ```
 
 It installs the same layout as the package: `/opt/retrobox` (or `/var/opt/retrobox` if `/opt` isn't writable, or `--prefix`), a `retrobox` launcher in `/usr/local/bin`, udev rules and the optional `/etc/retrobox`. Dependencies come from apt/dnf (`setup/deps/*.list`); on immutable systems (ostree) or with `--no-deps` the Python ones go into a virtualenv inside the install and the script prints the system libraries to layer (e.g. with `rpm-ostree install`). Without root, `--user` installs under `~/.local`.
 
-EmulationStation and MangoHud are not part of these packages yet (they will be CI-built): `sudo retrobox --setup-util emulationstation`. If it's missing, `retrobox` warns when it starts.
+### Components
+
+The core is modular: EmulationStation (`retrobox-emulationstation`, repo of the same name), and later MangoHud, gamepadly... are separate packages that depend on `retrobox-core` and install into the same `/opt/retrobox` (EmulationStation: `/opt/retrobox/frontend`, command `retrobox-emulationstation`). With `install.sh` add them with `--with emulationstation`; each one is a `retrobox-<name>-linux-amd64.tar.gz` (+ `SHA256SUMS`) in the release of its own repo, containing a `retrobox/` directory (merged into the prefix) and optionally a `links` file (`<command> <path under the prefix>`) for the launchers. Components already installed are updated along with the core. `retrobox` warns at startup if EmulationStation is missing.
 
 ### From a checkout
 
 1. Clone this repo and run `./retrobox.sh --setup` (installs the dependencies from `setup/deps/` with apt or dnf, the udev rules and the git submodules).
-2. `./retrobox.sh --setup-util emulationstation` (and `mangohud`).
+2. `./retrobox.sh --setup-util emulationstation` (and `mangohud`) to build them from source, or install the component packages.
 
 Python dependencies for a virtualenv: `pip install -r requirements.txt`.
 
 ### Building the packages
 
 ```bash
-packaging/deb/build-deb.sh           # dist/retrobox_<version>_amd64.deb
-packaging/tarball/build-tarball.sh   # dist/retrobox-linux-amd64.tar.gz + SHA256SUMS (the install.sh payload)
+packaging/deb/build-deb.sh           # dist/retrobox-core_<version>_amd64.deb
+packaging/rpm/build-rpm.sh           # dist/retrobox-core-<version>-1.x86_64.rpm (needs rpmbuild)
+packaging/tarball/build-tarball.sh   # dist/retrobox-core-linux-amd64.tar.gz + SHA256SUMS (the install.sh payload)
 ```
 
-The GitHub Actions workflow builds both, smoke-tests them in Ubuntu 24.04 and Debian 13 containers and, for `v*` tags, publishes them with `install.sh` as a release.
+The GitHub Actions workflow builds the three, smoke-tests them in Ubuntu 24.04, Debian 13 and Fedora containers and, for `v*` tags, publishes them with `install.sh` as a release.
 
 ## Directory layout
 
