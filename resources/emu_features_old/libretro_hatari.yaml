@@ -1,6 +1,0 @@
-emulator_name: libretro
-core_name: hatari
-features:
-  - padtokeyboard
-sharedFeatures:
-  - autosave

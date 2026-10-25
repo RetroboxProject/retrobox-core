@@ -1,8 +1,0 @@
-emulator_name: libretro
-core_name: fmsx
-features:
-  - netplay
-  - cheevos
-sharedFeatures:
-  - rewind
-  - autosave

@@ -1,4 +1,0 @@
-emulator_name: libretro
-core_name: tic80
-features:
-  - padtokeyboard

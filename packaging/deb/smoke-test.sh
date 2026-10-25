@@ -59,8 +59,8 @@ grep -qiE "first-time setup|Running platform setup" <<<"${output}" \
 # what generates it and that the theme it points at is really installed.)
 grep -q 'system.themes={FRONTEND_DIR}/themes' /opt/retrobox/runtime/startup/frontend_conf/es_ini_generator.py \
     || fail "the generated emulationstation.ini does not set system.themes"
-[[ -d /opt/retrobox/frontend/themes/es-theme-iconic ]] \
-    || fail "the iconic theme is missing from /opt/retrobox/frontend/themes"
+[[ ! -e /opt/retrobox/frontend/themes ]] \
+    || fail "retrobox-core must not ship themes (they are separate packages)"
 [[ ! -e "${user_home}/.config/retrobox/retrobox.ini" ]] \
     || fail "retrobox.ini must not be written by retrobox itself"
 

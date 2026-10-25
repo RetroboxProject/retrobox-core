@@ -141,10 +141,8 @@ __marimo__/
 /frontend/resources/
 /frontend/share/
 
-# Themes: ignore all except specific ones
-/frontend/themes/*
-!/frontend/themes/es-theme-iconic/
-!/frontend/themes/ES-THEME-ARCADEPLANET/
+# Themes are separate packages: never tracked here
+/frontend/themes/
 
 # ==============================================================================
 # RETROBOX: RESOURCES AND LOGS
@@ -179,4 +177,3 @@ __marimo__/
 *.AppImage
 *.gbc
 *.gb
-/.retrobox_emulationstation.version

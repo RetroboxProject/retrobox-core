@@ -12,14 +12,15 @@ from typing import Final
 
 from ._base import CONFIG_DIR, DATA_DIR, DEFAULTS_DIR, RETROBOX_ROOTDIR, RUNTIME_DIR
 
-# FRONTEND_DIR: the (read-only) frontend install: binary, resources, the
-# shipped theme (iconic).
+# FRONTEND_DIR: the (read-only) frontend install: binary, resources and the
+# themes installed by theme packages (retrobox-core ships none).
 # FRONTEND_HOME: EmulationStation's writable home (settings, generated
 # es_systems.cfg, gamelists, collections), seeded from FRONTEND_DIR. It is
 # configuration, so it lives under ~/.config/retrobox.
 # THEMES_DIR / MUSIC_DIR: user content, under ~/.local/share/retrobox. The
-# themes shipped in FRONTEND_DIR/themes are found by EmulationStation itself
-# through `system.themes` in emulationstation.ini; nothing is linked.
+# themes installed system-wide in FRONTEND_DIR/themes (e.g. by a retrobox theme
+# package) are found by EmulationStation itself through `system.themes` in
+# emulationstation.ini; nothing is linked.
 FRONTEND_DIR: Final = RETROBOX_ROOTDIR / "frontend"
 FRONTEND_HOME: Final = CONFIG_DIR / "frontend"
 THEMES_DIR: Final = DATA_DIR / "themes"

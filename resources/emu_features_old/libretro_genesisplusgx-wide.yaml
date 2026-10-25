@@ -1,8 +1,0 @@
-emulator_name: libretro
-core_name: "genesis_plus_gx-wide"
-features:
-  - netplay
-  - cheevos
-sharedFeatures:
-  - rewind
-  - autosave

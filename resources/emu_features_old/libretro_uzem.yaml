@@ -1,7 +1,0 @@
-emulator_name: libretro
-core_name: uzem
-features:
-  - cheevos
-sharedFeatures:
-  - rewind
-  - autosave

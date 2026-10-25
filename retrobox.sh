@@ -71,7 +71,7 @@ function preflight() {
     fi
     if [[ ! -x "${RETROBOX_ES_EXECUTABLE}" ]]; then
         log_warn "EmulationStation not found at ${RETROBOX_ES_EXECUTABLE}."
-        log_warn "Install the retrobox-emulationstation package (or, from a checkout: sudo retrobox --setup-util emulationstation)."
+        log_warn "Install the retrobox-emulationstation package (or `install.sh --with emulationstation`)."
     fi
     local missing
     missing="$("${RETROBOX_PYTHON}" -W ignore -c '

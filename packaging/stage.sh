@@ -38,7 +38,7 @@ BIN_LINK="${BIN_LINK:-/usr/bin/retrobox}"
 SYSCONF_DIR="${SYSCONF_DIR:-/etc/retrobox}"
 
 # Tracked files that must NOT end up in the package.
-EXCLUDE_RE='^(\.vscode/|\.github/|packaging/|\.gitignore$|\.gitmodules$|\.retrobox_emulationstation\.version$|nvidia\.conf$|retrobox\.desktop$|runtime/launcher/pyproject\.toml$|install\.sh$)'
+EXCLUDE_RE='^(\.vscode/|\.github/|packaging/|\.gitignore$|\.gitmodules$|nvidia\.conf$|retrobox\.desktop$|runtime/launcher/pyproject\.toml$|install\.sh$)'
 
 ROOT_IN_PKG="${DESTDIR}${INSTALL_ROOT}"
 

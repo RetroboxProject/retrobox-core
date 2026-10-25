@@ -1,8 +1,0 @@
-emulator_name: libretro
-core_name: mednafen_ngp
-features:
-  - netplay
-  - cheevos
-sharedFeatures:
-  - rewind
-  - autosave

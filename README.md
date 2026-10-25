@@ -50,7 +50,7 @@ Configuration is layered, read-only code and writable user data are separate, an
 | Directory | Default | Override | Holds |
 |---|---|---|---|
 | config | `~/.config/retrobox` | `RETROBOX_CONFIGDIR` | `retrobox.ini(.d)`, overrides of `resources/` (same tree), `emulators/<emu>/` (each emulator's `XDG_CONFIG_HOME`), `frontend/` (EmulationStation home), `pad2key/profiles/`, `hooks/` |
-| data | `~/.local/share/retrobox` | `RETROBOX_DATADIR` | `roms/`, `saves/`, `bios/`, `themes/` (the shipped *iconic* is linked in), `music/`, `decorations/` (+ `decorations-default/`), `shaders/`, `emulators/` (installed binaries), `screenshots/`, `recordings/`, `cheats/`, `overlay/` |
+| data | `~/.local/share/retrobox` | `RETROBOX_DATADIR` | `roms/`, `saves/`, `bios/`, `themes/`, `music/`, `decorations/` (+ `decorations-default/`), `shaders/`, `emulators/` (installed binaries), `screenshots/`, `recordings/`, `cheats/`, `overlay/` |
 | state | `~/.local/state/retrobox` | `RETROBOX_STATEDIR` | `logs/`, installer manifests |
 
 `$XDG_CONFIG_HOME`, `$XDG_DATA_HOME` and `$XDG_STATE_HOME` are honoured. `roms`, `saves` and `bios` can be moved on their own from `[paths]` in `retrobox.ini` (`roms_dir`, `saves_dir`, `bios_dir`); the first value found in the layers wins.
@@ -168,12 +168,12 @@ It installs the same layout as the package: `/opt/retrobox` (or `/var/opt/retrob
 
 ### Components
 
-The core is modular: EmulationStation (`retrobox-emulationstation`, repo of the same name), and later MangoHud, gamepadly... are separate packages that depend on `retrobox-core` and install into the same `/opt/retrobox` (EmulationStation: `/opt/retrobox/frontend`, command `retrobox-emulationstation`). With `install.sh` add them with `--with emulationstation`; each one is a `retrobox-<name>-linux-amd64.tar.gz` (+ `SHA256SUMS`) in the release of its own repo, containing a `retrobox/` directory (merged into the prefix) and optionally a `links` file (`<command> <path under the prefix>`) for the launchers. Components already installed are updated along with the core. `retrobox` warns at startup if EmulationStation is missing.
+The core is modular: EmulationStation (`retrobox-emulationstation`, repo of the same name), and later MangoHud, gamepadly... are separate packages that depend on `retrobox-core` and install into the same `/opt/retrobox` (EmulationStation: `/opt/retrobox/frontend`, command `retrobox-emulationstation`). With `install.sh` add them with `--with emulationstation`; each one is a `retrobox-<name>-linux-amd64.tar.gz` (+ `SHA256SUMS`) in the release of its own repo, containing a `retrobox/` directory (merged into the prefix) and optionally a `links` file (`<command> <path under the prefix>`) for the launchers. Components already installed are updated along with the core. `retrobox-core` ships no frontend and no theme (not even *iconic*): those are components of their own. `retrobox` warns at startup if EmulationStation is missing.
 
 ### From a checkout
 
 1. Clone this repo and run `./retrobox.sh --setup` (installs the dependencies from `setup/deps/` with apt or dnf, the udev rules and the git submodules).
-2. `./retrobox.sh --setup-util emulationstation` (and `mangohud`) to build them from source, or install the component packages.
+2. `./retrobox.sh --setup-util mangohud` to build MangoHud from source. EmulationStation and the themes (e.g. *iconic*) are separate components: install their packages.
 
 Python dependencies for a virtualenv: `pip install -r requirements.txt`.
 
@@ -210,7 +210,7 @@ System and user directories (see [Paths](#paths)):
 └── emulators/<emu>/           # each emulator's XDG_CONFIG_HOME
 ~/.local/share/retrobox/
 ├── roms/  saves/  bios/       # moveable from retrobox.ini
-├── themes/  music/            # iconic is linked in; add your own
+├── themes/  music/            # your themes and menu music
 ├── decorations/               # your bezels (and --setup-bezel packs)
 ├── decorations-default/       # RetroBat bezels (retrobox.sh --setup-bezel retrobat-bezels)
 ├── emulators/                 # installed by retrobox.sh --setup-emulator
@@ -218,7 +218,7 @@ System and user directories (see [Paths](#paths)):
 ~/.local/state/retrobox/       # logs/, packages/ (installer manifests)
 ```
 
-EmulationStation (`--setup-util emulationstation`) and MangoHud (`--setup-util mangohud`) are part of the install directory, so installing them into `/opt/retrobox` needs `sudo`.
+MangoHud (`--setup-util mangohud`) is part of the install directory, so installing it into `/opt/retrobox` needs `sudo`.
 
 ## License
 

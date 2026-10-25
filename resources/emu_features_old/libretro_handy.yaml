@@ -1,8 +1,0 @@
-emulator_name: libretro
-core_name: handy
-features:
-  - netplay
-  - cheevos
-sharedFeatures:
-  - rewind
-  - autosave
