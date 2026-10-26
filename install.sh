@@ -17,21 +17,33 @@
 #                     (skips the download; checksum checked if a SHA256SUMS
 #                     file sits next to it)
 #   --base-url URL    download from URL instead of the GitHub release
-#   --with NAME[=SRC] also install the component NAME (e.g. emulationstation):
-#                     the retrobox-NAME-linux-amd64.tar.gz of the latest release
-#                     of github.com/<owner>/retrobox-NAME, or SRC = a local
-#                     tarball or a base URL. Repeatable. A component already
-#                     installed is updated together with the core.
+#   --with NAME[=SRC] also install the component NAME (emulationstation,
+#                     mangohud, ...): its own installer, `install.sh` at the
+#                     root of github.com/<owner>/retrobox-NAME, or SRC = a URL
+#                     or a local path to that install.sh. Repeatable. A
+#                     component already installed is updated together with
+#                     the core.
+#   --no-gamepadly    don't install gamepadly (pad-to-keyboard hotkeys), which is
+#                     otherwise installed as a component from
+#                     github.com/<owner>/gamepadly (a system Python package)
 #   --no-deps         don't install system dependencies
 #   --uninstall       remove what this script installed (user data and
 #                     /etc/retrobox are kept)
 #   -h, --help
 #
-# Components (EmulationStation, MangoHud, ...) are separate tarballs with the
-# same layout rules as the .deb packages: a top directory holding `retrobox/`
-# (merged into the install prefix, e.g. retrobox/frontend/emulationstation)
-# and optionally a `links` file with lines "<command> <path under the prefix>"
-# that become launchers in the bin directory.
+# Components (EmulationStation, MangoHud, ...) live in their own repositories
+# and bring their own `install.sh`, which this script downloads and runs as
+#
+#   install.sh --prefix DIR --bin-dir DIR [--no-deps] [--user]
+#   install.sh --uninstall --prefix DIR --bin-dir DIR
+#
+# with RETROBOX_PREFIX, RETROBOX_BIN_DIR, RETROBOX_ARCH (amd64 | arm64 | the
+# raw `uname -m`) and RETROBOX_CORE_VERSION in the environment. A component
+# installer must only write below --prefix (and its commands into --bin-dir),
+# must pick the build for RETROBOX_ARCH, and must remove everything it
+# installed on --uninstall, leaving no helper files behind in the tree. A copy
+# of it is kept in <prefix>/.components/<name>/ for updates and --uninstall.
+# (The .deb/.rpm packages of the components do the same without any script.)
 #
 # Dependencies: on Debian/Ubuntu/Fedora systems with a normal root
 # filesystem they come from apt/dnf, exactly as with the packages. On
@@ -49,6 +61,7 @@ VERSION=""
 TARBALL=""
 BASE_URL=""
 DO_DEPS=1
+WITH_GAMEPADLY=1
 UNINSTALL=0
 declare -a COMPONENTS=()
 
@@ -67,8 +80,12 @@ while [[ $# -gt 0 ]]; do
         --version)   VERSION="${2:?--version needs a value}"; shift 2 ;;
         --tarball)   TARBALL="${2:?--tarball needs a file}"; shift 2 ;;
         --base-url)  BASE_URL="${2:?--base-url needs a URL}"; shift 2 ;;
-        --with)      COMPONENTS+=("${2:?--with needs a component name}"); shift 2 ;;
+        --with)
+            [[ "${2:?--with needs a component name}" =~ ^[a-z0-9][a-z0-9-]*(=.*)?$ ]] \
+                || die "--with: invalid component name '${2}'"
+            COMPONENTS+=("$2"); shift 2 ;;
         --no-deps)   DO_DEPS=0; shift ;;
+        --no-gamepadly) WITH_GAMEPADLY=0; shift ;;
         --uninstall) UNINSTALL=1; shift ;;
         -h|--help)   usage; exit 0 ;;
         *) die "unknown option: $1 (see --help)" ;;
@@ -76,6 +93,13 @@ while [[ $# -gt 0 ]]; do
 done
 
 [[ "$(uname -s)" == "Linux" ]] || die "Retrobox only runs on Linux."
+
+# The core is architecture-independent (Python); the components are not.
+case "$(uname -m)" in
+    x86_64|amd64)  RETROBOX_ARCH="amd64" ;;
+    aarch64|arm64) RETROBOX_ARCH="arm64" ;;
+    *)             RETROBOX_ARCH="$(uname -m)" ;;
+esac
 
 # --- privileges --------------------------------------------------------------
 # priv CMD...: run as root (directly, or through sudo).
@@ -147,6 +171,14 @@ MANIFEST="${PREFIX}/.install-manifest"
 if [[ "${UNINSTALL}" -eq 1 ]]; then
     [[ -f "${MANIFEST}" ]] || die "No install found in ${PREFIX} (missing .install-manifest)."
     info "Removing Retrobox from ${PREFIX}..."
+    for inst in "${PREFIX}"/.components/*/install.sh; do
+        [[ -f "${inst}" ]] || continue
+        name="$(basename "$(dirname "${inst}")")"
+        info "Removing component '${name}'..."
+        priv env RETROBOX_PREFIX="${PREFIX}" RETROBOX_BIN_DIR="${BIN_DIR}" RETROBOX_ARCH="${RETROBOX_ARCH}" \
+            bash "${inst}" --uninstall --prefix "${PREFIX}" --bin-dir "${BIN_DIR}" \
+            || warn "The uninstaller of '${name}' failed; some of its files may be left."
+    done
     while IFS= read -r f; do
         [[ -n "${f}" ]] && priv rm -f "${f}"
     done < "${MANIFEST}"
@@ -195,26 +227,26 @@ info "Installing Retrobox ${NEW_VERSION} into ${PREFIX}..."
 # --- dependencies ---------------------------------------------------------------
 USE_VENV=0
 install_deps() {
-    local tree="${WORK}/x/retrobox"
+    local tree="${WORK}/x/extras"
     if is_immutable || [[ "${HAVE_ROOT}" -eq 0 ]]; then
         USE_VENV=1
         return
     fi
     if command -v apt-get >/dev/null 2>&1; then
         # shellcheck source=/dev/null
-        source "${tree}/tools/lib/deps.sh"
+        source "${tree}/deps.sh"
         priv apt-get update -qq
-        mapfile -t pkgs < <(deps_apt_args "${tree}/tools/deps/debian.list")
+        mapfile -t pkgs < <(deps_apt_args "${tree}/deps/debian.list")
         priv env DEBIAN_FRONTEND=noninteractive apt-get install -y "${pkgs[@]}"
-        mapfile -t rec < <(deps_apt_args "${tree}/tools/deps/recommended-debian.list")
+        mapfile -t rec < <(deps_apt_args "${tree}/deps/recommended-debian.list")
         priv env DEBIAN_FRONTEND=noninteractive apt-get install -y "${rec[@]}" \
             || warn "Some recommended packages could not be installed."
     elif command -v dnf >/dev/null 2>&1; then
         # shellcheck source=/dev/null
-        source "${tree}/tools/lib/deps.sh"
-        mapfile -t pkgs < <(deps_list "${tree}/tools/deps/fedora.list")
+        source "${tree}/deps.sh"
+        mapfile -t pkgs < <(deps_list "${tree}/deps/fedora.list")
         priv dnf install -y "${pkgs[@]}"
-        mapfile -t rec < <(deps_list "${tree}/tools/deps/recommended-fedora.list")
+        mapfile -t rec < <(deps_list "${tree}/deps/recommended-fedora.list")
         priv dnf install -y --setopt=strict=0 "${rec[@]}" || warn "Some recommended packages could not be installed."
     else
         warn "No apt or dnf found: using a virtualenv for the Python dependencies."
@@ -229,13 +261,20 @@ fi
 
 # --- install the tree (swap in, keep the old one until the new one is in place) --
 # Components of the install being replaced come back with the new core.
-if [[ -f "${PREFIX}/.components" ]]; then
-    while IFS= read -r c; do
-        [[ -z "${c}" ]] && continue
-        already=0
-        for have in "${COMPONENTS[@]}"; do [[ "${have%%=*}" == "${c}" ]] && already=1; done
-        [[ "${already}" -eq 1 ]] || COMPONENTS+=("${c}")
-    done < "${PREFIX}/.components"
+for dir in "${PREFIX}"/.components/*/; do
+    [[ -d "${dir}" ]] || continue
+    c="$(basename "${dir}")"
+    already=0
+    for have in "${COMPONENTS[@]}"; do [[ "${have%%=*}" == "${c}" ]] && already=1; done
+    [[ "${already}" -eq 1 ]] && continue
+    src="$(cat "${dir}/source" 2>/dev/null || true)"
+    COMPONENTS+=("${c}${src:+=${src}}")
+done
+
+if [[ "${WITH_GAMEPADLY}" -eq 1 ]]; then
+    already=0
+    for have in "${COMPONENTS[@]}"; do [[ "${have%%=*}" == "gamepadly" ]] && already=1; done
+    [[ "${already}" -eq 1 ]] || COMPONENTS+=("gamepadly")
 fi
 
 priv mkdir -p "$(dirname "${PREFIX}")"
@@ -249,15 +288,15 @@ if [[ "${USE_VENV}" -eq 1 ]]; then
     info "Creating the Python environment (virtualenv)..."
     priv python3 -m venv "${STAGING}/venv" \
         || die "Could not create a virtualenv (is the python3 venv module installed?)."
-    priv "${STAGING}/venv/bin/pip" install -q -r "${STAGING}/requirements.txt" \
+    priv "${STAGING}/venv/bin/pip" install -q -r "${WORK}/x/extras/requirements.txt" \
         || warn "pip could not install every Python dependency."
     if [[ "${DO_DEPS}" -eq 1 ]]; then
         if is_immutable; then
             warn "Immutable system: layer the libraries Retrobox needs with your package manager, e.g."
-            warn "  rpm-ostree install $(grep -v '^python3' "${STAGING}/tools/deps/fedora.list" | sed -e 's/#.*//' | tr '\n' ' ')"
+            warn "  rpm-ostree install $(grep -v '^python3' "${WORK}/x/extras/deps/fedora.list" | sed -e 's/#.*//' | tr '\n' ' ')"
             warn "and reboot."
         else
-            warn "Install the system libraries listed in ${PREFIX}/tools/deps/ with your package manager."
+            warn "Install these system libraries with your package manager: $(grep -v '^python3' "${WORK}/x/extras/deps/fedora.list" | sed -e 's/#.*//' | tr '\n' ' ')"
         fi
     fi
     PYTHON="${STAGING}/venv/bin/python3"
@@ -290,44 +329,41 @@ priv rm -rf "${PREFIX}.old.$$"
 : > "${WORK}/manifest"
 record() { echo "$1" >> "${WORK}/manifest"; }
 
-: > "${WORK}/components"
+declare -a FAILED_COMPONENTS=()
 install_component() {  # install_component NAME[=SRC]
-    local name="${1%%=*}" src="" asset cdir="${WORK}/c-${1%%=*}"
-    if [[ "$(uname -m)" != "x86_64" ]]; then
-        warn "Component '${name}' is only published for x86_64 (this is $(uname -m)); skipping it."
+    local name="${1%%=*}" src="" url script cdir="${WORK}/c-${1%%=*}"
+    [[ "$1" == *=* ]] && src="${1#*=}"
+    script="${cdir}/install.sh"
+    mkdir -p "${cdir}"
+    info "Installing component '${name}'..."
+    if [[ -f "${src}" ]]; then
+        cp "${src}" "${script}"
+    elif [[ -n "${src}" && -f "${src}/install.sh" ]]; then
+        cp "${src}/install.sh" "${script}"
+    else
+        # gamepadly is a standalone project (no retrobox- prefix in its repo name).
+        local repo_name="retrobox-${name}"
+        [[ "${name}" == "gamepadly" ]] && repo_name="gamepadly"
+        url="${src:-https://raw.githubusercontent.com/${REPO%%/*}/${repo_name}/HEAD/install.sh}"
+        info "Fetching ${url}"
+        fetch "${url}" "${script}" || { warn "Could not download the installer of '${name}'."; FAILED_COMPONENTS+=("${name}"); return 0; }
+    fi
+    [[ "$(head -c2 "${script}")" == "#!" ]] \
+        || { warn "The installer of '${name}' is not a script; skipping it."; FAILED_COMPONENTS+=("${name}"); return 0; }
+    local -a args=(--prefix "${PREFIX}" --bin-dir "${BIN_DIR}")
+    if [[ "${USE_VENV}" -eq 1 || "${DO_DEPS}" -eq 0 ]]; then args+=(--no-deps); fi
+    if [[ "${USER_MODE}" -eq 1 ]]; then args+=(--user); fi
+    if ! priv env RETROBOX_PREFIX="${PREFIX}" RETROBOX_BIN_DIR="${BIN_DIR}" \
+            RETROBOX_ARCH="${RETROBOX_ARCH}" RETROBOX_CORE_VERSION="${NEW_VERSION}" \
+            bash "${script}" "${args[@]}"; then
+        warn "The installer of '${name}' failed."
+        FAILED_COMPONENTS+=("${name}")
         return 0
     fi
-    [[ "$1" == *=* ]] && src="${1#*=}"
-    asset="retrobox-${name}-linux-amd64.tar.gz"
-    info "Installing component '${name}'..."
-    mkdir -p "${cdir}"
-    if [[ -f "${src}" ]]; then
-        cp "${src}" "${cdir}/${asset}"
-        [[ -f "$(dirname "${src}")/SHA256SUMS" ]] && cp "$(dirname "${src}")/SHA256SUMS" "${cdir}/SHA256SUMS"
-    else
-        local base="${src%/}"
-        [[ -n "${base}" ]] || base="https://github.com/${REPO%%/*}/retrobox-${name}/releases/latest/download"
-        fetch "${base}/${asset}" "${cdir}/${asset}" || { warn "Could not download ${asset}; skipping '${name}'."; return 0; }
-        fetch "${base}/SHA256SUMS" "${cdir}/SHA256SUMS" || { warn "No SHA256SUMS for '${name}'; skipping it."; return 0; }
-    fi
-    if [[ -f "${cdir}/SHA256SUMS" ]]; then
-        (cd "${cdir}" && grep " ${asset}\$" SHA256SUMS | sha256sum -c --quiet -) \
-            || { warn "Checksum mismatch for ${asset}; skipping '${name}'."; return 0; }
-    fi
-    mkdir "${cdir}/x"
-    tar -xzf "${cdir}/${asset}" -C "${cdir}/x" --strip-components=1
-    [[ -d "${cdir}/x/retrobox" ]] || { warn "${asset} has no retrobox/ directory; skipping '${name}'."; return 0; }
-    priv cp -a "${cdir}/x/retrobox/." "${PREFIX}/"
-    priv chmod -R a+rX,go-w "${PREFIX}"
-    if [[ -f "${cdir}/x/links" ]]; then
-        local cmd target
-        while read -r cmd target; do
-            [[ -z "${cmd}" || "${cmd}" == \#* ]] && continue
-            priv ln -sfn "${PREFIX}/${target}" "${BIN_DIR}/${cmd}"
-            record "${BIN_DIR}/${cmd}"
-        done < "${cdir}/x/links"
-    fi
-    echo "$1" >> "${WORK}/components"
+    priv mkdir -p "${PREFIX}/.components/${name}"
+    priv install -m 755 "${script}" "${PREFIX}/.components/${name}/install.sh"
+    printf '%s\n' "${src}" > "${cdir}/source"
+    priv install -m 644 "${cdir}/source" "${PREFIX}/.components/${name}/source"
     ok "Component '${name}' installed."
 }
 
@@ -359,8 +395,7 @@ if [[ -n "${SYSCONF_DIR}" && ! -e "${SYSCONF_DIR}/retrobox.ini" ]]; then
 fi
 
 for c in "${COMPONENTS[@]}"; do install_component "${c}"; done
-priv cp "${WORK}/components" "${PREFIX}/.components"
-priv chmod 644 "${PREFIX}/.components"
+priv chmod -R a+rX,go-w "${PREFIX}"
 
 priv cp "${WORK}/manifest" "${MANIFEST}"
 priv chmod 644 "${MANIFEST}"
@@ -370,6 +405,9 @@ ok "Retrobox ${NEW_VERSION} installed in ${PREFIX}."
 if [[ -n "${UDEV_DIR}" ]]; then
     info "For gamepad-to-keyboard remapping: sudo usermod -aG input \$USER, then log in again."
 fi
-if ! grep -q "^emulationstation" "${WORK}/components"; then
+if [[ ! -x "${PREFIX}/frontend/emulationstation" && ! -e "${PREFIX}/.components/emulationstation" ]]; then
     info "The EmulationStation frontend is a separate component: re-run with --with emulationstation."
+fi
+if [[ "${#FAILED_COMPONENTS[@]}" -gt 0 ]]; then
+    die "Retrobox is installed, but these components failed: ${FAILED_COMPONENTS[*]}"
 fi

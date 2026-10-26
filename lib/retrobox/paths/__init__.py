@@ -116,8 +116,6 @@ from ._frontend import (
     _USER_ES_DIR,
 )
 from ._gamepadly import (
-    GAMEPADLY_MAPPER,
-    _GAMEPADLY_DIR,
     _GAMEPADLY_PROFILES,
     _GAMEPADLY_USER_PROFILES,
 )
@@ -128,7 +126,7 @@ from ._env import exported_environment
 os.environ.update({name: str(path) for name, path in exported_environment().items()})
 
 # Every Retrobox process (emulatorlauncher, hooks, helper scripts) finds the
-# `retrobox` and `gamepadly` packages the same way: through <root>/lib.
+# `retrobox` package the same way: through <root>/lib.
 _pythonpath = [p for p in os.environ.get("PYTHONPATH", "").split(os.pathsep) if p]
 if str(LIB_DIR) not in _pythonpath:
     os.environ["PYTHONPATH"] = os.pathsep.join([str(LIB_DIR), *_pythonpath])
@@ -208,8 +206,6 @@ __all__ = [
     "FRONTEND_HOME",
     "MUSIC_DIR",
     "THEMES_DIR",
-    # _gamepadly
-    "GAMEPADLY_MAPPER",
 ]
 
 class DirectoryCreationError(OSError):

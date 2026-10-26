@@ -9,7 +9,7 @@ Installed-Size: @INSTALLED_SIZE@
 Maintainer: Manu Romero <manu4.2012@gmail.com>
 Homepage: https://github.com/manu-romero-411/retrobox-core
 Depends: @DEPENDS@
-Recommends: retrobox-emulationstation, @RECOMMENDS@
+Recommends: retrobox-emulationstation, retrobox-mangohud, python3-gamepadly, @RECOMMENDS@
 Suggests: kscreen
 Description: Retrobox core: batocera-style backend for a Linux desktop
  Port of the batocera backend stack (batocera-configgen) to a standard
@@ -23,4 +23,4 @@ Description: Retrobox core: batocera-style backend for a Linux desktop
  ~/.config/retrobox, never in /opt/retrobox.
  .
  The EmulationStation frontend (retrobox-emulationstation), the patched
- MangoHud build and the emulators are separate components.
+ MangoHud build (retrobox-mangohud), the pad-to-keyboard mapper (python3-gamepadly) and the emulators are separate packages.

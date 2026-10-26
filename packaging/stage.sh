@@ -38,8 +38,12 @@ BIN_LINK="${BIN_LINK:-/usr/bin/retrobox}"
 SYSCONF_DIR="${SYSCONF_DIR:-/etc/retrobox}"
 
 # Tracked files that must NOT end up in the package.
-# Repo-only content (the rest of the repo IS the installed tree).
-EXCLUDE_RE='^(\.vscode/|\.github/|packaging/|dev/|\.gitignore$|\.gitmodules$|install\.sh$)'
+# What does NOT go into /opt/retrobox. The packages ship what runs, nothing
+# else: no docs, no build/dev files, no installer-only material (the
+# dependency lists and requirements.txt are only needed by install.sh, which
+# gets them through the tarball's extras/; setup-debian/fedora.sh are for git
+# checkouts; the udev rules are installed into /usr/lib/udev below).
+EXCLUDE_RE='^(\.vscode/|\.github/|packaging/|dev/|system/|LICENSE$|install\.sh$|\.gitmodules$|tools/setup-(debian|fedora)\.sh$|tools/deps/|tools/lib/deps\.sh$)|(^|/)(README(\.md)?|requirements\.txt|\.gitignore|\.gitattributes|\.gitkeep)$'
 
 ROOT_IN_PKG="${DESTDIR}${INSTALL_ROOT}"
 
@@ -106,12 +110,6 @@ ln -s "${INSTALL_ROOT}/bin/retrobox" "${DESTDIR}${BIN_LINK}"
 UDEV_DIR="${DESTDIR}/usr/lib/udev/rules.d"
 mkdir -p "${UDEV_DIR}"
 install -m 644 "${SRC}/system/udev/64-retrobox.rules" "${UDEV_DIR}/64-retrobox.rules"
-# uinput access for gamepadly (pad -> keyboard/mouse). setup-debian.sh creates
-# the same rule inline; shipped as a real file here.
-cat > "${UDEV_DIR}/99-retrobox-input.rules" <<'EOF'
-KERNEL=="uinput", MODE="0660", GROUP="input", OPTIONS+="static_node=uinput"
-EOF
-chmod 644 "${UDEV_DIR}/99-retrobox-input.rules"
 
 # --- 4. Desktop entry + icon ------------------------------------------------
 mkdir -p "${DESTDIR}/usr/share/applications" \

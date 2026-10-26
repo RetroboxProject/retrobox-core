@@ -10,6 +10,9 @@
 #   extras/udev/         udev rules
 #   extras/etc/retrobox/ system-wide configuration template
 #   extras/retrobox.desktop.in, extras/retrobox.svg
+#   extras/deps/*.list, extras/deps.sh, extras/requirements.txt
+#                        what install.sh needs to bring the dependencies; they
+#                        are not part of the installed tree
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd -P)"
@@ -45,6 +48,12 @@ cp "${STAGE}"/usr/lib/udev/rules.d/*.rules "${TOP}/extras/udev/"
 cp -a "${STAGE}/etc/retrobox" "${TOP}/extras/etc/retrobox"
 cp "${SRC}/packaging/retrobox.desktop.in" "${TOP}/extras/retrobox.desktop.in"
 cp "${STAGE}/usr/share/icons/hicolor/scalable/apps/retrobox.svg" "${TOP}/extras/retrobox.svg"
+mkdir -p "${TOP}/extras/deps"
+cp "${SRC}"/tools/deps/*.list "${TOP}/extras/deps/"
+cp "${SRC}/tools/lib/deps.sh" "${TOP}/extras/deps.sh"
+cp "${SRC}/requirements.txt" "${TOP}/extras/requirements.txt"
+# No /usr/share/doc outside a package: the licence travels with the tree.
+cp "${SRC}/LICENSE" "${TOP}/retrobox/LICENSE"
 
 mkdir -p "${OUTDIR}"
 OUT="${OUTDIR}/retrobox-core-all.tar.gz"

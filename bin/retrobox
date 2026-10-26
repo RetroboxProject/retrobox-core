@@ -12,7 +12,7 @@
 #                                            source (repeatable)
 #   retrobox --setup-emulator             list available emulators
 #   retrobox --setup-util <name>          run a single utility installer
-#                                            (e.g. mangohud) (repeatable)
+#                                            (e.g. labwc-config) (repeatable)
 #   retrobox --setup-util                 list available utility installers
 #   retrobox --setup-music <name>         install a single music pack
 #                                            (e.g. music-pack-2). Can be
@@ -73,7 +73,7 @@ function preflight() {
     fi
     if [[ ! -x "${RETROBOX_ES_EXECUTABLE}" ]]; then
         log_warn "EmulationStation not found at ${RETROBOX_ES_EXECUTABLE}."
-        log_warn "Install the retrobox-emulationstation package (or `install.sh --with emulationstation`)."
+        log_warn "Install the retrobox-emulationstation package (or run install.sh again with --with emulationstation)."
     fi
     local missing
     missing="$("${RETROBOX_PYTHON}" -W ignore -c '
@@ -97,7 +97,7 @@ Usage: $(basename "${BASH_SOURCE[0]}") [OPTIONS] [-- ARGS...]
                             with no name, lists every installer available
                             under tools/emulators/.
 --setup-util <name>         Run a single utility installer (e.g.
-                            --setup-util mangohud). Can be repeated to
+                            --setup-util labwc-config). Can be repeated to
                             install several at once. Called with no name,
                             lists every installer available under
                             tools/utils/.

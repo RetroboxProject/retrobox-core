@@ -49,8 +49,8 @@ NVIDIA_POWERD_SCRIPT: Final = LIBEXEC_DIR / "nvidia-powerd-service"
 # shadows (or gets shadowed by) whatever MangoHud the user may already have
 # installed system-wide. emulatorlauncher.py prefers this build when it's
 # present and only falls back to a system-wide "mangohud" (found via PATH)
-# otherwise. See tools/utils/mangohud.sh for the installer that populates
-# this prefix.
+# otherwise. It is provided by the retrobox-mangohud package (or its
+# install.sh), which installs into this prefix.
 # ---------------------------------------------------------------------------
 MANGOHUD_PREFIX_DIR: Final = LIBEXEC_DIR / "mangohud"
 MANGOHUD_BIN: Final = MANGOHUD_PREFIX_DIR / "bin" / "mangohud"

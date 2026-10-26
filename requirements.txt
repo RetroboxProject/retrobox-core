@@ -13,7 +13,6 @@ PyYAML
 qrcode[pil]
 Pillow
 evdev
-pygame
 ruamel.yaml
 tomlkit
 requests

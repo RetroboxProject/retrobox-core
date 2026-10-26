@@ -7,7 +7,6 @@ python3-pysdl2
 python3-pillow
 python3-qrcode
 python3-evdev
-python3-pygame
 python3-ruamel-yaml
 python3-tomlkit
 python3-requests

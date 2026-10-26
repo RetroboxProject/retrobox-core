@@ -131,6 +131,10 @@ function init_submodules() {
 
 function run_platform_setup() {
     local family="$1"
+    if [[ ! -f "${TOOLS_DIR}/setup-debian.sh" && ! -f "${TOOLS_DIR}/setup-fedora.sh" ]]; then
+        log_info "This is a packaged install: the dependencies come from your package manager."
+        return 0
+    fi
     case "${family}" in
         debian)
             log_info "Detected a Debian-based system."

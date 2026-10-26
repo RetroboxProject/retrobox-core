@@ -16,13 +16,11 @@ from retrobox.configgen.gun import Gun
 from retrobox.configgen.utils import metadata, videoMode, wheelsUtils
 from retrobox.configgen.utils.overlayfs import mount_overlayfs
 from retrobox.configgen.utils.squashfs import mount_squashfs
-from gamepadly.gamepadly_manager import GamepadManager
 from retrobox.paths import (
     _GAMEPADLY_PROFILES,
     _GAMEPADLY_USER_PROFILES,
     ES_GAMES_METADATA,
     ES_INPUT_CFG,
-    GAMEPADLY_MAPPER,
     RUNTIME_DIR,
     SAVES,
     mkdir_if_not_exists,
@@ -172,17 +170,26 @@ def _run_game(session: GameSession, previous_power_profile: str | None) -> int:
         _GAME_INFO_FILE.unlink(missing_ok=True)
 
 
+def _gamepad_manager(**kwargs):
+    """Gamepadly (pad -> keyboard hotkeys) is a separate package; run without it if absent."""
+    try:
+        from gamepadly import GamepadManager
+    except ImportError:
+        _logger.warning("gamepadly is not installed: gamepad hotkeys (e.g. Hotkey+Start) are disabled")
+        return contextlib.nullcontext()
+    return GamepadManager(**kwargs)
+
+
 def _run_emulator(session: GameSession) -> int:
     """Generate the emulator command, set up HUD and gun helpers, and run it."""
     system = session.system
 
-    with GamepadManager(
+    with _gamepad_manager(
         system=session.args.system,
         emulator=system.config.emulator,
         core=effective_core(system),
         rom=session.rom,
         controllers=session.inputs.controllers,
-        mapper_script=GAMEPADLY_MAPPER,
         profiles_dir=_GAMEPADLY_PROFILES,
         user_profiles_dir=_GAMEPADLY_USER_PROFILES,
         es_input=ES_INPUT_CFG,

@@ -15,6 +15,8 @@ BuildArch:      noarch
 Conflicts:      retrobox
 @REQUIRES@
 Recommends:     retrobox-emulationstation
+Recommends:     retrobox-mangohud
+Recommends:     python3-gamepadly
 @RECOMMENDS@
 
 %description
@@ -29,7 +31,7 @@ BIOS) lives in ~/.local/share/retrobox and user settings in
 ~/.config/retrobox, never in /opt/retrobox.
 
 The EmulationStation frontend (retrobox-emulationstation), the patched
-MangoHud build and the emulators are separate components.
+MangoHud build (retrobox-mangohud) and the emulators are separate packages.
 
 %install
 cp -a %{stagedir}/. %{buildroot}/
@@ -72,7 +74,6 @@ fi
 %dir /etc/retrobox/retrobox.ini.d
 /usr/bin/retrobox
 /usr/lib/udev/rules.d/64-retrobox.rules
-/usr/lib/udev/rules.d/99-retrobox-input.rules
 /usr/share/applications/retrobox.desktop
 /usr/share/icons/hicolor/scalable/apps/retrobox.svg
 %license /usr/share/doc/retrobox-core/copyright

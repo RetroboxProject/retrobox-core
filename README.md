@@ -23,7 +23,7 @@ EmulationStation (separate package)
             └── configgen   (lib/retrobox/configgen: writes emulator configs, launches game)
                     ├── libexec/stubs/batocera-resolution  (stub → kscreen-doctor / wlr-randr / xrandr)
                     ├── libexec/stubs/batocera-vulkan      (stub → vulkaninfo)
-                    └── gamepadly (lib/gamepadly: hotkeys and pad2key configs on supported emulators and platforms)
+                    └── gamepadly (system Python package: hotkeys and pad2key configs on supported emulators and platforms)
 ```
 
 This repo can be cloned and used from anywhere, or installed from the `.deb` into `/opt/retrobox`. Paths have been adapted to replace the `/userdata` hierarchy: see [Paths](#paths).
@@ -101,7 +101,7 @@ Generators adapted from a third-party batocera package. Paths converted to this 
 
 ### Gamepadly
 
-A replacement for evmapy that only requires `python3-sdl` and `python3-pygame` to run. It takes evmapy mappings generated in EmulationStation (or made by hand, since they are JSON) and is able to map every gamepad button to keyboard keys or shortcuts, as well as mouse events. It's used by the majority of emulators to send Alt+F4 with Hotkey+Start combo.
+A replacement for evmapy, now a standalone project ([`gamepadly`](https://github.com/manu-romero-411/gamepadly), package `python3-gamepadly`, recommended by the core packages and installed by `install.sh` unless `--no-gamepadly`). It only requires `pygame` and `evdev`. It takes evmapy mappings generated in EmulationStation (or made by hand, since they are JSON) and is able to map every gamepad button to keyboard keys or shortcuts, as well as mouse events. It's used by the majority of emulators to send Alt+F4 with Hotkey+Start combo.
 
 ### Apps
 
@@ -159,16 +159,28 @@ curl -fsSL https://github.com/manu-romero-411/retrobox-core/releases/latest/down
 # options: --prefix DIR  --user  --version X.Y.Z  --with COMPONENT  --no-deps  --uninstall  (see --help)
 ```
 
-It installs the same layout as the package: `/opt/retrobox` (or `/var/opt/retrobox` if `/opt` isn't writable, or `--prefix`), a `retrobox` launcher in `/usr/local/bin`, udev rules and the optional `/etc/retrobox`. Dependencies come from apt/dnf (`tools/deps/*.list`); on immutable systems (ostree) or with `--no-deps` the Python ones go into a virtualenv inside the install and the script prints the system libraries to layer (e.g. with `rpm-ostree install`). Without root, `--user` installs under `~/.local`.
+It installs the same layout as the package: `/opt/retrobox` (or `/var/opt/retrobox` if `/opt` isn't writable, or `--prefix`), a `retrobox` launcher in `/usr/local/bin`, udev rules and the optional `/etc/retrobox`. Dependencies come from apt/dnf (`tools/deps/*.list`, shipped in the tarball's `extras/`, not in the installed tree); on immutable systems (ostree) or with `--no-deps` the Python ones go into a virtualenv inside the install and the script prints the system libraries to layer (e.g. with `rpm-ostree install`). Without root, `--user` installs under `~/.local`.
 
 ### Components
 
-The core is modular: EmulationStation (`retrobox-emulationstation`, repo of the same name), and later MangoHud, gamepadly... are separate packages that depend on `retrobox-core` and install into the same `/opt/retrobox` (EmulationStation: `/opt/retrobox/frontend`, command `retrobox-emulationstation`). With `install.sh` add them with `--with emulationstation`; each one is a `retrobox-<name>-linux-amd64.tar.gz` (+ `SHA256SUMS`) in the release of its own repo, containing a `retrobox/` directory (merged into the prefix) and optionally a `links` file (`<command> <path under the prefix>`) for the launchers. Components already installed are updated along with the core. `retrobox-core` ships no frontend and no theme (not even *iconic*): those are components of their own. `retrobox` warns at startup if EmulationStation is missing.
+The core is modular. EmulationStation ([`retrobox-emulationstation`](https://github.com/manu-romero-411/retrobox-emulationstation)) and the patched MangoHud ([`retrobox-mangohud`](https://github.com/manu-romero-411/retrobox-mangohud)) are separate projects; [`gamepadly`](https://github.com/manu-romero-411/gamepadly) (pad-to-keyboard mapper, a regular Python package) is too. `retrobox-core` ships no frontend, no MangoHud, no theme (not even *iconic*) and compiles nothing.
+
+- **Packages (.deb/.rpm):** `retrobox-core` only *recommends* `retrobox-emulationstation` and `retrobox-mangohud`; install them with the package manager. Those packages are built per architecture (amd64, arm64); the core is architecture-independent (`_all.deb`, `noarch.rpm`).
+- **install.sh:** `--with emulationstation` / `--with mangohud` downloads the component's own `install.sh` (the one at the root of its repository, or `--with NAME=<URL or local path>`) and runs it:
+
+  ```
+  install.sh --prefix DIR --bin-dir DIR [--no-deps] [--user]
+  install.sh --uninstall --prefix DIR --bin-dir DIR
+  ```
+
+  with `RETROBOX_PREFIX`, `RETROBOX_BIN_DIR`, `RETROBOX_ARCH` (`amd64`, `arm64` or the raw `uname -m`) and `RETROBOX_CORE_VERSION` in the environment. The contract for a component installer: pick the build for `RETROBOX_ARCH` (and say so clearly if there is none), write only below `--prefix` (plus its commands into `--bin-dir`), and remove everything it installed on `--uninstall`. The same files go in the packages as in the install: ES in `<prefix>/frontend/`, MangoHud in `<prefix>/libexec/mangohud/` (`bin/mangohud` and `share/vulkan/implicit_layer.d/`), with no installers, docs or helper scripts left in the tree. `install.sh` keeps a copy of each component installer in `<prefix>/.components/<name>/` to update it with the core and to remove it on `--uninstall`.
+
+`retrobox` warns at startup if EmulationStation is missing; without the patched MangoHud it falls back to a system-wide `mangohud`.
 
 ### From a checkout
 
-1. Clone this repo and run `retrobox --setup` (installs the dependencies from `tools/deps/` with apt or dnf, the udev rules and the git submodules).
-2. `retrobox --setup-util mangohud` to build MangoHud from source. EmulationStation and the themes (e.g. *iconic*) are separate components: install their packages.
+1. Clone this repo and run `retrobox --setup` (installs the dependencies from `tools/deps/` with apt or dnf and the udev rules; gamepadly is installed separately with its own `install.sh` or `python3-gamepadly`).
+2. EmulationStation, MangoHud and the themes (e.g. *iconic*) are separate components: install their packages, or their `install.sh` into the checkout (`install.sh --with ...` does it for a normal install).
 
 Python dependencies for a virtualenv: `pip install -r requirements.txt`.
 
@@ -190,9 +202,8 @@ Install directory (read-only):
 <install dir>/                 # a checkout, or /opt/retrobox: the repo IS the installed tree
 ├── bin/                       # commands: retrobox (/usr/bin/retrobox in the packages), retrobox-launch, retrobox-exit, retrobox-screenshot...
 ├── lib/
-│   ├── retrobox/              # the Python package: paths, startup, launcher, configgen, utils
-│   └── gamepadly/             # pad-to-keyboard mapper (git submodule)
-├── libexec/                   # internal helpers: emuconfig/ (per-emulator config launchers), stubs/, mangohud/ (built by --setup-util)
+│   └── retrobox/              # the Python package: paths, startup, launcher, configgen, utils
+├── libexec/                   # internal helpers: emuconfig/ (per-emulator config launchers), stubs/, mangohud/ (from the retrobox-mangohud component)
 ├── share/                     # read-only defaults (the lowest config layer): systems_config/, emu_features/, configgen/, hooks/, pad2key/, labwc/...
 ├── system/                    # files for the host: udev rules, kernel/sysctl tuning
 ├── tools/                     # installers (emulators, utils, music, bezels) and deps/*.list
@@ -219,7 +230,7 @@ System and user directories (see [Paths](#paths)):
 ~/.local/state/retrobox/       # logs/, packages/ (installer manifests)
 ```
 
-MangoHud (`--setup-util mangohud`) is built into `<install dir>/libexec/mangohud`, so installing it into `/opt/retrobox` needs `sudo`.
+Components install into the same directory, so installing them into `/opt/retrobox` needs `sudo`.
 
 ## License
 
