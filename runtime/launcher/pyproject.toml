@@ -1,8 +1,0 @@
-# pyproject.toml  (en la raíz del proyecto)
-[build-system]
-requires = ["setuptools"]
-build-backend = "setuptools.backends.legacy:build"
-
-[project]
-name = "batocera-configgen"
-version = "0.1.0"

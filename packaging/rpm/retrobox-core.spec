@@ -38,7 +38,7 @@ cp -a %{stagedir}/. %{buildroot}/
 # Byte-compile the runtime: the install tree is read-only for users, so Python
 # could never cache it on its own. Removed again in %preun.
 if command -v python3 >/dev/null 2>&1; then
-    python3 -m compileall -q /opt/retrobox/runtime >/dev/null 2>&1 || :
+    python3 -m compileall -q /opt/retrobox/lib >/dev/null 2>&1 || :
 fi
 if command -v udevadm >/dev/null 2>&1; then
     udevadm control --reload-rules >/dev/null 2>&1 || :
@@ -53,7 +53,7 @@ fi
 
 %preun
 # On removal (not upgrade) delete the .pyc files from %post, otherwise rpm
-# cannot remove /opt/retrobox/runtime (it doesn't know about them).
+# cannot remove /opt/retrobox/lib (it doesn't know about them).
 if [ "$1" -eq 0 ]; then
     find /opt/retrobox -name __pycache__ -type d -prune -exec rm -rf {} + 2>/dev/null || :
 fi

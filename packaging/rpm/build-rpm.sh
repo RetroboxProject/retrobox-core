@@ -23,7 +23,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 . "${SRC}/packaging/version.sh"
-. "${SRC}/setup/lib/deps.sh"
+. "${SRC}/tools/lib/deps.sh"
 [[ -n "${VERSION}" ]] || VERSION="$(derive_version "${SRC}")"
 VERSION="${VERSION//-/\~}"
 if [[ ! "${VERSION}" =~ ^[0-9][A-Za-z0-9.+~]*$ ]]; then
@@ -40,9 +40,9 @@ trap 'rm -rf "${WORK}"' EXIT
 STAGE="${WORK}/stage"
 PKG_VERSION="${VERSION}" "${SRC}/packaging/stage.sh" "${STAGE}" >/dev/null
 
-# Spec: dependency lines come from setup/deps/fedora.list (single source).
-REQUIRES="$(deps_list "${SRC}/setup/deps/fedora.list" | sed 's/^/Requires:       /')"
-RECOMMENDS="$(deps_list "${SRC}/setup/deps/recommended-fedora.list" | sed 's/^/Recommends:     /')"
+# Spec: dependency lines come from tools/deps/fedora.list (single source).
+REQUIRES="$(deps_list "${SRC}/tools/deps/fedora.list" | sed 's/^/Requires:       /')"
+RECOMMENDS="$(deps_list "${SRC}/tools/deps/recommended-fedora.list" | sed 's/^/Recommends:     /')"
 spec="$(<"${HERE}/retrobox-core.spec")"
 spec="${spec//@VERSION@/${VERSION}}"
 spec="${spec//@REQUIRES@/${REQUIRES}}"

@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# retrobox-launch: run the emulator launcher for one ROM (this is the command
+# EmulationStation puts in es_systems.cfg; the emuconfig-* helpers use it too).
+#
+#   retrobox-launch %CONTROLLERSCONFIG% -system <system> -rom <rom> ...
+#
+# It only picks the interpreter and sets up the import path; everything else
+# is lib/retrobox/launcher.
+set -eo pipefail
+SELF="$(readlink -f "${BASH_SOURCE[0]}")"
+RETROBOX_ROOTDIR="${RETROBOX_ROOTDIR:-$(dirname "$(dirname "${SELF}")")}"
+export RETROBOX_ROOTDIR
+export PYTHONPATH="${RETROBOX_ROOTDIR}/lib${PYTHONPATH:+:${PYTHONPATH}}"
+
+if [[ -z "${RETROBOX_PYTHON:-}" ]]; then
+    if [[ -x "${RETROBOX_ROOTDIR}/venv/bin/python3" ]]; then
+        RETROBOX_PYTHON="${RETROBOX_ROOTDIR}/venv/bin/python3"
+    else
+        RETROBOX_PYTHON="$(command -v python3 || true)"
+    fi
+fi
+[[ -n "${RETROBOX_PYTHON}" ]] || { echo "retrobox-launch: python3 not found" >&2; exit 1; }
+
+exec "${RETROBOX_PYTHON}" -m retrobox.launcher "$@"

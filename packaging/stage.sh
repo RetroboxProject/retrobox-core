@@ -12,14 +12,14 @@
 #   ${INSTALL_ROOT}/VERSION                the version string (PKG_VERSION)
 #   ${SYSCONF_DIR}/retrobox.ini            commented template (admin config)
 #   ${SYSCONF_DIR}/retrobox.ini.d/         drop-ins (empty)
-#   ${BIN_LINK}                            symlink -> ${INSTALL_ROOT}/retrobox.sh
+#   ${BIN_LINK}                            symlink -> ${INSTALL_ROOT}/bin/retrobox
 #   /usr/lib/udev/rules.d/                 udev rules
 #   /usr/share/applications/retrobox.desktop
 #   /usr/share/icons/hicolor/scalable/apps/retrobox.svg
 #   /usr/share/doc/retrobox-core/copyright
 #
 # Nothing in the tree is ever written to at runtime: user data lives in the
-# XDG directories (see runtime/paths/_base.py), the same ones as for any
+# XDG directories (see lib/retrobox/paths/_base.py), the same ones as for any
 # other kind of install.
 #
 # Environment: PKG_VERSION   written to ${INSTALL_ROOT}/VERSION (default: git describe)
@@ -38,7 +38,8 @@ BIN_LINK="${BIN_LINK:-/usr/bin/retrobox}"
 SYSCONF_DIR="${SYSCONF_DIR:-/etc/retrobox}"
 
 # Tracked files that must NOT end up in the package.
-EXCLUDE_RE='^(\.vscode/|\.github/|packaging/|\.gitignore$|\.gitmodules$|nvidia\.conf$|retrobox\.desktop$|runtime/launcher/pyproject\.toml$|install\.sh$)'
+# Repo-only content (the rest of the repo IS the installed tree).
+EXCLUDE_RE='^(\.vscode/|\.github/|packaging/|dev/|\.gitignore$|\.gitmodules$|install\.sh$)'
 
 ROOT_IN_PKG="${DESTDIR}${INSTALL_ROOT}"
 
@@ -67,7 +68,7 @@ cat > "${DESTDIR}${SYSCONF_DIR}/retrobox.ini" <<'EOF'
 # this file. Nothing is written here by Retrobox; everything below is optional
 # and shows the default.
 #
-# The same layering applies to resources/ (systems_config/, emu_features/,
+# The same layering applies to share/ (systems_config/, emu_features/,
 # hooks/retrohook.d/...): a file under /etc/retrobox/<same relative path>, or
 # under ~/.config/retrobox/<same relative path>, replaces the shipped one.
 
@@ -99,12 +100,12 @@ find "${ROOT_IN_PKG}" -type f ! -perm /111 -exec chmod 644 {} +
 
 # --- 2. Launcher symlink ----------------------------------------------------
 mkdir -p "${DESTDIR}$(dirname "${BIN_LINK}")"
-ln -s "${INSTALL_ROOT}/retrobox.sh" "${DESTDIR}${BIN_LINK}"
+ln -s "${INSTALL_ROOT}/bin/retrobox" "${DESTDIR}${BIN_LINK}"
 
 # --- 3. udev rules ----------------------------------------------------------
 UDEV_DIR="${DESTDIR}/usr/lib/udev/rules.d"
 mkdir -p "${UDEV_DIR}"
-install -m 644 "${SRC}/resources/udev/64-retrobox.rules" "${UDEV_DIR}/64-retrobox.rules"
+install -m 644 "${SRC}/system/udev/64-retrobox.rules" "${UDEV_DIR}/64-retrobox.rules"
 # uinput access for gamepadly (pad -> keyboard/mouse). setup-debian.sh creates
 # the same rule inline; shipped as a real file here.
 cat > "${UDEV_DIR}/99-retrobox-input.rules" <<'EOF'
@@ -119,7 +120,7 @@ sed -e "s|@BIN@|${BIN_LINK}|g" \
     "${SRC}/packaging/retrobox.desktop.in" \
     > "${DESTDIR}/usr/share/applications/retrobox.desktop"
 chmod 644 "${DESTDIR}/usr/share/applications/retrobox.desktop"
-install -m 644 "${SRC}/resources/icons/retrobox_logo.svg" \
+install -m 644 "${SRC}/share/icons/retrobox_logo.svg" \
     "${DESTDIR}/usr/share/icons/hicolor/scalable/apps/retrobox.svg"
 
 # --- 5. Licence -------------------------------------------------------------

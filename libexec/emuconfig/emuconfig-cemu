@@ -1,0 +1,10 @@
+#!/bin/bash
+
+if test -z "${DISPLAY}"
+then
+    export DISPLAY=$(getLocalXDisplay)
+fi
+
+"${RETROBOX_ROOTDIR}/bin/retrobox-launch" -system wiiu -emulator cemu -rom config
+
+exit 0

@@ -12,8 +12,6 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
-!/setup/lib/
 lib64/
 parts/
 sdist/
@@ -148,28 +146,28 @@ __marimo__/
 # RETROBOX: RESOURCES AND LOGS
 # ==============================================================================
 /logs/
-/resources/alsa/
-/resources/datainit/
-/resources/audio_filters/
-/resources/video_filters/
-/setup/.packages/
-/resources/mangohud/
+/share/alsa/
+/share/datainit/
+/share/audio_filters/
+/share/video_filters/
+/tools/.packages/
+/libexec/mangohud/
 
 # ==============================================================================
 # RETROBOX: HOOKS (Ignore all, except explicit exceptions)
 # ==============================================================================
-/resources/hooks/retrohook.d/**
+/share/hooks/retrohook.d/**
 
 # Exceptions: _global/_platform/ hierarchy
-!/resources/hooks/retrohook.d/_global/
-!/resources/hooks/retrohook.d/_global/_platform/
-!/resources/hooks/retrohook.d/_global/_platform/**
+!/share/hooks/retrohook.d/_global/
+!/share/hooks/retrohook.d/_global/_platform/
+!/share/hooks/retrohook.d/_global/_platform/**
 
 # Exceptions: frontend setup hook
-!/resources/hooks/retrohook.d/_frontend/
-!/resources/hooks/retrohook.d/_frontend/emulationstation/
-!/resources/hooks/retrohook.d/_frontend/emulationstation/on-frontend-start/
-!/resources/hooks/retrohook.d/_frontend/emulationstation/on-frontend-start/00_setup.sh
+!/share/hooks/retrohook.d/_frontend/
+!/share/hooks/retrohook.d/_frontend/emulationstation/
+!/share/hooks/retrohook.d/_frontend/emulationstation/on-frontend-start/
+!/share/hooks/retrohook.d/_frontend/emulationstation/on-frontend-start/00_setup.sh
 
 # ==============================================================================
 # RETROBOX: MISCELLANEOUS

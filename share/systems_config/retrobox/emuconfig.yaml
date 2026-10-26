@@ -1,0 +1,12 @@
+emuconfig:
+  fullname: emuconfig
+  manufacturer: _Retrobox
+  release: None
+  hardware: system
+  path: ../share/es_menu
+  extension:
+  - .menu
+  command: ../bin/retrobox-launch %CONTROLLERSCONFIG% -system %SYSTEM% -rom %ROM% -gameinfoxml %GAMEINFOXML% -systemname %SYSTEMNAME%
+  platform:
+  - emuconfig
+  theme: emuconfig

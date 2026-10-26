@@ -48,9 +48,9 @@ PKG_VERSION="${VERSION}" "${SRC}/packaging/stage.sh" "${PKG}"
 
 mkdir -p "${PKG}/DEBIAN"
 INSTALLED_SIZE="$(du -sk --exclude=DEBIAN "${PKG}" | cut -f1)"
-. "${SRC}/setup/lib/deps.sh"
-DEPENDS="$(deps_debian_depends "${SRC}/setup/deps/debian.list")"
-RECOMMENDS="$(deps_debian_depends "${SRC}/setup/deps/recommended-debian.list")"
+. "${SRC}/tools/lib/deps.sh"
+DEPENDS="$(deps_debian_depends "${SRC}/tools/deps/debian.list")"
+RECOMMENDS="$(deps_debian_depends "${SRC}/tools/deps/recommended-debian.list")"
 # (parameter expansion rather than sed: the Depends lines contain "|")
 control="$(<"${HERE}/control.in")"
 control="${control//@VERSION@/${VERSION}}"

@@ -4,7 +4,7 @@ set -e
 case "$1" in
     remove|upgrade|deconfigure)
         # Remove the .pyc files created by postinst, otherwise dpkg can't
-        # delete /opt/retrobox/runtime (it doesn't know about them).
+        # delete /opt/retrobox/lib (it doesn't know about them).
         if command -v py3clean >/dev/null 2>&1; then
             py3clean -p retrobox-core || true
         fi

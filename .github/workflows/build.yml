@@ -31,7 +31,7 @@ jobs:
           submodules: false
 
       - name: Initialise submodules
-        run: git submodule update --init --depth 1 runtime/gamepadly
+        run: git submodule update --init --depth 1 lib/gamepadly
 
       - name: Build the .deb
         run: packaging/deb/build-deb.sh --outdir dist
@@ -144,7 +144,7 @@ jobs:
           fi
           bash dist/install.sh --tarball dist/retrobox-core-all.tar.gz
           test "$(retrobox --version)" != ""
-          test -f /opt/retrobox/retrobox.sh
+          test -f /opt/retrobox/bin/retrobox
           test -f /etc/retrobox/retrobox.ini
           bash dist/install.sh --uninstall
           test ! -e /opt/retrobox

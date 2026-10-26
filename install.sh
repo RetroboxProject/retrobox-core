@@ -188,7 +188,7 @@ fi
 
 mkdir "${WORK}/x"
 tar -xzf "${WORK}/${ASSET}" -C "${WORK}/x" --strip-components=1
-[[ -f "${WORK}/x/retrobox/retrobox.sh" ]] || die "The tarball doesn't look like a Retrobox release."
+[[ -f "${WORK}/x/retrobox/bin/retrobox" ]] || die "The tarball doesn't look like a Retrobox release."
 NEW_VERSION="$(head -n1 "${WORK}/x/retrobox/VERSION" 2>/dev/null || echo unknown)"
 info "Installing Retrobox ${NEW_VERSION} into ${PREFIX}..."
 
@@ -202,19 +202,19 @@ install_deps() {
     fi
     if command -v apt-get >/dev/null 2>&1; then
         # shellcheck source=/dev/null
-        source "${tree}/setup/lib/deps.sh"
+        source "${tree}/tools/lib/deps.sh"
         priv apt-get update -qq
-        mapfile -t pkgs < <(deps_apt_args "${tree}/setup/deps/debian.list")
+        mapfile -t pkgs < <(deps_apt_args "${tree}/tools/deps/debian.list")
         priv env DEBIAN_FRONTEND=noninteractive apt-get install -y "${pkgs[@]}"
-        mapfile -t rec < <(deps_apt_args "${tree}/setup/deps/recommended-debian.list")
+        mapfile -t rec < <(deps_apt_args "${tree}/tools/deps/recommended-debian.list")
         priv env DEBIAN_FRONTEND=noninteractive apt-get install -y "${rec[@]}" \
             || warn "Some recommended packages could not be installed."
     elif command -v dnf >/dev/null 2>&1; then
         # shellcheck source=/dev/null
-        source "${tree}/setup/lib/deps.sh"
-        mapfile -t pkgs < <(deps_list "${tree}/setup/deps/fedora.list")
+        source "${tree}/tools/lib/deps.sh"
+        mapfile -t pkgs < <(deps_list "${tree}/tools/deps/fedora.list")
         priv dnf install -y "${pkgs[@]}"
-        mapfile -t rec < <(deps_list "${tree}/setup/deps/recommended-fedora.list")
+        mapfile -t rec < <(deps_list "${tree}/tools/deps/recommended-fedora.list")
         priv dnf install -y --setopt=strict=0 "${rec[@]}" || warn "Some recommended packages could not be installed."
     else
         warn "No apt or dnf found: using a virtualenv for the Python dependencies."
@@ -254,10 +254,10 @@ if [[ "${USE_VENV}" -eq 1 ]]; then
     if [[ "${DO_DEPS}" -eq 1 ]]; then
         if is_immutable; then
             warn "Immutable system: layer the libraries Retrobox needs with your package manager, e.g."
-            warn "  rpm-ostree install $(grep -v '^python3' "${STAGING}/setup/deps/fedora.list" | sed -e 's/#.*//' | tr '\n' ' ')"
+            warn "  rpm-ostree install $(grep -v '^python3' "${STAGING}/tools/deps/fedora.list" | sed -e 's/#.*//' | tr '\n' ' ')"
             warn "and reboot."
         else
-            warn "Install the system libraries listed in ${PREFIX}/setup/deps/ with your package manager."
+            warn "Install the system libraries listed in ${PREFIX}/tools/deps/ with your package manager."
         fi
     fi
     PYTHON="${STAGING}/venv/bin/python3"
@@ -268,7 +268,7 @@ fi
 # Byte-compile: the tree is read-only for users, so Python could never cache
 # it on its own and every game launch would re-parse the modules.
 if [[ -n "${PYTHON:-}" ]]; then
-    priv "${PYTHON}" -m compileall -q "${STAGING}/runtime" >/dev/null 2>&1 || true
+    priv "${PYTHON}" -m compileall -q "${STAGING}/lib" >/dev/null 2>&1 || true
 fi
 
 # Make the tree readable (and traversable) by every user.
@@ -332,7 +332,7 @@ install_component() {  # install_component NAME[=SRC]
 }
 
 priv mkdir -p "${BIN_DIR}"
-priv ln -sfn "${PREFIX}/retrobox.sh" "${BIN_DIR}/retrobox"
+priv ln -sfn "${PREFIX}/bin/retrobox" "${BIN_DIR}/retrobox"
 record "${BIN_DIR}/retrobox"
 
 priv mkdir -p "${SHARE_DIR}/applications" "${SHARE_DIR}/icons/hicolor/scalable/apps"

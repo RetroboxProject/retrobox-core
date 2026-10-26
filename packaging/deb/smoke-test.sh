@@ -57,7 +57,7 @@ grep -qiE "first-time setup|Running platform setup" <<<"${output}" \
     || fail "default ROMs directory was not created under ~/.local/share/retrobox"
 # (emulationstation.ini itself is removed again when retrobox exits, so check
 # what generates it and that the theme it points at is really installed.)
-grep -q 'system.themes={FRONTEND_DIR}/themes' /opt/retrobox/runtime/startup/frontend_conf/es_ini_generator.py \
+grep -q 'system.themes={FRONTEND_DIR}/themes' /opt/retrobox/lib/retrobox/startup/frontend_conf/es_ini_generator.py \
     || fail "the generated emulationstation.ini does not set system.themes"
 [[ ! -e /opt/retrobox/frontend/themes ]] \
     || fail "retrobox-core must not ship themes (they are separate packages)"
@@ -73,13 +73,12 @@ grep -q retroarch <<<"${listing}" \
 echo "--- layered configuration: /etc and ~/.config overrides"
 as_user mkdir -p "${user_home}/.config/retrobox/retrobox.ini.d"
 echo -e "[advanced]\nlabwc_tty = 7" > /etc/retrobox/retrobox.ini
-cd /opt/retrobox
-got="$(runuser -u nobody -- env -i HOME="${user_home}" PATH="${PATH}" \
-    python3 -m runtime.paths --get advanced.labwc_tty)"
+got="$(runuser -u nobody -- env -i HOME="${user_home}" PATH="${PATH}" PYTHONPATH=/opt/retrobox/lib \
+    python3 -m retrobox.paths --get advanced.labwc_tty)"
 [[ "${got}" == "7" ]] || fail "/etc/retrobox/retrobox.ini was not honoured (got '${got}')"
 echo -e "[advanced]\nlabwc_tty = 9" > "${user_home}/.config/retrobox/retrobox.ini.d/50-test.ini"
-got="$(runuser -u nobody -- env -i HOME="${user_home}" PATH="${PATH}" \
-    python3 -m runtime.paths --get advanced.labwc_tty)"
+got="$(runuser -u nobody -- env -i HOME="${user_home}" PATH="${PATH}" PYTHONPATH=/opt/retrobox/lib \
+    python3 -m retrobox.paths --get advanced.labwc_tty)"
 [[ "${got}" == "9" ]] || fail "the user's retrobox.ini.d drop-in did not override /etc (got '${got}')"
 rm -f "${user_home}/.config/retrobox/retrobox.ini.d/50-test.ini"
 

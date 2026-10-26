@@ -1,0 +1,92 @@
+#!/usr/bin/env bash
+set -x
+set -euo pipefail
+
+RETROBOX_ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." &> /dev/null && pwd)
+# shellcheck source=/dev/null
+source "${RETROBOX_ROOT}/tools/lib/paths.sh"
+ES_METADATA_FILE="/tmp/game.xml"
+
+if [[ ! -f "${ES_METADATA_FILE}" ]]; then
+    NAME="retrobox"
+else
+    GAME_PATH=$(xmllint --xpath 'string(//game/path)' "${ES_METADATA_FILE}")
+    NAME=$(basename "${GAME_PATH}")
+    NAME="${NAME%.*}"
+fi
+
+SCREENSHOT_DIR="${RETROBOX_SCREENSHOTS_DIR}"
+mkdir -p "${SCREENSHOT_DIR}"
+OUTPUT="${SCREENSHOT_DIR}/${NAME}_$(date +%Y%m%d-%H%M%S).png"
+
+# Pick the screenshot tool:
+#   - RETROBOX_SCREENSHOT_TOOL can force one (spectacle, grim or scrot)
+#   - KDE Plasma (Wayland or X11) -> spectacle
+#   - other Wayland compositors (wayfire, labwc...) -> grim
+#   - other X11 WMs/DEs (openbox, xfce...) -> scrot
+detect_tool() {
+    if [[ -n "${RETROBOX_SCREENSHOT_TOOL:-}" ]]; then
+        echo "${RETROBOX_SCREENSHOT_TOOL}"
+        return
+    fi
+
+    local desktop="${XDG_CURRENT_DESKTOP:-}"
+    local session="${XDG_SESSION_TYPE:-}"
+
+    if [[ "${desktop,,}" == *kde* ]]; then
+        echo "spectacle"
+    elif [[ "${session}" == "wayland" || -n "${WAYLAND_DISPLAY:-}" ]]; then
+        echo "grim"
+    else
+        echo "scrot"
+    fi
+}
+
+# Feedback after a successful capture: sound + desktop notification.
+# Both are best-effort: a missing tool or daemon never makes the script fail.
+play_feedback_sound() {
+    local sound="/usr/share/sounds/freedesktop/stereo/camera-shutter.oga"
+
+    if command -v canberra-gtk-play &> /dev/null; then
+        canberra-gtk-play -i camera-shutter &> /dev/null &
+    elif [[ -f "${sound}" ]] && command -v pw-play &> /dev/null; then
+        pw-play "${sound}" &> /dev/null &
+    elif [[ -f "${sound}" ]] && command -v paplay &> /dev/null; then
+        paplay "${sound}" &> /dev/null &
+    fi
+}
+
+notify_feedback() {
+    if command -v notify-send &> /dev/null; then
+        notify-send -a "Retrobox" -i "${OUTPUT}" -t 3000 \
+            "Screenshot saved" "$(basename "${OUTPUT}")" || true
+    fi
+}
+
+TOOL=$(detect_tool)
+
+if ! command -v "${TOOL}" &> /dev/null; then
+    echo "retrobox-screenshot: '${TOOL}' is not installed" >&2
+    exit 1
+fi
+
+case "${TOOL}" in
+    spectacle)
+        # -b: background (no GUI), -n: no built-in notification (we send ours),
+        # -m: monitor under the cursor, -o: output file
+        spectacle -b -n -m -o "${OUTPUT}"
+        ;;
+    grim)
+        grim "${OUTPUT}"
+        ;;
+    scrot)
+        scrot "${OUTPUT}"
+        ;;
+    *)
+        echo "retrobox-screenshot: unsupported tool '${TOOL}'" >&2
+        exit 1
+        ;;
+esac
+
+play_feedback_sound
+notify_feedback

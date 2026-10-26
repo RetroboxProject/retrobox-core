@@ -1,3 +1,0 @@
-#!/bin/bash
-
-exec "${RETROBOX_ROOTDIR}/resources/emuconfig_scripts/emuconfig-$(cat "$1")"

@@ -1,16 +1,12 @@
 {
     "python.analysis.extraPaths": [
-        "${workspaceFolder}",
-        "${workspaceFolder}/runtime",
-        "${workspaceFolder}/runtime/launcher",
+        "${workspaceFolder}/lib",
     ],
     "python.autoComplete.extraPaths": [
-        "${workspaceFolder}",
-        "${workspaceFolder}/runtime",
-        "${workspaceFolder}/runtime/launcher",
+        "${workspaceFolder}/lib",
     ],
     "python.envFile": "${workspaceFolder}/.env",
     "pylint.args": [
-        "--init-hook=import sys; sys.path.append('${workspaceFolder}'); sys.path.append('${workspaceFolder/runtime}'); sys.path.append('${workspaceFolder}/runtime/launcher'); sys.path.append('${workspaceFolder}/runtime/launcher/configgen')"
+        "--init-hook=import sys; sys.path.append('${workspaceFolder}/lib')"
     ]
 }
