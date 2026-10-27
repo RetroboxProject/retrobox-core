@@ -73,7 +73,7 @@ function preflight() {
     fi
     if [[ ! -x "${RETROBOX_ES_EXECUTABLE}" ]]; then
         log_warn "EmulationStation not found at ${RETROBOX_ES_EXECUTABLE}."
-        log_warn "Install the retrobox-emulationstation package (or run install.sh again with --with emulationstation)."
+        log_warn "Install the retrobox-emulationstation package."
     fi
     local missing
     missing="$("${RETROBOX_PYTHON}" -W ignore -c '
@@ -82,6 +82,12 @@ mods = ["yaml", "evdev", "pyudev", "sdl2", "PIL", "ruamel.yaml"]
 print(" ".join(m for m in mods if u.find_spec(m) is None))' 2>/dev/null || true)"
     if [[ -n "${missing}" ]]; then
         log_warn "Missing Python modules: ${missing}. Install the dependencies (see README) or re-run install.sh."
+    fi
+    # gamepadly is optional (gamepad hotkeys such as Hotkey+Start); check it with the very
+    # interpreter the launcher will use, so a venv that can't see it is reported.
+    if ! "${RETROBOX_PYTHON}" -W ignore -c 'import gamepadly' 2>/dev/null; then
+        log_warn "gamepadly not importable from ${RETROBOX_PYTHON}: gamepad hotkeys are disabled."
+        log_warn "Install the python3-gamepadly package (https://github.com/RetroboxProject/gamepadly)."
     fi
 }
 

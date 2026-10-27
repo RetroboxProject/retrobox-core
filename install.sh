@@ -273,8 +273,10 @@ if [[ "${EUID}" -eq 0 ]]; then priv chown -R root:root "${STAGING}"; fi
 
 if [[ "${USE_VENV}" -eq 1 ]]; then
     command -v python3 >/dev/null 2>&1 || die "python3 is required."
+    # --system-site-packages: separately installed Python packages (e.g. python3-gamepadly)
+    # and distro libraries must stay importable from the virtualenv.
     info "Creating the Python environment (virtualenv)..."
-    priv python3 -m venv "${STAGING}/venv" \
+    priv python3 -m venv --system-site-packages "${STAGING}/venv" \
         || die "Could not create a virtualenv (is the python3 venv module installed?)."
     priv "${STAGING}/venv/bin/pip" install -q -r "${WORK}/x/extras/requirements.txt" \
         || warn "pip could not install every Python dependency."
