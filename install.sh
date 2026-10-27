@@ -17,15 +17,11 @@
 #                     (skips the download; checksum checked if a SHA256SUMS
 #                     file sits next to it)
 #   --base-url URL    download from URL instead of the GitHub release
-#   --with NAME[=SRC] also install the component NAME (emulationstation,
-#                     mangohud, ...): its own installer, `install.sh` at the
+#   --with NAME[=SRC] also install the optional component NAME: its own installer, `install.sh` at the
 #                     root of github.com/<owner>/retrobox-NAME, or SRC = a URL
 #                     or a local path to that install.sh. Repeatable. A
 #                     component already installed is updated together with
 #                     the core.
-#   --no-gamepadly    don't install gamepadly (pad-to-keyboard hotkeys), which is
-#                     otherwise installed as a component from
-#                     github.com/<owner>/gamepadly (a system Python package)
 #   --no-deps         don't install system dependencies
 #   --uninstall       remove what this script installed (user data and
 #                     /etc/retrobox are kept)
@@ -61,7 +57,6 @@ VERSION=""
 TARBALL=""
 BASE_URL=""
 DO_DEPS=1
-WITH_GAMEPADLY=1
 UNINSTALL=0
 declare -a COMPONENTS=()
 
@@ -85,7 +80,6 @@ while [[ $# -gt 0 ]]; do
                 || die "--with: invalid component name '${2}'"
             COMPONENTS+=("$2"); shift 2 ;;
         --no-deps)   DO_DEPS=0; shift ;;
-        --no-gamepadly) WITH_GAMEPADLY=0; shift ;;
         --uninstall) UNINSTALL=1; shift ;;
         -h|--help)   usage; exit 0 ;;
         *) die "unknown option: $1 (see --help)" ;;
@@ -271,12 +265,6 @@ for dir in "${PREFIX}"/.components/*/; do
     COMPONENTS+=("${c}${src:+=${src}}")
 done
 
-if [[ "${WITH_GAMEPADLY}" -eq 1 ]]; then
-    already=0
-    for have in "${COMPONENTS[@]}"; do [[ "${have%%=*}" == "gamepadly" ]] && already=1; done
-    [[ "${already}" -eq 1 ]] || COMPONENTS+=("gamepadly")
-fi
-
 priv mkdir -p "$(dirname "${PREFIX}")"
 STAGING="${PREFIX}.new.$$"
 priv rm -rf "${STAGING}"
@@ -341,10 +329,7 @@ install_component() {  # install_component NAME[=SRC]
     elif [[ -n "${src}" && -f "${src}/install.sh" ]]; then
         cp "${src}/install.sh" "${script}"
     else
-        # gamepadly is a standalone project (no retrobox- prefix in its repo name).
-        local repo_name="retrobox-${name}"
-        [[ "${name}" == "gamepadly" ]] && repo_name="gamepadly"
-        url="${src:-https://raw.githubusercontent.com/${REPO%%/*}/${repo_name}/HEAD/install.sh}"
+        url="${src:-https://raw.githubusercontent.com/${REPO%%/*}/retrobox-${name}/HEAD/install.sh}"
         info "Fetching ${url}"
         fetch "${url}" "${script}" || { warn "Could not download the installer of '${name}'."; FAILED_COMPONENTS+=("${name}"); return 0; }
     fi
@@ -404,9 +389,6 @@ ok "Retrobox ${NEW_VERSION} installed in ${PREFIX}."
 [[ ":${PATH}:" == *":${BIN_DIR}:"* ]] || warn "${BIN_DIR} is not in your PATH; run ${BIN_DIR}/retrobox."
 if [[ -n "${UDEV_DIR}" ]]; then
     info "For gamepad-to-keyboard remapping: sudo usermod -aG input \$USER, then log in again."
-fi
-if [[ ! -x "${PREFIX}/frontend/emulationstation" && ! -e "${PREFIX}/.components/emulationstation" ]]; then
-    info "The EmulationStation frontend is a separate component: re-run with --with emulationstation."
 fi
 if [[ "${#FAILED_COMPONENTS[@]}" -gt 0 ]]; then
     die "Retrobox is installed, but these components failed: ${FAILED_COMPONENTS[*]}"
