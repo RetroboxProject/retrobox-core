@@ -101,7 +101,7 @@ Generators adapted from a third-party batocera package. Paths converted to this 
 
 ### Gamepadly
 
-A replacement for evmapy, now a standalone project ([`gamepadly`](https://github.com/manu-romero-411/gamepadly), package `python3-gamepadly`, recommended by the core packages and installed by `install.sh` unless `--no-gamepadly`). It only requires `pygame` and `evdev`. It takes evmapy mappings generated in EmulationStation (or made by hand, since they are JSON) and is able to map every gamepad button to keyboard keys or shortcuts, as well as mouse events. It's used by the majority of emulators to send Alt+F4 with Hotkey+Start combo.
+A replacement for evmapy, now a standalone project ([`gamepadly`](https://github.com/RetroboxProject/gamepadly), package `python3-gamepadly`, recommended by the core packages and installed by `install.sh` unless `--no-gamepadly`). It only requires `pygame` and `evdev`. It takes evmapy mappings generated in EmulationStation (or made by hand, since they are JSON) and is able to map every gamepad button to keyboard keys or shortcuts, as well as mouse events. It's used by the majority of emulators to send Alt+F4 with Hotkey+Start combo.
 
 ### Apps
 
@@ -155,7 +155,7 @@ sudo dnf install ./retrobox-core-<version>-1.noarch.rpm   # same layout as the .
 **Any supported distro (install.sh):**
 
 ```bash
-curl -fsSL https://github.com/manu-romero-411/retrobox-core/releases/latest/download/install.sh | bash
+curl -fsSL https://github.com/RetroboxProject/retrobox-core/releases/latest/download/install.sh | bash
 # options: --prefix DIR  --user  --version X.Y.Z  --with COMPONENT  --no-deps  --uninstall  (see --help)
 ```
 
@@ -163,7 +163,7 @@ It installs the same layout as the package: `/opt/retrobox` (or `/var/opt/retrob
 
 ### Components
 
-The core is modular. EmulationStation ([`retrobox-emulationstation`](https://github.com/manu-romero-411/retrobox-emulationstation)) and the patched MangoHud ([`retrobox-mangohud`](https://github.com/manu-romero-411/retrobox-mangohud)) are separate projects; [`gamepadly`](https://github.com/manu-romero-411/gamepadly) (pad-to-keyboard mapper, a regular Python package) is too. `retrobox-core` ships no frontend, no MangoHud, no theme (not even *iconic*) and compiles nothing.
+The core is modular. EmulationStation ([`retrobox-emulationstation`](https://github.com/RetroboxProject/retrobox-emulationstation)) and the patched MangoHud ([`retrobox-mangohud`](https://github.com/RetroboxProject/retrobox-mangohud)) are separate projects; [`gamepadly`](https://github.com/RetroboxProject/gamepadly) (pad-to-keyboard mapper, a regular Python package) is too. `retrobox-core` ships no frontend, no MangoHud, no theme (not even *iconic*) and compiles nothing.
 
 - **Packages (.deb/.rpm):** `retrobox-core` only *recommends* `retrobox-emulationstation` and `retrobox-mangohud`; install them with the package manager. Those packages are built per architecture (amd64, arm64); the core is architecture-independent (`_all.deb`, `noarch.rpm`).
 - **install.sh:** `--with emulationstation` / `--with mangohud` downloads the component's own `install.sh` (the one at the root of its repository, or `--with NAME=<URL or local path>`) and runs it:

@@ -7,7 +7,7 @@ Priority: optional
 Architecture: all
 Installed-Size: @INSTALLED_SIZE@
 Maintainer: Manu Romero <manu4.2012@gmail.com>
-Homepage: https://github.com/manu-romero-411/retrobox-core
+Homepage: https://github.com/RetroboxProject/retrobox-core
 Depends: @DEPENDS@
 Recommends: retrobox-emulationstation, retrobox-mangohud, python3-gamepadly, @RECOMMENDS@
 Suggests: kscreen

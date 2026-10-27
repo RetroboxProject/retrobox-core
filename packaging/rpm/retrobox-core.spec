@@ -10,7 +10,7 @@ Version:        @VERSION@
 Release:        1
 Summary:        Retrobox core: batocera-style backend for a Linux desktop
 License:        GPL-2.0-only
-URL:            https://github.com/manu-romero-411/retrobox-core
+URL:            https://github.com/RetroboxProject/retrobox-core
 BuildArch:      noarch
 Conflicts:      retrobox
 @REQUIRES@

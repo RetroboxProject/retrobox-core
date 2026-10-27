@@ -3,7 +3,7 @@
 # a read-only project tree, udev rules, a launcher and the optional
 # /etc/retrobox layer; user data lives in ~/.config|.local/share/retrobox.
 #
-#   curl -fsSL https://github.com/manu-romero-411/retrobox-core/releases/latest/download/install.sh | bash
+#   curl -fsSL https://github.com/RetroboxProject/retrobox-core/releases/latest/download/install.sh | bash
 #   curl -fsSL .../install.sh | bash -s -- --prefix /srv/retrobox --version 1.2.3
 #
 # Options:
@@ -52,7 +52,7 @@
 # libraries (SDL2, VLC...) you must layer yourself (the script prints them).
 set -euo pipefail
 
-REPO="manu-romero-411/retrobox-core"
+REPO="RetroboxProject/retrobox-core"
 ASSET="retrobox-core-all.tar.gz"
 
 PREFIX=""
