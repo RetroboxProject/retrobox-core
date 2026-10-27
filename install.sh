@@ -389,9 +389,6 @@ priv chmod 644 "${MANIFEST}"
 
 ok "Retrobox ${NEW_VERSION} installed in ${PREFIX}."
 [[ ":${PATH}:" == *":${BIN_DIR}:"* ]] || warn "${BIN_DIR} is not in your PATH; run ${BIN_DIR}/retrobox."
-if [[ -n "${UDEV_DIR}" ]]; then
-    info "For gamepad-to-keyboard remapping: sudo usermod -aG input \$USER, then log in again."
-fi
 if [[ "${#FAILED_COMPONENTS[@]}" -gt 0 ]]; then
     die "Retrobox is installed, but these components failed: ${FAILED_COMPONENTS[*]}"
 fi

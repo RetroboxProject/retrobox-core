@@ -47,10 +47,6 @@ if command -v udevadm >/dev/null 2>&1; then
     udevadm trigger --subsystem-match=input --subsystem-match=hidraw \
         --action=change >/dev/null 2>&1 || :
 fi
-if [ "$1" -eq 1 ]; then
-    echo "retrobox: to use gamepad-to-keyboard remapping, add your user to the" >&2
-    echo "retrobox: 'input' group (sudo usermod -aG input \$USER) and log in again." >&2
-fi
 :
 
 %preun

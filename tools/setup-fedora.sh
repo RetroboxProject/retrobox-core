@@ -26,7 +26,6 @@ log_info "Installing udev rules..."
 # RETROBOX_ROOTDIR now so it works regardless of cwd (e.g. when called from
 # retrobox's setup orchestrator).
 sudo cp "${RETROBOX_ROOTDIR}/system/udev/"*.rules /etc/udev/rules.d/
-sudo usermod -aG input "$(whoami)"
 sudo udevadm control --reload-rules
 sudo udevadm trigger
 
