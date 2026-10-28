@@ -1,0 +1,17 @@
+// Retrobox: lets the person at the console start and stop nvidia-powerd
+// (the NVIDIA Dynamic Boost daemon) without a password. The launcher does
+// that around games that ask for the "performance" power profile
+// (libexec/nvidia-powerd-service).
+//
+// Deliberately narrow: only this one unit, only start/stop, only for an
+// active local session of an administrator (group sudo on Debian/Ubuntu,
+// wheel on Fedora and most others). Nothing else is granted.
+polkit.addRule(function(action, subject) {
+    if (action.id === "org.freedesktop.systemd1.manage-units" &&
+        action.lookup("unit") === "nvidia-powerd.service" &&
+        (action.lookup("verb") === "start" || action.lookup("verb") === "stop") &&
+        subject.local && subject.active &&
+        (subject.isInGroup("sudo") || subject.isInGroup("wheel"))) {
+        return polkit.Result.YES;
+    }
+});

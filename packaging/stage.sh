@@ -14,6 +14,7 @@
 #   ${SYSCONF_DIR}/retrobox.ini.d/         drop-ins (empty)
 #   ${BIN_LINK}                            symlink -> ${INSTALL_ROOT}/bin/retrobox
 #   /usr/lib/udev/rules.d/                 udev rules
+#   /usr/share/polkit-1/rules.d/           polkit rules
 #   /usr/share/applications/retrobox.desktop
 #   /usr/share/icons/hicolor/scalable/apps/retrobox.svg
 #   /usr/share/doc/retrobox-core/copyright
@@ -110,6 +111,12 @@ ln -s "${INSTALL_ROOT}/bin/retrobox" "${DESTDIR}${BIN_LINK}"
 UDEV_DIR="${DESTDIR}/usr/lib/udev/rules.d"
 mkdir -p "${UDEV_DIR}"
 install -m 644 "${SRC}/system/udev/64-retrobox.rules" "${UDEV_DIR}/64-retrobox.rules"
+
+# --- 3b. polkit rules (start/stop nvidia-powerd without a password) ----------
+POLKIT_DIR="${DESTDIR}/usr/share/polkit-1/rules.d"
+mkdir -p "${POLKIT_DIR}"
+install -m 644 "${SRC}/system/polkit/50-retrobox-nvidia-powerd.rules" \
+    "${POLKIT_DIR}/50-retrobox-nvidia-powerd.rules"
 
 # --- 4. Desktop entry + icon ------------------------------------------------
 mkdir -p "${DESTDIR}/usr/share/applications" \

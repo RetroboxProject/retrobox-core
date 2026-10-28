@@ -29,10 +29,23 @@ start | stop | status | is-active) ;;
     ;;
 esac
 
-# --- Autoelevación si no somos root ---
+# --- status / is-active no necesitan privilegios ---
+case "$ACTION" in
+status | is-active) exec systemctl "$ACTION" "$SERVICE" ;;
+esac
+
+# --- start / stop ---
 if [ "$EUID" -ne 0 ]; then
-    exec sudo "$0" "$ACTION"
+    # 1) Normal: la regla de polkit que instala el paquete
+    #    (system/polkit/50-retrobox-nvidia-powerd.rules) lo permite sin
+    #    contraseña. "--no-ask-password": nunca preguntar; quien nos llama
+    #    (el launcher) no tiene terminal interactivo que pueda contestar.
+    if systemctl --no-ask-password "$ACTION" "$SERVICE" 2>/dev/null; then
+        exit 0
+    fi
+    # 2) Alternativa: una regla NOPASSWD de sudoers escrita a mano para este
+    #    script. "-n": si no existe, falla al instante en vez de esperar.
+    exec sudo -n "$0" "$ACTION"
 fi
 
-# --- Ejecutar la acción correspondiente ---
 exec systemctl "$ACTION" "$SERVICE"

@@ -14,6 +14,26 @@ _logger = logging.getLogger(__name__)
 _POWER_PROFILES_BIN = "powerprofilesctl"
 _VALID_POWER_PROFILES = {"power-saver", "balanced", "performance"}
 _NVIDIA_POWERD_TIMEOUT = 15
+_NVIDIA_POWERD_UNIT = "nvidia-powerd.service"
+
+
+def _nvidia_powerd_is_active() -> bool | None:
+    """Whether nvidia-powerd.service is active; None if it can't be told.
+
+    `systemctl is-active` needs no privileges, so asking first avoids a
+    sudo call (and its possible password prompt) when nothing has to change.
+    """
+    try:
+        result = subprocess.run(
+            ["systemctl", "is-active", "--quiet", _NVIDIA_POWERD_UNIT],
+            check=False,
+            capture_output=True,
+            stdin=subprocess.DEVNULL,
+            timeout=5,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return result.returncode == 0
 
 
 def _set_nvidia_powerd(enable: bool) -> None:
@@ -42,12 +62,17 @@ def _set_nvidia_powerd(enable: bool) -> None:
         )
         return
 
+    if _nvidia_powerd_is_active() is enable:
+        _logger.debug("nvidia-powerd already %s", "active" if enable else "inactive")
+        return
+
     action = "start" if enable else "stop"
     try:
         subprocess.run(
             [NVIDIA_POWERD_SCRIPT, action],
             check=True,
             capture_output=True,
+            stdin=subprocess.DEVNULL,
             text=True,
             timeout=_NVIDIA_POWERD_TIMEOUT,
         )

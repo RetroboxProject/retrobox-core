@@ -8,6 +8,7 @@
 #
 #   retrobox/            the project tree (-> the install prefix)
 #   extras/udev/         udev rules
+#   extras/polkit/       polkit rules
 #   extras/etc/retrobox/ system-wide configuration template
 #   extras/retrobox.desktop.in, extras/retrobox.svg
 #   extras/deps/*.list, extras/deps.sh, extras/requirements.txt
@@ -42,9 +43,10 @@ TOP="${WORK}/retrobox-core-all"
 
 PKG_VERSION="${VERSION}" "${SRC}/packaging/stage.sh" "${STAGE}" >/dev/null
 
-mkdir -p "${TOP}/extras/udev" "${TOP}/extras/etc"
+mkdir -p "${TOP}/extras/udev" "${TOP}/extras/polkit" "${TOP}/extras/etc"
 mv "${STAGE}/opt/retrobox" "${TOP}/retrobox"
 cp "${STAGE}"/usr/lib/udev/rules.d/*.rules "${TOP}/extras/udev/"
+cp "${STAGE}"/usr/share/polkit-1/rules.d/*.rules "${TOP}/extras/polkit/"
 cp -a "${STAGE}/etc/retrobox" "${TOP}/extras/etc/retrobox"
 cp "${SRC}/packaging/retrobox.desktop.in" "${TOP}/extras/retrobox.desktop.in"
 cp "${STAGE}/usr/share/icons/hicolor/scalable/apps/retrobox.svg" "${TOP}/extras/retrobox.svg"

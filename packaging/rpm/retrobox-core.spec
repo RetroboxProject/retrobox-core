@@ -70,6 +70,7 @@ fi
 %dir /etc/retrobox/retrobox.ini.d
 /usr/bin/retrobox
 /usr/lib/udev/rules.d/64-retrobox.rules
+/usr/share/polkit-1/rules.d/50-retrobox-nvidia-powerd.rules
 /usr/share/applications/retrobox.desktop
 /usr/share/icons/hicolor/scalable/apps/retrobox.svg
 %license /usr/share/doc/retrobox-core/copyright

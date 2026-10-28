@@ -135,6 +135,7 @@ if [[ "${USER_MODE}" -eq 1 ]]; then
     BIN_DIR="${HOME}/.local/bin"
     SHARE_DIR="${HOME}/.local/share"
     UDEV_DIR=""
+    POLKIT_DIR=""
     SYSCONF_DIR=""
 else
     if [[ -z "${PREFIX}" ]]; then
@@ -152,6 +153,10 @@ else
     SHARE_DIR="/usr/local/share"
     can_write "${SHARE_DIR}" || SHARE_DIR="${HOME}/.local/share"
     if can_write /usr/lib/udev/rules.d; then UDEV_DIR=/usr/lib/udev/rules.d; else UDEV_DIR=/etc/udev/rules.d; fi
+    # polkit rules (no password to start/stop nvidia-powerd); only if polkit is there
+    POLKIT_DIR=""
+    if [[ -d /usr/share/polkit-1 ]]; then POLKIT_DIR=/usr/share/polkit-1/rules.d
+    elif [[ -d /etc/polkit-1 ]]; then POLKIT_DIR=/etc/polkit-1/rules.d; fi
     SYSCONF_DIR="/etc/retrobox"
 fi
 PREFIX="$(realpath -m "${PREFIX}")"
@@ -374,6 +379,15 @@ if [[ -n "${UDEV_DIR}" ]]; then
         priv udevadm control --reload-rules >/dev/null 2>&1 || true
         priv udevadm trigger --subsystem-match=input --subsystem-match=hidraw --action=change >/dev/null 2>&1 || true
     fi
+fi
+
+if [[ -n "${POLKIT_DIR}" ]]; then
+    priv mkdir -p "${POLKIT_DIR}"
+    for rules in "${WORK}"/x/extras/polkit/*.rules; do
+        [[ -f "${rules}" ]] || continue
+        priv install -m 644 "${rules}" "${POLKIT_DIR}/$(basename "${rules}")"
+        record "${POLKIT_DIR}/$(basename "${rules}")"
+    done
 fi
 
 if [[ -n "${SYSCONF_DIR}" && ! -e "${SYSCONF_DIR}/retrobox.ini" ]]; then
