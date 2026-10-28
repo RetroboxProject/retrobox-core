@@ -3,12 +3,17 @@ from __future__ import annotations
 import errno
 import io
 import logging
+import logging.handlers
 import sys
 from contextlib import contextmanager
 from typing import TYPE_CHECKING, TextIO
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
+    from pathlib import Path
+
+_LOG_MAX_BYTES = 1_000_000
+_LOG_BACKUPS = 5
 
 class EpipeTolerantStreamHandler(logging.StreamHandler):
     def emit(self, record: logging.LogRecord) -> None:
@@ -85,12 +90,17 @@ class EpipeTolerantTextIO(io.TextIOBase):
         return self._raw.closed
 
 @contextmanager
-def setup_logging() -> Iterator[None]:
+def setup_logging(logfile: Path | None = None) -> Iterator[None]:
     """
     Configure logging with EPIPE-tolerant stdout/stderr and handlers.
     - DEBUG..INFO to stdout
     - WARNING..CRITICAL to stderr
+    - everything (DEBUG..CRITICAL) to `logfile`, rotated, when given
     Also replaces sys.stdout/sys.stderr to protect non-logging writes.
+
+    The file is the complete record: EmulationStation captures our stdout
+    through `head -300`, so anything past 300 lines would otherwise be lost.
+    A file that cannot be opened is skipped; logging never breaks a launch.
     """
     logger = logging.getLogger()
     original_handlers = list(logger.handlers)
@@ -121,6 +131,19 @@ def setup_logging() -> Iterator[None]:
     logger.setLevel(logging.DEBUG)
     logger.addHandler(stdout_handler)
     logger.addHandler(stderr_handler)
+
+    if logfile is not None:
+        try:
+            logfile.parent.mkdir(parents=True, exist_ok=True)
+            file_handler = logging.handlers.RotatingFileHandler(
+                logfile, maxBytes=_LOG_MAX_BYTES, backupCount=_LOG_BACKUPS, encoding="utf-8"
+            )
+        except OSError as err:
+            logger.warning("Cannot write log file %s: %s", logfile, err)
+        else:
+            file_handler.setLevel(logging.DEBUG)
+            file_handler.setFormatter(formatter)
+            logger.addHandler(file_handler)
 
     try:
         yield

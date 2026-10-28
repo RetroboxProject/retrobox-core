@@ -20,6 +20,7 @@ from retrobox.launcher.cli import MAX_PLAYERS, build_argument_parser
 from retrobox.launcher.hooks import call_retrohook
 from retrobox.launcher.process import install_interrupt_handler, normalize_exit_code
 from retrobox.launcher.runner import run_rom
+from retrobox.paths import LOGS
 
 __all__ = ["call_retrohook", "launch"]
 
@@ -28,7 +29,7 @@ _logger = logging.getLogger(__name__)
 
 def launch() -> None:
     """Handle program arguments and exception handling to EmulationStation and logs."""
-    with setup_logging():
+    with setup_logging(LOGS / "retrobox-launch.log"):
         install_interrupt_handler()
 
         _logger.info("%s Retrobox %s", "=" * 20, "=" * 20)

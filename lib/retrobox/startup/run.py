@@ -38,16 +38,20 @@ from retrobox.paths import (
     ES_SYSTEMS_TMP,
     FRONTEND_DIR,
     FRONTEND_HOME,
+    LOGS,
     RETROBOX_ROOTDIR,
     ROMS,
     RUNTIME_DIR,
-    THEMES_DIR,
     _USER_ES_DIR,
     DirectoryCreationError,
     mkdir_if_not_exists,
 )
+from retrobox.configgen.utils.logger import setup_logging
 from retrobox.launcher.hooks import call_retrohook
-from retrobox.startup.frontend_conf.es_ini_generator import generate_emulationstation_ini
+from retrobox.startup.frontend_conf.es_ini_generator import (
+    ensure_ini_directories,
+    generate_emulationstation_ini,
+)
 from retrobox.startup.frontend_conf.features_list_generator import generate_es_features
 from retrobox.startup.frontend_conf.system_list_generator import generate_es_systems
 from retrobox.startup.frontend_conf.pcgames_utils import heroic_es_sync, lutris_es_sync, steam_es_sync
@@ -128,8 +132,9 @@ def setup_emulationstation_config() -> None:
     if not _USER_ES_DIR.is_dir():
         mkdir_if_not_exists(_USER_ES_DIR)
     seed_user_es_dir()
-    # ES only honours the `themes=` key of emulationstation.ini if it exists.
-    mkdir_if_not_exists(THEMES_DIR)
+    # ES only honours a key of emulationstation.ini (log=, decorations=,
+    # themes=...) if its directory already exists, so create them all first.
+    ensure_ini_directories()
 
     generate_emulationstation_ini()
     generate_es_systems()
@@ -226,6 +231,16 @@ _PCGAMES_SYNC_FLAG = "--pcgames-sync"
 
 
 def main() -> int:
+    """Run the Retrobox startup script, logging to stdout/stderr and
+    LOGS/retrobox-startup.log.
+
+    See _main() for what it does.
+    """
+    with setup_logging(LOGS / "retrobox-startup.log"):
+        return _main()
+
+
+def _main() -> int:
     """Run the main entry point for the Retrobox startup script.
 
     Consumes the "--pcgames-sync" flag (if present) to decide whether to

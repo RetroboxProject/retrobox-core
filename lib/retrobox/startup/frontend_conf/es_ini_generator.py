@@ -8,6 +8,7 @@ from retrobox.configgen.generators.libretro.libretroPaths import (
 )
 
 from retrobox.paths import (
+    mkdir_if_not_exists,
     _DECORATIONS_DEF_DIR,
     _DECORATIONS_DIR,
     _GAMEPADLY_PROFILES,
@@ -68,6 +69,29 @@ padtokey={_GAMEPADLY_USER_PROFILES}
 # TIMEZONES
 timezones=/usr/share/zoneinfo
 """
+
+def ensure_ini_directories() -> None:
+    """
+    Create the user-writable directories referenced by emulationstation.ini.
+
+    EmulationStation only honours a key of that file if the directory it
+    points at already exists (Paths::loadCustomConfiguration checks
+    isDirectory() and silently ignores the key otherwise), so they must be
+    created BEFORE the frontend starts. Directories owned by an installer
+    (RetroArch filters, system defaults) are deliberately not created here.
+    """
+    for directory in (
+        _DECORATIONS_DIR,
+        LOGS,
+        SAVES,
+        SCREENSHOTS,
+        MUSIC_DIR,
+        THEMES_DIR,
+        _SHADERS_DIR / "configs",
+        _GAMEPADLY_USER_PROFILES,
+    ):
+        mkdir_if_not_exists(directory)
+
 
 def generate_emulationstation_ini(output_path: Path = ES_INI_TMP):
     """
