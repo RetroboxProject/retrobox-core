@@ -67,7 +67,9 @@ def check_env_dirs(variable: str, default_dir: Path) -> Path:
 #
 # Sections:
 #   [core]    -> autocorrect_paths, ignore_systems, ...
-#   [paths]   -> roms_dir, saves_dir, bios_dir. If autocorrect_paths is true
+#   [paths]   -> data_dir, state_dir (where everything else lives; what the
+#                README calls "data" and "state"), roms_dir, saves_dir,
+#                bios_dir. For the last three, if autocorrect_paths is true
 #                (default) an unset or invalid path falls back to its default
 #                directory, which is created. If false, nothing is created and
 #                the value is used as written.
@@ -76,8 +78,11 @@ def check_env_dirs(variable: str, default_dir: Path) -> Path:
 #                names). Variables already set in the environment win.
 #   [advanced] and any other section are available through get_ini_value().
 #
-# [core] and [paths] key names are matched case-insensitively (older files
-# used UPPERCASE); the file itself is never rewritten.
+# Section names ([PATHS] = [paths]) and [core]/[paths] key names are matched
+# case-insensitively (older files used UPPERCASE); the file itself is never
+# rewritten. A value of [paths] may be quoted and may end in " # comment".
+# data_dir/state_dir are used as written (they are created if missing); the
+# environment variables RETROBOX_DATADIR / RETROBOX_STATEDIR win over them.
 # ---------------------------------------------------------------------------
 
 # Default subdirectory (relative to DATA_DIR) of each [paths] key.
@@ -88,6 +93,9 @@ _PATH_DEFAULTS: Final[dict[str, str]] = {
 }
 
 _CASE_INSENSITIVE_SECTIONS: Final[tuple[str, ...]] = ("core", "paths")
+# Section names of ours are matched case-insensitively too, so an old
+# "[PATHS]" is not silently ignored. Other sections keep their spelling.
+_KNOWN_SECTIONS: Final[tuple[str, ...]] = ("core", "paths", "environ")
 _TRUE_VALUES: Final[frozenset[str]] = frozenset({"true", "1", "yes", "on"})
 
 
@@ -133,10 +141,11 @@ def _load_layered_ini(files: "Iterable[Path]") -> CaseSensitiveConfigParser:
             # A broken drop-in must not take the whole program down.
             print(f"retrobox: ignoring unreadable config {path}: {str(exc).splitlines()[0]}", file=sys.stderr)
             continue
-        for section in parser.sections():
+        for raw_section in parser.sections():
+            section = raw_section.lower() if raw_section.lower() in _KNOWN_SECTIONS else raw_section
             if not merged.has_section(section):
                 merged.add_section(section)
-            for key, value in parser.items(section):
+            for key, value in parser.items(raw_section):
                 if section in _CASE_INSENSITIVE_SECTIONS:
                     # Drop any spelling of the key set by a lower layer.
                     for existing in [k for k in merged[section] if k.lower() == key.lower()]:
@@ -167,20 +176,65 @@ def _autocorrect() -> bool:
     return raw.strip().lower() in _TRUE_VALUES
 
 
+def _warn_ini(message: str) -> None:
+    """Say something about retrobox.ini on stderr (this runs at import time,
+    before logging exists). Never raises."""
+    print(f"retrobox: {message}", file=sys.stderr)
+
+
+def _clean_path_value(raw: str) -> str:
+    """
+    Turn the raw text of a [paths] value into a path string.
+
+    configparser keeps everything after "=" literally, so `roms_dir = /x  # my
+    roms` or `roms_dir = "/x"` would be taken as a directory that does not
+    exist. Quotes around the whole value and a trailing " # comment" /
+    " ; comment" are dropped; ~ and $VARS are expanded.
+    """
+    value = raw.strip()
+    if value[:1] in ("'", '"'):
+        end = value.find(value[0], 1)
+        if end != -1:
+            value = value[1:end].strip()
+    else:
+        for marker in (" #", "\t#", " ;", "\t;"):
+            cut = value.find(marker)
+            if cut != -1:
+                value = value[:cut].rstrip()
+    return os.path.expanduser(os.path.expandvars(value))
+
+
+def _unusable_reason(path: Path) -> str:
+    """Why `path` cannot be used as a content directory ("" if it can)."""
+    if not path.exists():
+        return "it does not exist"
+    if not path.is_dir():
+        return "it is not a directory"
+    if not os.access(path, os.R_OK):
+        return "it is not readable"
+    return ""
+
+
 def get_configured_path(key: str, default: Path) -> Path:
     """
     Resolve a [paths] entry of retrobox.ini.
 
     With autocorrect_paths=true (default): the configured value is used if it
-    is a readable directory, otherwise `default` is used and created.
+    is a readable directory, otherwise `default` is used and created (with a
+    warning on stderr saying which value was rejected and why).
     With autocorrect_paths=false: the configured value is returned as
     written (even if missing); `default` only when nothing is configured.
     """
-    value = os.path.expandvars(_PATHS_CONFIG.get("paths", key, fallback="").strip())
-    value = os.path.expanduser(value)
+    value = _clean_path_value(_PATHS_CONFIG.get("paths", key, fallback=""))
     if _autocorrect():
-        if value and Path(value).is_dir() and os.access(value, os.R_OK):
-            return Path(value)
+        if value:
+            reason = _unusable_reason(Path(value))
+            if not reason:
+                return Path(value)
+            _warn_ini(
+                f"[paths] {key} = {value}: {reason}; using {default} instead "
+                "(set autocorrect_paths = false under [core] to use it as written)"
+            )
         try:
             default.mkdir(parents=True, exist_ok=True)
         except OSError:
@@ -258,11 +312,16 @@ _SYSTEM_LOCAL_BIN: Final[Path] = Path("/usr/local/bin")
 _SYSTEM_LOCAL_SHARE: Final[Path] = Path("/usr/local/share")
 
 
-def _resolve_dir(override: str, xdg_var: str, xdg_fallback: Path) -> Path:
-    """Resolve one mutable directory: explicit override > $XDG_* > default."""
+def _resolve_dir(override: str, xdg_var: str, xdg_fallback: Path, ini_key: str = "") -> Path:
+    """Resolve one mutable directory: explicit override > [paths] <ini_key> of
+    retrobox.ini > $XDG_* > default."""
     value = os.environ.get(override, "").strip()
     if value:
         return Path(value)
+    if ini_key:
+        configured = _clean_path_value(_PATHS_CONFIG.get("paths", ini_key, fallback=""))
+        if configured:
+            return Path(configured)
     xdg = os.environ.get(xdg_var, "").strip()
     base = Path(xdg) if xdg and os.path.isabs(xdg) else xdg_fallback
     return base / "retrobox"
@@ -270,8 +329,18 @@ def _resolve_dir(override: str, xdg_var: str, xdg_fallback: Path) -> Path:
 
 SYSCONF_DIR: Final[Path] = Path(os.environ.get("RETROBOX_SYSCONFDIR", "").strip() or "/etc/retrobox")
 CONFIG_DIR: Final[Path] = _resolve_dir("RETROBOX_CONFIGDIR", "XDG_CONFIG_HOME", _XDG_CONFIG)
-DATA_DIR: Final[Path] = _resolve_dir("RETROBOX_DATADIR", "XDG_DATA_HOME", _XDG_DATA)
-STATE_DIR: Final[Path] = _resolve_dir("RETROBOX_STATEDIR", "XDG_STATE_HOME", _XDG_STATE)
+
+# retrobox.ini must be read as soon as CONFIG_DIR is known and BEFORE the other
+# directories are resolved: [environ] (RETROBOX_DATADIR, SCREENSHOTS_DIR...) and
+# [paths] data_dir / state_dir feed them. CONFIG_DIR itself, where the file
+# lives, can only come from the environment / XDG.
+_PATHS_CONFIG: Final[CaseSensitiveConfigParser] = _load_layered_ini(
+    _ini_files(SYSCONF_DIR, CONFIG_DIR)
+)
+_bootstrap_env(_PATHS_CONFIG)
+
+DATA_DIR: Final[Path] = _resolve_dir("RETROBOX_DATADIR", "XDG_DATA_HOME", _XDG_DATA, "data_dir")
+STATE_DIR: Final[Path] = _resolve_dir("RETROBOX_STATEDIR", "XDG_STATE_HOME", _XDG_STATE, "state_dir")
 
 # Make sure the mutable directories exist. A failure here must not break
 # the import: whoever needs the directory will report a meaningful error
@@ -318,17 +387,6 @@ def layered_files(subdir: str, pattern: str = "*") -> dict[str, Path]:
                 found[path.relative_to(base).as_posix()] = path
     return dict(sorted(found.items()))
 
-
-# ---------------------------------------------------------------------------
-# Bootstrap: retrobox.ini must be applied BEFORE computing any Final
-# constants that may be overridden through its [environ] section (here and
-# in _configgen.py / _frontend.py / _gamepadly.py, which import
-# RETROBOX_ROOTDIR / SHARE_DIR / DATA_DIR from here).
-# ---------------------------------------------------------------------------
-_PATHS_CONFIG: Final[CaseSensitiveConfigParser] = _load_layered_ini(
-    _ini_files(SYSCONF_DIR, CONFIG_DIR)
-)
-_bootstrap_env(_PATHS_CONFIG)
 
 # ---------------------------------------------------------------------------
 # Installation paths (same as in batocera)

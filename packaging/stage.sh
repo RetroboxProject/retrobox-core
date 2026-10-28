@@ -84,7 +84,11 @@ cat > "${DESTDIR}${SYSCONF_DIR}/retrobox.ini" <<'EOF'
 #ignore_systems =
 
 #[paths]
-## Where the big content lives (default: ~/.local/share/retrobox/<name>)
+## Move everything Retrobox keeps (default: ~/.local/share/retrobox and
+## ~/.local/state/retrobox). roms/saves/bios follow data_dir unless set below.
+#data_dir  = /srv/games/retrobox
+#state_dir = /srv/games/retrobox-state
+## Where the big content lives (default: <data_dir>/<name>)
 #roms_dir  = /srv/games/roms
 #saves_dir = /srv/games/saves
 #bios_dir  = /srv/games/bios
