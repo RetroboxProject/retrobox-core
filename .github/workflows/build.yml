@@ -45,6 +45,13 @@ jobs:
       - name: Copy install.sh next to it
         run: cp install.sh dist/install.sh
 
+      - name: Generate SHA256SUMS for every release asset
+        run: |
+          cd dist
+          rm -f SHA256SUMS
+          sha256sum *.deb *.rpm retrobox-core-all.tar.gz install.sh > SHA256SUMS
+          cat SHA256SUMS
+
       - name: Show package contents
         run: |
           for deb in dist/*.deb; do

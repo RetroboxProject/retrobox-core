@@ -54,7 +54,15 @@ NVIDIA_POWERD_SCRIPT: Final = LIBEXEC_DIR / "nvidia-powerd-service"
 # ---------------------------------------------------------------------------
 MANGOHUD_PREFIX_DIR: Final = LIBEXEC_DIR / "mangohud"
 MANGOHUD_BIN: Final = MANGOHUD_PREFIX_DIR / "bin" / "mangohud"
-MANGOHUD_VULKAN_LAYER_DIR: Final = MANGOHUD_PREFIX_DIR / "share" / "vulkan" / "implicit_layer.d"
+# The Vulkan loader never looks inside the private prefix, so the package
+# installs the layer manifest where the loader does look; only its
+# library_path points into the prefix. Older packages left it in
+# the prefix, which then has to be added to XDG_DATA_DIRS by hand.
+MANGOHUD_VULKAN_LAYER_DIR: Final = Path("/usr/share/vulkan/implicit_layer.d")
+MANGOHUD_LEGACY_VULKAN_LAYER_DIR: Final = (
+    MANGOHUD_PREFIX_DIR / "share" / "vulkan" / "implicit_layer.d"
+)
+MANGOHUD_VULKAN_MANIFEST_GLOB: Final = "RetroboxMangoHud.*.json"
 
 # Runtime dir (ephemeral state of an in-progress game session): see _base.py
 

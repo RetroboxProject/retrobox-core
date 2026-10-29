@@ -11,8 +11,9 @@ from typing import TYPE_CHECKING
 from retrobox.paths import (
     HUD_CONFIG_FILE,
     MANGOHUD_BIN,
-    MANGOHUD_PREFIX_DIR,
+    MANGOHUD_LEGACY_VULKAN_LAYER_DIR,
     MANGOHUD_VULKAN_LAYER_DIR,
+    MANGOHUD_VULKAN_MANIFEST_GLOB,
 )
 
 from .hud_bezel import get_hud_bezel
@@ -137,36 +138,90 @@ def _resolve_mangohud_binary() -> Path | None:
 
 
 _DEFAULT_XDG_DATA_DIRS = "/usr/local/share:/usr/share"
+_DEFAULT_XDG_CONFIG_DIRS = "/etc/xdg"
+
+
+def _child_env(cmd: Command, key: str) -> str:
+    """Value of an environment variable as the child process will see it."""
+    if key in cmd.env:
+        return str(cmd.env[key] or "")
+    return os.environ.get(key, "")
+
+
+def _loader_layer_dirs(cmd: Command) -> list[Path]:
+    """Implicit layer directories, in the order the Vulkan loader searches them.
+
+    Mirrors the loader on Linux: XDG_CONFIG_HOME, XDG_CONFIG_DIRS, /etc,
+    XDG_DATA_HOME, XDG_DATA_DIRS, each with "vulkan/implicit_layer.d"
+    appended. When two manifests declare the same layer name, the loader
+    keeps the first one it finds, so an old copy in a directory searched
+    earlier hides the packaged one.
+    """
+    home = Path.home()
+    bases: list[str] = [_child_env(cmd, "XDG_CONFIG_HOME") or str(home / ".config")]
+    bases += (_child_env(cmd, "XDG_CONFIG_DIRS") or _DEFAULT_XDG_CONFIG_DIRS).split(":")
+    bases.append("/etc")
+    bases.append(_child_env(cmd, "XDG_DATA_HOME") or str(home / ".local" / "share"))
+    bases += (_child_env(cmd, "XDG_DATA_DIRS") or _DEFAULT_XDG_DATA_DIRS).split(":")
+
+    dirs: list[Path] = []
+    for base in bases:
+        if not base:
+            continue
+        layer_dir = Path(base) / "vulkan" / "implicit_layer.d"
+        if layer_dir not in dirs:
+            dirs.append(layer_dir)
+    return dirs
+
+
+def _warn_shadowing_manifests(cmd: Command) -> None:
+    """Warn about stale Retrobox layer manifests that hide the packaged one."""
+    for layer_dir in _loader_layer_dirs(cmd):
+        if layer_dir == MANGOHUD_VULKAN_LAYER_DIR:
+            return
+        for manifest in sorted(layer_dir.glob(MANGOHUD_VULKAN_MANIFEST_GLOB)):
+            _logger.warning(
+                "%s is found by the Vulkan loader before the one in %s and hides "
+                "it: Vulkan games load whatever library it points to. Remove it "
+                "unless it is intentional.",
+                manifest,
+                MANGOHUD_VULKAN_LAYER_DIR,
+            )
 
 
 def _expose_vulkan_layer(cmd: Command) -> None:
-    """Make the Vulkan loader find the bundled MangoHud implicit layer.
+    """Make sure the Vulkan loader finds the bundled MangoHud implicit layer.
 
-    The layer's manifest lives in the private prefix
-    (MANGOHUD_VULKAN_LAYER_DIR), which is on none of the loader's search
-    paths: without help, the loader never sees the layer and Vulkan games
-    get no HUD even though RETROBOX_MANGOHUD=1 is set. (OpenGL works
-    because it goes through the "mangohud --dlsym" wrapper, not a layer.)
+    Current retrobox-mangohud packages install the layer manifest in
+    MANGOHUD_VULKAN_LAYER_DIR (/usr/share/vulkan/implicit_layer.d), which
+    the loader always searches: nothing has to be added to the environment,
+    only RETROBOX_MANGOHUD=1 (see _configure_mangohud_env()). Stale copies of
+    the manifest in directories the loader searches first are reported,
+    because they win over the packaged one.
 
-    The loader reads implicit layers from "<dir>/vulkan/implicit_layer.d"
-    for every <dir> in XDG_DATA_DIRS, in every loader version, so the
-    prefix's share/ is appended to it. The newer VK_ADD_IMPLICIT_LAYER_PATH
-    would be cleaner but is missing from older loaders (Ubuntu 24.04 ships
-    1.3.275, which lacks it). It goes last, and the prefix only holds
-    vulkan/, so nothing else that reads XDG_DATA_DIRS is affected.
+    Older packages kept the manifest inside the private prefix, on none of
+    the loader's search paths. For those, the prefix's share/ is appended
+    to XDG_DATA_DIRS (the loader reads "<dir>/vulkan/implicit_layer.d" for
+    every entry, in every loader version; VK_ADD_IMPLICIT_LAYER_PATH is
+    missing from older loaders such as Ubuntu 24.04's 1.3.275).
     """
-    if not MANGOHUD_VULKAN_LAYER_DIR.is_dir():
-        _logger.warning(
-            "MangoHud Vulkan layer directory %s not found: Vulkan games will get no HUD",
-            MANGOHUD_VULKAN_LAYER_DIR,
-        )
+    if any(MANGOHUD_VULKAN_LAYER_DIR.glob(MANGOHUD_VULKAN_MANIFEST_GLOB)):
+        _warn_shadowing_manifests(cmd)
         return
 
-    share = str(MANGOHUD_PREFIX_DIR / "share")
-    current = cmd.env.get("XDG_DATA_DIRS") or os.environ.get("XDG_DATA_DIRS") or _DEFAULT_XDG_DATA_DIRS
-    if share in str(current).split(":"):
+    if any(MANGOHUD_LEGACY_VULKAN_LAYER_DIR.glob(MANGOHUD_VULKAN_MANIFEST_GLOB)):
+        share = str(MANGOHUD_LEGACY_VULKAN_LAYER_DIR.parent.parent)
+        current = _child_env(cmd, "XDG_DATA_DIRS") or _DEFAULT_XDG_DATA_DIRS
+        if share not in current.split(":"):
+            cmd.env["XDG_DATA_DIRS"] = f"{current}:{share}"
         return
-    cmd.env["XDG_DATA_DIRS"] = f"{current}:{share}"
+
+    _logger.warning(
+        "No %s found in %s (nor in the legacy %s): Vulkan games will get no HUD",
+        MANGOHUD_VULKAN_MANIFEST_GLOB,
+        MANGOHUD_VULKAN_LAYER_DIR,
+        MANGOHUD_LEGACY_VULKAN_LAYER_DIR,
+    )
 
 
 def _configure_mangohud_env(cmd: Command, mangohud_bin: Path) -> None:
