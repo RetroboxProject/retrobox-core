@@ -106,15 +106,6 @@ groups:
               value: 0
             - name: On
               value: 1
-      LIGHT GUNS:
-        - name: SHOW LIGHT GUN CROSSHAIRS
-          value: model2_crossHairs
-          description: ""
-          choices:
-            - name: Off
-              value: 0
-            - name: On
-              value: 1
   ADVANCED OPTIONS:
     items:
       - name: FAKE GOURAUD

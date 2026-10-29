@@ -35,36 +35,10 @@ apple2gs:
   - apple2gs
   theme: apple2gs
   emulators:
-    gsplus:
-      cores:
-        gsplus:
-          default: true
-          incompatible_extensions:
-          - .mfi
-          - .dfi
-          - .rti
-          - .edd
-          - .woz
-          - .hfe
-          - .mfm
-          - .td0
-          - .imd
-          - .d77
-          - .d88
-          - .1dd
-          - .cqm
-          - .cqui
-          - .ima
-          - .img
-          - .ufi
-          - '.360'
-          - .ipf
-          - .dc42
-          - .zip
-          - .7z
     libretro:
       cores:
-        mame: {}
+        mame:
+          default: true
     mame:
       cores:
         mame: {}

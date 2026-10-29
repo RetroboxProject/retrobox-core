@@ -1,7 +1,0 @@
-emulator_name: yquake2
-features:
-  - padtokeyboard
-sharedFeatures:
-  - power_profile
-  - tdp
-  - videomode

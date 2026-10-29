@@ -13,12 +13,6 @@ amigacdtv:
   - amigacdtv
   theme: amigacdtv
   emulators:
-    amiberry:
-      cores:
-        CDTV: {}
-    fsuae:
-      cores:
-        CDTV: {}
     libretro:
       cores:
         puae:

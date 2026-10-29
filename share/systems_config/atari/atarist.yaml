@@ -18,15 +18,6 @@ atarist:
   - atarist
   theme: atarist
   emulators:
-    clk:
-      cores:
-        clk:
-          incompatible_extensions:
-          - .m3u
-          - .7z
-    hatari:
-      cores:
-        hatari: {}
     libretro:
       cores:
         hatari:

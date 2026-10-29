@@ -17,11 +17,6 @@ msx2:
   - msx2
   theme: msx2
   emulators:
-    clk:
-      cores:
-        clk:
-          incompatible_extensions:
-          - .7z
     libretro:
       cores:
         bluemsx:
@@ -31,11 +26,6 @@ msx2:
         fmsx:
           incompatible_extensions:
           - .openmsx
-    openmsx:
-      cores:
-        openmsx:
-          incompatible_extensions:
-          - .m3u
     ares:
       cores:
         msx:

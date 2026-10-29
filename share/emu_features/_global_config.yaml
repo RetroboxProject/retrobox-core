@@ -3,11 +3,11 @@ vocabulary:
   groups: [GENERAL, CONTROLS, ADVANCED OPTIONS]
   submenus:
     GENERAL: [SCREEN, DECORATIONS, SHADERS, AUDIO, EMULATION, AI GAME TRANSLATION]
-    CONTROLS: [CONTROLLERS, PORT 1, PORT 2, PORT 3, PORT 4, PORT 5, PORT 6, PORT 7, PORT 8, LIGHT GUNS, WHEELS]
+    CONTROLS: [CONTROLLERS, PORT 1, PORT 2, PORT 3, PORT 4, PORT 5, PORT 6, PORT 7, PORT 8, WHEELS]
     ADVANCED OPTIONS: [PERFORMANCE]
   # every emulator is checked, but the exempt ones (a name outside the vocabulary logs a warning)
   enforce: all
-  exempt: [mupen64plus]
+  exempt: []
 groups:
   GENERAL:
     submenus:
@@ -232,24 +232,6 @@ groups:
 
   CONTROLS:
     submenus:
-      LIGHT GUNS:
-        - name: USE LIGHT GUNS
-          order: 99
-          value: use_guns
-          description: Use light guns instead of pads if light guns are connected.
-          choices:
-            - name: On
-              value: 1
-            - name: Off
-              value: 0
-        - name: BORDER MODE
-          value: bordersmode
-          description: Show/Hide guns borders for specific systems
-          choices:
-            - name: normal
-              value: normal
-            - name: hidden
-              value: hidden
       WHEELS:
         - name: USE WHEELS
           order: 100

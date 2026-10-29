@@ -67,7 +67,7 @@ Compared with batocera:
 | `/usr/share/batocera` | `<install dir>/share` |
 | `/usr/share/batocera/evmapy` | `<install dir>/share/pad2key/profiles` (user profiles: `~/.config/retrobox/pad2key/profiles`) |
 
-Emulators that keep their binary and their config together (redream, supermodel, model2emu, xenia, x16emu) still use `~/.local/share/retrobox/emulators/<emu>`.
+Emulators that keep their binary and their config together (redream, supermodel, model2emu) still use `~/.local/share/retrobox/emulators/<emu>`.
 
 ### Stubs for batocera-only binaries
 

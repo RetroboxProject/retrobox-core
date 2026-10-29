@@ -28,12 +28,10 @@ if TYPE_CHECKING:
 
     from ...typedefs import Resolution
     from ...Emulator import Emulator
-    from ...utils.bezels import GunBorders
 
 _logger = logging.getLogger(__name__)
 
 _MAME_BIN = "/usr/bin/mame/mame"
-_TRANSPARENT_BEZEL_PNG = RUNTIME_DIR / "bezel_transmame_black.png"
 _TATTOOED_BEZEL_PNG = RUNTIME_DIR / "bezel_tattooed.png"
 # below this screen ratio (4:3 and the like) a bezel leaves no room for the game
 _MIN_BEZEL_SCREEN_RATIO = 1.6
@@ -52,7 +50,6 @@ class MameBezelRequest:
     rom: Path
     resolution: Resolution
     bezel: str | None
-    gun_borders: GunBorders | None
     # the artwork folder is named after this machine, or after the rom if empty
     machine_name: str = ""
 
@@ -216,21 +213,11 @@ def _apply_tattoo(
 
 
 def _find_bezel_files(request: MameBezelRequest) -> Mapping[str, Any] | None:
-    """Find the bezel files, or a transparent bezel for the gun borders alone."""
-    if request.bezel is not None:
-        found = bezels_util.get_bezel_infos(
-            request.rom, request.bezel, request.system.name, "mame"
-        )
-        if found is not None:
-            return found
-
-    if request.gun_borders is None:
+    """Find the bezel files of the game, or None when there is none."""
+    if request.bezel is None:
         return None
 
-    bezels_util.create_transparent_bezel(
-        _TRANSPARENT_BEZEL_PNG, request.resolution["width"], request.resolution["height"]
-    )
-    return {"png": _TRANSPARENT_BEZEL_PNG}
+    return bezels_util.get_bezel_infos(request.rom, request.bezel, request.system.name, "mame")
 
 
 def _link_layout_bezel(files: Mapping[str, Any], art_dir: Path) -> tuple[Path, _Geometry]:
@@ -262,8 +249,7 @@ def _link_plain_bezel(
 def write_bezel_config(request: MameBezelRequest) -> None:
     """Create the artwork folder (or link) MAME reads for the game.
 
-    Nothing is drawn when the bezel is switched off, unless the gun borders
-    need artwork: ``force_no_bezel`` never removes those.
+    Nothing is drawn when the bezel is switched off.
 
     Args:
         request: What to configure the artwork for.
@@ -274,11 +260,11 @@ def write_bezel_config(request: MameBezelRequest) -> None:
     if art_dir.exists():
         shutil.rmtree(art_dir)
 
-    if request.bezel is None and request.gun_borders is None:
+    if request.bezel is None:
         return
 
     screen_ratio = request.resolution["width"] / request.resolution["height"]
-    if screen_ratio < _MIN_BEZEL_SCREEN_RATIO and request.gun_borders is None:
+    if screen_ratio < _MIN_BEZEL_SCREEN_RATIO:
         return
 
     # let's generate the artwork folder
@@ -293,7 +279,6 @@ def write_bezel_config(request: MameBezelRequest) -> None:
         art_file = MAME_ARTWORK_DIR / f"{name}.zip"
         art_file.unlink(missing_ok=True)
         art_file.symlink_to(mame_zip)
-        # hum, not nice if guns need borders
         return
 
     layout = files.get("layout")
@@ -306,6 +291,3 @@ def write_bezel_config(request: MameBezelRequest) -> None:
     if settings.has_tattoo:
         _apply_tattoo(request.system, bezel_link, geometry, settings)
 
-    if request.gun_borders is not None:
-        borders_png = bezels_util.add_gun_borders(request.system, bezel_link, request.gun_borders)
-        _relink(bezel_link, borders_png)

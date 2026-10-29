@@ -15,14 +15,9 @@ n64dd:
   emulators:
     libretro:
       cores:
-        mupen64plus_next: {}
-        parallel_n64: {}
-    mupen64plus:
-      cores:
-        glide64mk2:
+        mupen64plus_next:
           default: true
-        gliden64: {}
-        rice: {}
+        parallel_n64: {}
     ares:
       cores:
         n64:

@@ -38,31 +38,10 @@ fmtowns:
           incompatible_extensions:
           - .xdf
           - .m3u
+          default: true
     mame:
       cores:
         mame:
           incompatible_extensions:
           - .xdf
           - .m3u
-    tsugaru:
-      cores:
-        tsugaru:
-          default: true
-          incompatible_extensions:
-          - .chd
-          - .toc
-          - .nrg
-          - .gdi
-          - .cdr
-          - .mfi
-          - .dfi
-          - .hfe
-          - .mfm
-          - .td0
-          - .imd
-          - .1dd
-          - .cqm
-          - .cqi
-          - .dsk
-          - .zip
-          - .7z

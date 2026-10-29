@@ -33,8 +33,3 @@ ps2:
           - .m3u
           options:
             hud_support: true
-    play:
-      cores:
-        play:
-          incompatible_extensions:
-          - .m3u

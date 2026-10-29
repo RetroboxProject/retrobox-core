@@ -318,36 +318,44 @@ def _reconfigure_angle_rotation(
         new_min += new_midzone // 2
         new_max -= new_midzone // 2
 
-    pipe_out, pipe_in = os.pipe()
-    cmd = [
-        "batocera-wheel-calibrator",
-        "-d",
-        controller.device_path,
-        "-a",
-        f"{wheel_axis}",
-        "-m",
-        f"{new_min}",
-        "-M",
-        f"{new_max}",
-        "-z",
-        f"{new_deadzone}",
-        "-c",
-        f"{new_midzone}",
-    ]
+    # Wheel angle calibration is disabled: 'batocera-wheel-calibrator' is a Batocera-only
+    # helper that Retrobox does not ship. The original code is kept below for reference.
+    _logger.info(
+        "wheel calibration is disabled (no batocera-wheel-calibrator): new range %s..%s, deadzone %s, midzone %s",
+        new_min, new_max, new_deadzone, new_midzone,
+    )
+    return None
 
-    _logger.info(cmd)
-
-    proc = subprocess.Popen(cmd, stdout=pipe_in, stderr=subprocess.PIPE)
-
-    try:
-        with os.fdopen(pipe_out) as fd:
-            new_dev = fd.readline().rstrip("\n")
-    except:
-        os.kill(proc.pid, signal.SIGTERM)
-        proc.communicate()
-        raise
-
-    return new_dev, proc
+    # pipe_out, pipe_in = os.pipe()
+    # cmd = [
+    #     "batocera-wheel-calibrator",
+    #     "-d",
+    #     controller.device_path,
+    #     "-a",
+    #     f"{wheel_axis}",
+    #     "-m",
+    #     f"{new_min}",
+    #     "-M",
+    #     f"{new_max}",
+    #     "-z",
+    #     f"{new_deadzone}",
+    #     "-c",
+    #     f"{new_midzone}",
+    # ]
+    #
+    # _logger.info(cmd)
+    #
+    # proc = subprocess.Popen(cmd, stdout=pipe_in, stderr=subprocess.PIPE)
+    #
+    # try:
+    #     with os.fdopen(pipe_out) as fd:
+    #         new_dev = fd.readline().rstrip("\n")
+    # except:
+    #     os.kill(proc.pid, signal.SIGTERM)
+    #     proc.communicate()
+    #     raise
+    #
+    # return new_dev, proc
 
 def _reset_controllers(wheel_processes: Iterable[subprocess.Popen[bytes]]) -> None:
     for proc in wheel_processes:

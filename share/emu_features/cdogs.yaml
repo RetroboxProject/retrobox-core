@@ -1,9 +1,0 @@
-emulator_name: cdogs
-features:
-  - padtokeyboard
-sharedFeatures:
-  - power_profile
-  - tdp
-  - videomode
-  - bezel
-  - bezel_stretch

@@ -25,9 +25,6 @@ saturn:
         yabasanshiro:
           incompatible_extensions:
           - .m3u
-    ymir:
-      cores:
-        ymir: {}
     ares:
       cores:
         saturn:

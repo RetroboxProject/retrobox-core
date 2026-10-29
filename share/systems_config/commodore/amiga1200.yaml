@@ -22,18 +22,6 @@ amiga1200:
   theme: amiga1200
   group: amiga
   emulators:
-    amiberry:
-      cores:
-        A1200:
-          incompatible_extensions:
-          - .m3u
-        A4000:
-          incompatible_extensions:
-          - .m3u
-    fsuae:
-      cores:
-        A1200: {}
-        A4000: {}
     libretro:
       cores:
         puae:

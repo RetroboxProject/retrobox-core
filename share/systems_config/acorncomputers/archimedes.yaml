@@ -39,11 +39,6 @@ archimedes:
   - archimedes
   theme: archimedes
   emulators:
-    clk:
-      cores:
-        clk:
-          incompatible_extensions:
-          - .7z
     libretro:
       cores:
         mame: {}

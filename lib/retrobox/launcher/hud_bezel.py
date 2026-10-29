@@ -21,7 +21,6 @@ if TYPE_CHECKING:
     from retrobox.configgen.typedefs import Resolution
     from retrobox.configgen.Emulator import Emulator
     from retrobox.configgen.generators.Generator import Generator
-    from retrobox.configgen.gun import Guns
 
 _logger = logging.getLogger(__name__)
 
@@ -53,7 +52,7 @@ def _load_overlay(
 ) -> _Overlay | None:
     """Find the bezel to use (or generate a transparent one) and read its info."""
     if bezel is None:
-        # no bezel: generate a transparent one for the tattoo/gun borders and so on
+        # no bezel: generate a transparent one for the tattoo and so on
         png_file = _TRANSPARENT_BEZEL_PNG
         info_file = _TRANSPARENT_BEZEL_INFO
         width = resolution["width"]
@@ -178,13 +177,8 @@ def get_hud_bezel(
     generator: Generator,
     rom: Path,
     game_resolution: Resolution,
-    guns: Guns,
 ) -> Path | None:
     """Build the bezel image used as MangoHud background.
-
-    Switching the bezel off with ``force_no_bezel`` does not remove the gun
-    borders: if the guns need them, a transparent bezel carrying only the
-    borders is still produced.
 
     Returns:
         The path of the final bezel image, or None if no bezel must be drawn.
@@ -196,10 +190,9 @@ def get_hud_bezel(
     settings = resolve_bezel_settings(
         system.config, bezel_allowed=generator.allows_bezel(system.config)
     )
-    gun_borders = bezels_util.gun_borders_for(system, guns)
 
     # no good reason for a bezel
-    if settings.is_empty and gun_borders is None:
+    if settings.is_empty:
         return None
 
     overlay = _load_overlay(system, rom, game_resolution, settings.name)
@@ -209,8 +202,7 @@ def get_hud_bezel(
     bezel_size = _bezel_size(overlay)
     stretch = system.config.get_bool("bezel_stretch", _DEFAULT_BEZEL_STRETCH)
 
-    # in case there are gun borders, skip the compatibility checks
-    if not stretch and gun_borders is None:
+    if not stretch:
         ingame_ratio = generator.getInGameRatio(system.config, game_resolution, rom)
         if not _bezel_fits(overlay.infos, bezel_size, game_resolution, ingame_ratio):
             return None
@@ -223,8 +215,6 @@ def get_hud_bezel(
             return None
 
     overlay_png = bezels_util.add_decorations(system, overlay_png, settings)
-    if gun_borders is not None:
-        overlay_png = bezels_util.add_gun_borders(system, overlay_png, gun_borders)
 
     _logger.debug("applying bezel %s", overlay_png)
     return overlay_png

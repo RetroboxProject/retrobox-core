@@ -14,6 +14,3 @@ quake:
       cores:
         tyrquake:
           default: true
-    vkquake:
-      cores:
-        vkquake: {}

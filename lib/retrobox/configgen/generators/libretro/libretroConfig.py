@@ -8,7 +8,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, replace
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, NotRequired, TypedDict
+from typing import TYPE_CHECKING
 
 from retrobox.paths import (
     BIOS,
@@ -22,7 +22,6 @@ from retrobox.paths import (
 
 from ... import controllersConfig
 from ...settings.unixSettings import UnixSettings
-from ...utils import bezels as bezels_util
 from ...utils import metadata as metadata_utils
 from .libretro_bezel import BezelRequest, write_bezel_config
 from .libretro_core_options import (
@@ -31,7 +30,6 @@ from .libretro_core_options import (
     load_core_features,
 )
 from .libretro_ratio import CORE_RATIO_INDEX, RATIO_INDEXES
-from .libretroControllers import clearGunInputsForPlayer, configureGunInputsForPlayer
 from .libretroPaths import (
     _RETROARCH_CFGDIR,
     _RETROARCH_SHARE,
@@ -55,17 +53,6 @@ _logger = logging.getLogger(__name__)
 
 _MAX_REMAPPED_PLAYERS = 4
 _WIDE_RATIO = 4 / 3
-
-
-class _GunMappingItem(TypedDict):
-    """How a core maps the lightguns to its players."""
-
-    device: NotRequired[int]
-    p1: NotRequired[int]
-    p2: NotRequired[int]
-    p3: NotRequired[int]
-    p4: NotRequired[int]
-    game_dependant: NotRequired[list[dict[str, Any]]]
 
 
 @dataclass(frozen=True)
@@ -154,37 +141,6 @@ _LANGUAGE_FONTS = {
     "zh_TW": "/usr/share/fonts/truetype/noto/NotoSansTC-VF.ttf",
     "12": "/usr/share/fonts/truetype/noto/NotoSansSC-VF.ttf",
     "zh_CN": "/usr/share/fonts/truetype/noto/NotoSansSC-VF.ttf",
-}
-
-# Lightgun device mapping per core/system. The "game_dependant" blocks are only
-# read, never modified: the table is shared by every launch (module level),
-# see _gun_core_settings.
-GUN_CORE_MAPPING: dict[str, dict[str, _GunMappingItem]] = {
-    "bsnes": {"default": {"device": 260, "p2": 0, "game_dependant": [
-        {"key": "type", "value": "justifier", "mapkey": "device", "mapvalue": "516"},
-        {
-            "key": "reversedbuttons", "value": "true",
-            "mapcorekey": "bsnes_touchscreen_lightgun_superscope_reverse", "mapcorevalue": "ON",
-        },
-    ]}},
-    "snes9x": {"default": {"device": 260, "p2": 0, "p3": 1, "game_dependant": [
-        {"key": "type", "value": "justifier", "mapkey": "device", "mapvalue": "516"},
-        {"key": "type", "value": "justifier", "mapkey": "device_p3", "mapvalue": "772"},
-        {"key": "type", "value": "macsrifle", "mapkey": "device", "mapvalue": "1028"},
-        {
-            "key": "reversedbuttons", "value": "true",
-            "mapcorekey": "snes9x_superscope_reverse_buttons", "mapcorevalue": "enabled",
-        },
-    ]}},
-    "fceumm": {"default": {"device": 258, "p2": 0}},
-    "genesis_plus_gx": {
-        "megadrive": {"device": 516, "p2": 0, "game_dependant": [
-            {"key": "type", "value": "justifier", "mapkey": "device", "mapvalue": "772"},
-        ]},
-        "mastersystem": {"device": 260, "p1": 0, "p2": 1},
-    },
-    "flycast": {"default": {"device": 4, "p1": 0, "p2": 1, "p3": 2, "p4": 3}},
-    "dolphin": {"default": {"device": 769, "p1": 0, "p2": 1, "p3": 2, "p4": 3}},
 }
 
 # Fixed retroarch.cfg settings that do not depend on system.config. They are
@@ -490,70 +446,6 @@ def _apply_input_settings(config: dict[str, object], launch: LibretroLaunch) -> 
     _apply_saturn_and_n64_inputs(config, system, controllers)
 
 
-def _gun_core_settings(
-    system: Emulator, game_metadata: Mapping[str, str]
-) -> tuple[dict[str, Any], dict[str, str]]:
-    """Return the lightgun mapping of the core, and the core options it needs.
-
-    The shared GUN_CORE_MAPPING table is copied, never modified.
-    """
-    core = system.config.core
-    core_mapping = GUN_CORE_MAPPING[core]
-    # not .get(name, mapping["default"]): that evaluates "default" even when the
-    # system has its own entry, and some cores (genesis_plus_gx) have no default
-    base = core_mapping[system.name] if system.name in core_mapping else core_mapping["default"]
-    gun_config: dict[str, Any] = dict(base)
-    core_options: dict[str, str] = {}
-
-    for rule in gun_config.get("game_dependant", []):
-        if game_metadata.get(f"gun_{rule['key']}") != rule["value"]:
-            continue
-        if "mapkey" in rule and "mapvalue" in rule:
-            gun_config[rule["mapkey"]] = rule["mapvalue"]
-        if "mapcorekey" in rule and "mapcorevalue" in rule:
-            core_options[rule["mapcorekey"]] = rule["mapcorevalue"]
-
-    if core == "dolphin":
-        core_options["dolphin_ir_offset"] = game_metadata.get("gun_vertical_offset", "10")
-        core_options["dolphin_ir_yaw"] = game_metadata.get("gun_yaw", "25")
-        core_options["dolphin_ir_pitch"] = game_metadata.get("gun_pitch", "20")
-
-    return gun_config, core_options
-
-
-def _apply_gun_settings(
-    config: dict[str, object], launch: LibretroLaunch, core_settings: UnixSettings
-) -> None:
-    """Map the lightguns to the players, and set the cursor option."""
-    system = launch.system
-    guns = launch.inputs.guns
-    if not system.config.use_guns:
-        config["input_overlay_show_mouse_cursor"] = "true"
-        return
-
-    for index in range(len(guns)):
-        clearGunInputsForPlayer(index + 1, config)
-
-    if system.config.core not in GUN_CORE_MAPPING:
-        return
-
-    gun_config, core_options = _gun_core_settings(system, launch.metadata)
-    for player in range(1, 4):
-        gun_index = gun_config.get(f"p{player}")
-        if gun_index is None or len(guns) - 1 < gun_index:
-            continue
-        device = gun_config.get(f"device_p{player}", gun_config.get("device", ""))
-        config[f"input_libretro_device_p{player}"] = device
-        configureGunInputsForPlayer(
-            player, guns[gun_index], launch.inputs.controllers, config,
-            system.config.core, launch.metadata, system,
-        )
-
-    for key, value in core_options.items():
-        core_settings.save(key, f'"{value}"')
-    config["input_overlay_show_mouse_cursor"] = "false"
-
-
 def _apply_shader_settings(config: dict[str, object], system: Emulator) -> None:
     """Enable or disable the video shader and the integer scaling, and the smoothing."""
     config["video_scale_integer"] = system.config.get_bool(
@@ -674,10 +566,9 @@ def _apply_bezel_settings(
     generator passes the result in ``launch.display.bezel``).
     """
     system = launch.system
-    guns = launch.inputs.guns
 
     # Default value: centered image. write_bezel_config() only touches these
-    # keys when a bezel (or gun borders) with its own viewport needs it. Since
+    # keys when a bezel with its own viewport needs it. Since
     # UnixSettings only overwrites the keys present in this dict, a
     # video_viewport_bias_x/y = 0.0 left by the bezel of a previous game would
     # otherwise stay forever. Setting it here, BEFORE write_bezel_config(), makes
@@ -692,7 +583,6 @@ def _apply_bezel_settings(
         resolution=launch.resolution,
         bezel=None if drop_bezel else launch.display.bezel,
         shader_bezel=launch.display.shader_bezel,
-        gun_borders=bezels_util.gun_borders_for(system, guns),
     )
     try:
         write_bezel_config(request, config)
@@ -724,7 +614,6 @@ def create_libretro_config(launch: LibretroLaunch, /) -> dict[str, object]:
     features = load_core_features(system.config.core)
     _apply_input_settings(config, launch)
     apply_retroarch_settings(config, system.config, features)
-    _apply_gun_settings(config, launch, core_settings)
     apply_core_features(core_settings, system.config, features)
     core_settings.write()
 

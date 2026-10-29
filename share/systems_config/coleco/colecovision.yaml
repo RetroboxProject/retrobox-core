@@ -13,18 +13,10 @@ colecovision:
   - colecovision
   theme: colecovision
   emulators:
-    clk:
-      cores:
-        clk:
-          incompatible_extensions:
-          - .7z
     libretro:
       cores:
         bluemsx:
           default: true
-    openmsx:
-      cores:
-        openmsx: {}
     ares:
       cores:
         colecovision:

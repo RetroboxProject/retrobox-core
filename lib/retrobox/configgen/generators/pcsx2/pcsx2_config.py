@@ -24,7 +24,6 @@ from ...utils.audio_gain import gain_to_percent
 from ...utils.discrete_gpu import discrete_gpu_property
 from ...utils.configparser import CaseSensitiveConfigParser
 from .pcsx2_controllers import _pcsx2_gen_controllers_config
-from .pcsx2_guns import configure_fog_hack, configure_guns
 from .pcsx2_paths import _PCSX2_BIOS, _PCSX2_CFGDIR, PCSX2_CFG
 
 if TYPE_CHECKING:
@@ -198,6 +197,16 @@ def _configure_audio(settings: CaseSensitiveConfigParser, config: SystemConfig) 
     settings.set("SPU2/Output", "StandardVolume", str(gain_to_percent(gain, _MAX_VOLUME)))
 
 
+def _clear_usb_wheels(settings: CaseSensitiveConfigParser) -> None:
+    """Remove what a previous game left in the USB ports: wheels."""
+    for port in ("USB1", "USB2"):
+        if not settings.has_section(port):
+            continue
+        port_type = settings.get(port, "Type", fallback=None)
+        if port_type == "Pad" and settings.get(port, "Pad_subtype", fallback=None) == "1":
+            settings.remove_option(port, "Type")
+
+
 # the arguments are the ones the controllers code needs
 # pylint: disable-next=too-many-arguments,too-many-positional-arguments
 def configure_ini(
@@ -235,8 +244,7 @@ def configure_ini(
     for option, value in _HOTKEYS:
         settings.set("Hotkeys", option, value)
 
-    configure_guns(settings, config, controllers, guns, metadata)
-    configure_fog_hack(settings, config)
+    _clear_usb_wheels(settings)
 
     settings = _pcsx2_gen_controllers_config(
         settings, system, controllers, metadata, guns, wheels, playing_with_wheel

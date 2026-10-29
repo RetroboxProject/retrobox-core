@@ -12,11 +12,6 @@ mastersystem:
   - mastersystem
   theme: mastersystem
   emulators:
-    clk:
-      cores:
-        clk:
-          incompatible_extensions:
-          - .7z
     libretro:
       cores:
         gearsystem: {}

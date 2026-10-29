@@ -12,10 +12,7 @@ jaguarcd:
   theme: atarijaguarcd
   group: jaguar
   emulators:
-    bigpemu:
-      cores:
-        bigpemu:
-          default: true
     libretro:
       cores:
-        virtualjaguar: {}
+        virtualjaguar:
+          default: true

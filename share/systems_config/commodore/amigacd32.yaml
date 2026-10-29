@@ -12,12 +12,6 @@ amigacd32:
   - amigacd32
   theme: amigacd32
   emulators:
-    amiberry:
-      cores:
-        CD32: {}
-    fsuae:
-      cores:
-        CD32: {}
     libretro:
       cores:
         puae:

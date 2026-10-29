@@ -16,12 +16,9 @@ jaguar:
   theme: atarijaguar
   group: jaguar
   emulators:
-    bigpemu:
-      cores:
-        bigpemu:
-          default: true
     libretro:
       cores:
         virtualjaguar:
           incompatible_extensions:
           - .7z
+          default: true

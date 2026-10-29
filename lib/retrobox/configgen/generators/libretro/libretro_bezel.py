@@ -7,7 +7,6 @@ decision into RetroArch settings and overlay files.
 
 from __future__ import annotations
 
-import json
 import logging
 from dataclasses import dataclass
 from pathlib import Path
@@ -17,7 +16,6 @@ from retrobox.paths import SHADER_BEZELS_DIR, RUNTIME_DIR
 
 from ...exceptions import RetroboxException
 from ...utils import bezels as bezels_util
-from ...utils.bezels import GunBorders
 from ...utils.bezel_policy import resolve_bezel_settings
 from .libretro_ratio import CUSTOM_RATIO_INDEX
 from .libretroPaths import RETROARCH_OVERLAY_CONFIG
@@ -30,14 +28,11 @@ if TYPE_CHECKING:
 
 _logger = logging.getLogger(__name__)
 
-_GUN_BEZEL_PNG = RUNTIME_DIR / "bezel_gun_black.png"
-_GUN_BEZEL_INFO = RUNTIME_DIR / "bezel_gun_black.info"
 _PER_GAME_BEZEL_PNG = RUNTIME_DIR / "bezel_per_game.png"
 
 # below this screen ratio (4:3 and the like) a bezel leaves no room for the game
 _MIN_BEZEL_SCREEN_RATIO = 1.6
 _VIEWPORT_KEYS = ("width", "height", "top", "left", "bottom", "right")
-_FOUR_THIRDS = 4 / 3
 _RATIO_EPSILON = 0.01
 # fallback bezel borders, expressed over a 1920x1080 picture
 _DEFAULT_TOP_BOTTOM = 2 / 1080
@@ -56,7 +51,6 @@ class BezelRequest:
     resolution: Resolution
     bezel: str | None
     shader_bezel: bool
-    gun_borders: GunBorders | None
 
 
 @dataclass
@@ -68,42 +62,10 @@ class _Overlay:
     infos: dict[str, Any]
 
 
-def _gun_borders_overlay(request: BezelRequest, borders: GunBorders) -> _Overlay:
-    """Build a transparent bezel that only reserves room for the gun borders."""
-    width = request.resolution["width"]
-    height = request.resolution["height"]
-    inner_size, outer_size = bezels_util.gun_borders_size(borders.size)
-    border = bezels_util.guns_border_size(width, height, inner_size, outer_size)
-    ratio = request.generator.getInGameRatio(
-        request.system.config, request.resolution, request.rom
-    )
-
-    side = border
-    if ratio == _FOUR_THIRDS:
-        side = (width - (height * _FOUR_THIRDS)) // 2 + border
-
-    infos: dict[str, Any] = {
-        "width": width,
-        "height": height,
-        "top": border,
-        "left": side,
-        "bottom": border,
-        "right": side,
-        "opacity": 1.0,
-        "messagex": 0.22,
-        "messagey": 0.12,
-    }
-    _GUN_BEZEL_INFO.write_text(json.dumps(infos), encoding="utf-8")
-    bezels_util.create_transparent_bezel(_GUN_BEZEL_PNG, width, height)
-    return _Overlay(_GUN_BEZEL_PNG, True, infos)
-
-
 def _find_overlay(request: BezelRequest) -> _Overlay | None:
     """Find the bezel to use, or None when no overlay must be drawn."""
     if request.bezel is None:
-        if request.gun_borders is None:
-            return None
-        return _gun_borders_overlay(request, request.gun_borders)
+        return None
 
     found = bezels_util.get_bezel_infos(
         request.rom, request.bezel, request.system.name, "retroarch"
@@ -130,7 +92,7 @@ def _needs_adaptation(
     width = request.resolution["width"]
     height = request.resolution["height"]
     infos = overlay.infos
-    too_narrow = width / height < _MIN_BEZEL_SCREEN_RATIO and request.gun_borders is None
+    too_narrow = width / height < _MIN_BEZEL_SCREEN_RATIO
 
     if viewport_used:
         needs_adaptation = (width, height) != (infos["width"], infos["height"])
@@ -275,10 +237,9 @@ def _link_shader_bezel(overlay_png: Path) -> None:
 
 
 def write_bezel_config(request: BezelRequest, config: dict[str, object]) -> None:
-    """Configure the RetroArch overlay (bezel and gun borders) for the game.
+    """Configure the RetroArch overlay (bezel) for the game.
 
-    Nothing is drawn when the bezel is switched off, unless the gun borders
-    need an overlay: ``force_no_bezel`` never removes those.
+    Nothing is drawn when the bezel is switched off.
 
     Args:
         request: What to configure the overlay for.
@@ -340,11 +301,6 @@ def write_bezel_config(request: BezelRequest, config: dict[str, object]) -> None
     centered = config["aspect_ratio_index"] != str(CUSTOM_RATIO_INDEX)
     config["video_viewport_bias_x"] = _CENTERED if centered else _NOT_CENTERED
     config["video_viewport_bias_y"] = _CENTERED if centered else _NOT_CENTERED
-
-    if request.gun_borders is not None:
-        overlay_png = bezels_util.add_gun_borders(
-            request.system, overlay_png, request.gun_borders
-        )
 
     _write_overlay_cfg(overlay_png)
     if request.shader_bezel:

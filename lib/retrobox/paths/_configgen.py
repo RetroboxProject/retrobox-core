@@ -66,7 +66,6 @@ MAME_ARTWORK_DIR: Final = RUNTIME_DIR / "mame_artwork"
 CMDFILES_DIR: Final = RUNTIME_DIR / "cmdfiles"
 SHADER_BEZELS_DIR: Final = RUNTIME_DIR / "shader_bezels"
 HUD_CONFIG_FILE: Final = RUNTIME_DIR / "hud.config"
-GUN_OVERLAYS_DIR: Final = RUNTIME_DIR / "batocera-overlays"
 
 
 def configure_emulator(rom: Path, /) -> bool:

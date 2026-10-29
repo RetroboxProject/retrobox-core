@@ -238,9 +238,7 @@ def setup_hud(session: GameSession, cmd: Command) -> None:
         _logger.debug("skipping the HUD overlay: %s calls MangoHud itself", system.config.emulator)
         return
 
-    hud_bezel = get_hud_bezel(
-        system, session.generator, session.rom, session.resolution, session.inputs.guns
-    )
+    hud_bezel = get_hud_bezel(system, session.generator, session.rom, session.resolution)
 
     hud = system.config.get("hud")
     hud_enabled = bool(hud) and hud.lower() != "none"

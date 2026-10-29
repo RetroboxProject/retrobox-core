@@ -44,19 +44,6 @@ groups:
             value: 1
   CONTROLS:
     submenus:
-      LIGHT GUNS:
-        - name: SHOW LIGHT GUN CROSSHAIRS
-          value: crosshairs
-          description: Enable crosshairs in shooting games for the selected players.
-          choices:
-            - name: None
-              value: 0
-            - name: P1 only
-              value: 1
-            - name: P2 only
-              value: 2
-            - name: "P1 & P2"
-              value: 3
   ADVANCED OPTIONS:
     items:
       - name: 3D ENGINE

@@ -11,9 +11,6 @@ gaelco:
   - arcade
   theme: gaelco
   emulators:
-    demul:
-      cores:
-        demul: {}
     libretro:
       cores:
         mame:

@@ -10,10 +10,7 @@ doom3:
   theme: doom3
   group: ports
   emulators:
-    dhewm3:
-      cores:
-        dhewm3:
-          default: true
     libretro:
       cores:
-        boom3: {}
+        boom3:
+          default: true

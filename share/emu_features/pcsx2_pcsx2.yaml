@@ -1,7 +1,6 @@
 emulator_name: pcsx2
 core_name: pcsx2
 sharedFeatures:
-  - use_guns
   - use_wheels
   - wheel_rotation
   - wheel_deadzone
@@ -132,23 +131,6 @@ groups:
               value: 4
             - name: Maximum 8 Players
               value: 8
-      LIGHT GUNS:
-        - name: SHOW LIGHT GUN CROSSHAIRS
-          value: pcsx2_crosshairs
-          description: None
-          choices:
-            - name: "Off"
-              value: 0
-            - name: "On"
-              value: 1
-        - name: TIME CRISIS FOG HACK
-          value: pcsx2_crisis_fog
-          description: "Necessary for some guns to replace fog textures as a workaround in Time Crisis - Crisis Zone."
-          choices:
-            - name: "Off"
-              value: false
-            - name: "On"
-              value: true
       WHEELS:
         - name: WHEEL MODEL
           value: pcsx2_wheel_type

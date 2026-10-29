@@ -21,6 +21,3 @@ msxturbor:
           default: true
           incompatible_extensions:
           - .openmsx
-    openmsx:
-      cores:
-        openmsx: {}

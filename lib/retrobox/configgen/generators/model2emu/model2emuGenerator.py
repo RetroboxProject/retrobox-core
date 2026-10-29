@@ -6,12 +6,13 @@ import os
 import shutil
 import stat
 from pathlib import Path, PureWindowsPath
-from typing import TYPE_CHECKING, Final
+from typing import TYPE_CHECKING
 
 from .model2emuPaths import M2EMU_EMUDIR, M2EMU_RESOURCES, M2EMU_WINEPREFIX, MODEL2_ROMS
 
 from ... import Command
 from retrobox.paths import configure_emulator, mkdir_if_not_exists
+from ...exceptions import RetroboxException
 from ...controller import generate_sdl_game_controller_config
 from ...utils.configparser import CaseSensitiveConfigParser
 from ..Generator import Generator
@@ -36,10 +37,15 @@ class Model2EmuGenerator(Generator):
         mkdir_if_not_exists(M2EMU_WINEPREFIX)
         mkdir_if_not_exists(M2EMU_EMUDIR)
 
-        # 2. Copiar emulador al WINEPREFIX para garantizar permisos rw
-        if not M2EMU_EMUDIR.exists():
-            shutil.copytree(M2EMU_RESOURCES, M2EMU_EMUDIR)
-            (M2EMU_EMUDIR / "EMULATOR.INI").chmod(stat.S_IRWXO)
+        # 2. The emulator itself is not shipped in the package: tools/emulators/model2emu.sh
+        # downloads it into the WINEPREFIX. Fail early with a clear message if it is missing.
+        if not (M2EMU_EMUDIR / "emulator_multicpu.exe").exists():
+            raise RetroboxException(
+                f"Model 2 emulator not found in {M2EMU_EMUDIR}: run 'retrobox --setup-emulator model2emu'"
+            )
+        ini_file = M2EMU_EMUDIR / "EMULATOR.INI"
+        if ini_file.exists():
+            ini_file.chmod(ini_file.stat().st_mode | stat.S_IRWXO)
 
         # 3. Configurar entorno de ejecución base
         env = os.environ.copy()
@@ -56,16 +62,18 @@ class Model2EmuGenerator(Generator):
             ], env=env, check=True)
             winetricks_done.touch()
 
-        # 5. Mantenimiento de scripts y configuraciones actualizadas
-        copy_updated_files(M2EMU_RESOURCES / "scripts", M2EMU_EMUDIR / "scripts")
-        
-        xinput_cfg_done = M2EMU_WINEPREFIX / ".xinput_cfg.done"
-        if not xinput_cfg_done.exists():
-            cfg_dest = M2EMU_EMUDIR / "CFG"
-            cfg_dest.mkdir(parents=True, exist_ok=True)
-            copy_updated_files(M2EMU_RESOURCES / "CFG", cfg_dest)
-            xinput_cfg_done.touch()
-        
+        # 5. Optional per-game scripts and input profiles, only when a resources
+        # directory is present (it is not part of the package).
+        if M2EMU_RESOURCES.is_dir():
+            copy_updated_files(M2EMU_RESOURCES / "scripts", M2EMU_EMUDIR / "scripts")
+
+            xinput_cfg_done = M2EMU_WINEPREFIX / ".xinput_cfg.done"
+            if not xinput_cfg_done.exists():
+                cfg_dest = M2EMU_EMUDIR / "CFG"
+                cfg_dest.mkdir(parents=True, exist_ok=True)
+                copy_updated_files(M2EMU_RESOURCES / "CFG", cfg_dest)
+                xinput_cfg_done.touch()
+
         # .resolve() convierte "../roms/model2" en the real roms path (o la ruta real de Debian)
         #absolute_rom_dir = Path(os.path.realpath(rom)).parent.resolve()
         
@@ -108,25 +116,11 @@ class Model2EmuGenerator(Generator):
         Config.set("Renderer", "AutoFull", "1")
         Config.set("Renderer", "ForceSync", "1")
 
-        # 8. Modificaciones de scripts LUA (Widescreen, Scanlines, Sinden)
+        # 8. LUA script tweaks (widescreen, scanlines)
         lua_file_path = M2EMU_EMUDIR / "scripts" / f"{rom.stem}.lua"
         if lua_file_path.exists():
             modify_lua_widescreen(lua_file_path, system.config.get_bool("model2_ratio"))
             modify_lua_scanlines(lua_file_path, system.config.get_bool("model2_scanlines"))
-            
-            known_gun_roms = ["bel", "gunblade", "hotd", "rchase2", "vcop", "vcop2", "vcopa"]
-            if rom.stem in known_gun_roms and system.config.use_guns and guns:
-                for gun in guns:
-                    if gun.needs_borders:
-                        bordersSize = system.guns_borders_size_name(guns)
-                        thickness = "1"
-                        if bordersSize == "medium":
-                            thickness = "1" if gameResolution["width"] <= 640 else "2"
-                        elif bordersSize != "thin":
-                            thickness = "2" if gameResolution["width"] <= 1080 else "3"
-                        modify_lua_sinden(lua_file_path, "true", thickness)
-                    else:
-                        modify_lua_sinden(lua_file_path, "false", "0")
 
         # Configuración general y de entrada
         Config.set("Renderer", "FakeGouraud", system.config.get("model2_fakeGouraud", "0"))
@@ -142,8 +136,7 @@ class Model2EmuGenerator(Generator):
         if crosshairs := system.config.get("model2_crossHairs"):
             Config.set("Renderer", "DrawCross", crosshairs)
         else:
-            draw_cross = "1" if any(gun.needs_cross for gun in guns) else "0"
-            Config.set("Renderer", "DrawCross", draw_cross)
+            Config.set("Renderer", "DrawCross", "0")
 
         Config.set("Input", "XInput", system.config.get_bool("model2_xinput", return_values=("1", "0")))
         Config.set("Input", "EnableFF", system.config.get_bool("model2_forceFeedback", return_values=("1", "0")))
@@ -216,28 +209,11 @@ def modify_lua_scanlines(file_path: Path, condition: bool) -> None:
     with file_path.open('w') as lua_file:
         lua_file.writelines(modified_lines)
 
-def modify_lua_sinden(file_path: Path, condition: str, thickness: str) -> None:
-    with file_path.open('r') as lua_file:
-        original_lines = lua_file.readlines()
-
-    modified_lines: list[str] = []
-    sinden_line_added = False
-
-    for line in original_lines:
-        if "TestSurface = Video_CreateSurfaceFromFile" in line:
-            modified_lines.append(line)
-            if "Options.bezels.value=" not in line and not sinden_line_added:
-                modified_lines.append(f'\tOptions.bezels.value={"0" if condition == "False" else thickness}\r\n')
-                sinden_line_added = True
-        elif "Options.bezels.value=" in line and not sinden_line_added:
-            modified_lines.append(line.replace("Options.bezels.value=", f'Options.bezels.value={thickness}\r\n'))
-        else:
-            modified_lines.append(line)
-
-    with file_path.open('w') as lua_file:
-        lua_file.writelines(modified_lines)
 
 def copy_updated_files(source_path: Path, destination_path: Path) -> None:
+    if not source_path.is_dir():
+        return
+    destination_path.mkdir(parents=True, exist_ok=True)
     dcmp = filecmp.dircmp(source_path, destination_path)
 
     # Copy missing files and files needing updates from source to destination

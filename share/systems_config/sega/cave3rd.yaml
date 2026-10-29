@@ -11,9 +11,6 @@ cave3rd:
   - arcade
   theme: cave3rd
   emulators:
-    demul:
-      cores:
-        demul: {}
     libretro:
       cores:
         mame:

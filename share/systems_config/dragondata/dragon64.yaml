@@ -24,6 +24,3 @@ dragon64:
     mame:
       cores:
         mame: {}
-    xroar:
-      cores:
-        xroar: {}

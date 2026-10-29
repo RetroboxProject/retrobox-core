@@ -23,7 +23,6 @@ if TYPE_CHECKING:
     from pathlib import Path
     from typing_extensions import deprecated
 
-    from .gun import Guns
 
 _logger = logging.getLogger(__name__)
 
@@ -344,14 +343,6 @@ class Emulator:
         if args.core is not None:
             system_data['core'] = args.core
 
-        if 'use_guns' not in system_data and args.lightgun:
-            system_data['use_guns'] = True
-        elif 'use_guns' in system_data:
-            if args.lightgun:
-                _logger.warning("use_guns manually set to '%s' to flagged game (auto-detection overridden)", system_data['use_guns'])
-            else:
-                _logger.info("use_guns manually set to '%s' to flagless game", system_data['use_guns'])
-
         if 'use_wheels' not in system_data and args.wheel:
             system_data['use_wheels'] = True
         elif 'use_wheels' in system_data:
@@ -442,31 +433,3 @@ class Emulator:
                 if self.config[key]:
                     return self.config[key]
             return ""
-
-    # returns None if no border is wanted
-    def guns_borders_size_name(self, guns: Guns) -> str | None:
-        borders_size: str = self.config.get('controllers.guns.borderssize', 'medium')
-
-        # overridden by specific options
-        borders_mode = 'normal'
-        if (config_borders_mode := (self.config.get('controllers.guns.bordersmode') or 'auto')) != 'auto':
-            borders_mode = config_borders_mode
-        if (config_borders_mode := (self.config.get('bordersmode') or 'auto')) != 'auto':
-            borders_mode = config_borders_mode
-
-        # others are gameonly and normal
-        if borders_mode == 'hidden':
-            return None
-
-        if borders_mode == 'force':
-            return borders_size
-
-        for gun in guns:
-            if gun.needs_borders:
-                return borders_size
-
-        return None
-
-    # returns None to follow the bezel overlay size by default
-    def guns_border_ratio_type(self, guns: Guns) -> str | None:
-        return self.config.get('controllers.guns.bordersratio', None)

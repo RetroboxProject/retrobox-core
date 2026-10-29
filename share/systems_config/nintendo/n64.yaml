@@ -17,20 +17,6 @@ n64:
       cores:
         mupen64plus_next: {}
         parallel_n64: {}
-    mupen64plus:
-      cores:
-        glide64mk2:
-          incompatible_extensions:
-          - .zip
-          - .7z
-        gliden64:
-          incompatible_extensions:
-          - .zip
-          - .7z
-        rice:
-          incompatible_extensions:
-          - .zip
-          - .7z
     ares:
       cores:
         n64:

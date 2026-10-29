@@ -19,7 +19,6 @@ sharedFeatures:
   - ai_service_url
   - ai_service_pause
   - audio_volume
-  - bordersmode
   - discordrpc
 groups:
   GENERAL:
@@ -94,12 +93,3 @@ groups:
               value: custom
   CONTROLS:
     submenus:
-      LIGHT GUNS:
-        - name: CONTROLLER TO LIGHT GUN
-          value: lightgun_map
-          description: Map controller inputs to light gun inputs.
-          choices:
-            - name: On
-              value: true
-            - name: Off
-              value: false

@@ -2,11 +2,10 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import TYPE_CHECKING, Literal, Mapping
+from typing import TYPE_CHECKING, Literal
 
 import pyudev
 
-from retrobox.configgen.gun import Gun
 from retrobox.configgen.controller import getJoystickHardwareIds
 from retrobox.configgen.generators.libretro.libretroPaths import _RETROARCH_CFGDIR
 
@@ -394,66 +393,3 @@ def getAnalogMode(controller: Controller, system: Emulator, /) -> Literal['0', '
     return '0'
 
 
-def clearGunInputsForPlayer(n: int, retroarchConfig: dict[str, object], /) -> None:
-    keys = ["gun_trigger", "gun_offscreen_shot", "gun_aux_a", "gun_aux_b", "gun_aux_c", "gun_start", "gun_select", "gun_dpad_up", "gun_dpad_down", "gun_dpad_left", "gun_dpad_right"]
-    for key in keys:
-        for type_ in ("btn", "mbtn"):
-            retroarchConfig[f'input_player{n}_{key}_{type_}'] = ''
-
-
-def configureGunInputsForPlayer(n: int, gun: Gun, controllers: Controllers, retroarchConfig: dict[str, object], core: str, metadata: Mapping[str, str], system: Emulator, /) -> None:
-    pedalsKeys = {1: "c", 2: "v", 3: "b", 4: "n"}
-    pedalkey = system.config.get(f"controllers.pedals{n}", pedalsKeys.get(n))
-    pedalconfig = None
-
-    retroarchConfig[f'input_player{n}_mouse_index'] = gun.mouse_index
-    retroarchConfig[f'input_player{n}_gun_trigger_mbtn'] = 1
-    retroarchConfig[f'input_player{n}_gun_offscreen_shot_mbtn'] = 2
-    pedalconfig = f'input_player{n}_gun_offscreen_shot'
-    retroarchConfig[f'input_player{n}_gun_start_mbtn'] = 3
-    retroarchConfig[f'input_player{n}_gun_select_mbtn'] = 4
-    retroarchConfig[f'input_player{n}_gun_aux_a_mbtn'] = 5
-    retroarchConfig[f'input_player{n}_gun_aux_b_mbtn'] = 6
-    retroarchConfig[f'input_player{n}_gun_aux_c_mbtn'] = 7
-    retroarchConfig[f'input_player{n}_gun_dpad_up_mbtn'] = 8
-    retroarchConfig[f'input_player{n}_gun_dpad_down_mbtn'] = 9
-    retroarchConfig[f'input_player{n}_gun_dpad_left_mbtn'] = 10
-    retroarchConfig[f'input_player{n}_gun_dpad_right_mbtn'] = 11
-
-    if core in ("pcsx_rearmed", "fbneo", "snes9x", "genesis_plus_gx", "genesis_plus_gx-expanded", "flycast", "mame", "swanstation"):
-        retroarchConfig[f'input_player{n}_gun_offscreen_shot_mbtn'] = ''
-        retroarchConfig[f'input_player{n}_gun_aux_a_mbtn'] = 2
-        pedalconfig = f'input_player{n}_gun_aux_a'
-        if core == "swanstation":
-            retroarchConfig[f'input_player{n}_gun_aux_b_mbtn'] = 3
-
-    if core == "dolphin":
-        for key in ["gun_trigger", "gun_offscreen_shot", "gun_aux_a", "gun_aux_b", "gun_aux_c", "gun_start", "gun_select", "gun_dpad_up", "gun_dpad_down", "gun_dpad_left", "gun_dpad_right"]:
-            retroarchConfig[f'input_player{n}_{key}_mbtn'] = ''
-        wiimote_to_ra = {"b": "b", "a": "a", "1": "start", "2": "select", "+": "r", "-": "l", "up": "up", "down": "down", "left": "left", "right": "right", "c": "x", "z": "y", "shake": "r2", "tiltforward": "l3"}
-        action_to_wiimote = {"trigger": "b", "action": "a", "start": "+", "select": "-", "sub1": "1", "sub2": "2", "up": "up", "down": "down", "left": "left", "right": "right"}
-        action_to_gun = {"trigger": 1, "action": 2, "start": 3, "select": 4, "sub1": 5, "sub2": 6, "up": 8, "down": 9, "left": 10, "right": 11}
-        for action in action_to_wiimote:
-            if (gun_action := metadata.get(f"gun_{action}")):
-                action_to_wiimote[action] = gun_action
-        for action, wiimote in action_to_wiimote.items():
-            if wiimote in wiimote_to_ra and action in action_to_gun:
-                retroarchConfig[f'input_player{n}_{wiimote_to_ra[wiimote]}_mbtn'] = action_to_gun[action]
-
-    if pedalconfig and pedalkey:
-        retroarchConfig[pedalconfig] = pedalkey
-
-    mapping = {"gun_trigger": "b", "gun_offscreen_shot": "a", "gun_aux_a": "x", "gun_aux_b": "y", "gun_aux_c": "pageup", "gun_start": "start", "gun_select": "select", "gun_dpad_up": "up", "gun_dpad_down": "down", "gun_dpad_left": "left", "gun_dpad_right": "right"}
-    hatstoname = {'1': 'up', '2': 'right', '4': 'down', '8': 'left'}
-
-    if pad := Controller.find_player_number(controllers, n):
-        for m, input_name in mapping.items():
-            if input_name in pad.inputs:
-                inp = pad.inputs[input_name]
-                if inp.type == "button":
-                    retroarchConfig[f'input_player{n}_{m}_btn'] = inp.id
-                elif inp.type == "hat":
-                    retroarchConfig[f'input_player{n}_{m}_btn'] = f"h0{hatstoname[inp.value]}"
-                elif inp.type == "axis":
-                    aval = "-" if int(inp.value) < 0 else "+"
-                    retroarchConfig[f'input_player{n}_{m}_axis'] = f"{aval}{inp.id}"

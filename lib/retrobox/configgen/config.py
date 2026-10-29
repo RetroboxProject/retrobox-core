@@ -161,7 +161,8 @@ class SystemConfig(Config):
 
     @property
     def use_guns(self) -> bool:
-        return self.get_bool('use_guns')
+        """Light guns are unsupported: always False."""
+        return False
 
     @property
     def use_wheels(self) -> bool:

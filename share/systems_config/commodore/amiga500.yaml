@@ -22,21 +22,6 @@ amiga500:
   theme: amiga500
   group: amiga
   emulators:
-    amiberry:
-      cores:
-        A500:
-          incompatible_extensions:
-          - .m3u
-        A500+:
-          incompatible_extensions:
-          - .m3u
-    fsuae:
-      cores:
-        A1000: {}
-        A3000: {}
-        A500: {}
-        A500+: {}
-        A600: {}
     libretro:
       cores:
         puae:

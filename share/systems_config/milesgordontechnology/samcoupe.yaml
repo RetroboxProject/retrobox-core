@@ -18,11 +18,8 @@ samcoupe:
   emulators:
     libretro:
       cores:
-        mame: {}
+        mame:
+          default: true
     mame:
       cores:
         mame: {}
-    samcoupe:
-      cores:
-        samcoupe:
-          default: true

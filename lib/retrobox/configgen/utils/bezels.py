@@ -1,63 +1,36 @@
-"""Bezel helpers: lookup, resizing, QR codes, tattoos, gun borders and gun help images."""
+"""Bezel helpers: lookup, resizing, QR codes and tattoos."""
 
 from __future__ import annotations
 
 import json
 import logging
-import shutil
 import struct
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, NamedTuple, NotRequired, TypedDict, cast
+from typing import TYPE_CHECKING, Any, TypedDict, cast
 
 import qrcode
-from PIL import Image, ImageDraw, ImageFont, ImageOps
+from PIL import Image, ImageOps
 
 from retrobox.configgen.utils.language import _detect_language
 from retrobox.paths import (
     RUNTIME_DIR,
     _DECORATIONS_DEF_DIR,
     _DECORATIONS_DIR,
-    ES_GUNS_ART_METADATA,
     SHARE_DIR,
 )
 from ..exceptions import RetroboxException
-from . import metadata
 from .videoMode import get_alt_decoration
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
-
-    from PIL.ImageFont import FreeTypeFont
     from qrcode.image.pil import PilImage
 
-    from retrobox.configgen.gun import Guns
-    from retrobox.configgen.typedefs import Resolution
-
-    from ..config import SystemConfig
     from ..Emulator import Emulator
-    from ..gun import Guns
     from .bezel_policy import BezelSettings
 
 _logger = logging.getLogger(__name__)
 
-_GUN_OVERLAYS_DIR = Path("/usr/share/batocera/guns-overlays")
-_GUN_HELP_FONT = Path("/usr/share/fonts/dejavu/DejaVuSans.ttf")
 _TATTOOED_BEZEL_PNG = RUNTIME_DIR / "bezel_tattooed.png"
 _QRCODE_BEZEL_PNG = RUNTIME_DIR / "bezel_qrcode.png"
-_GUN_BORDERS_BEZEL_PNG = RUNTIME_DIR / "bezel_gunborders.png"
-_GUN_BORDER_COLORS = {
-    "red": "#ff0000",
-    "green": "#00ff00",
-    "blue": "#0000ff",
-    "white": "#ffffff",
-}
-
-
-class GunBorders(NamedTuple):
-    """The lightgun borders to draw around the game image."""
-
-    size: str
-    ratio: str | None
 
 
 class BezelInfos(TypedDict):
@@ -444,330 +417,9 @@ def alpha_paste(
     imgout.save(output_png, format="PNG")
 
 
-def gun_borders_size(borders_size: str | None) -> tuple[int, int]:
-    """Return the (inner, outer) border size selector for a size name."""
-    sizes = {"thin": (1, 0), "medium": (2, 0), "big": (2, 1)}
-    return sizes.get(borders_size or "", (0, 0))
-
-
-def _border_rectangles(
-    left: int, top: int, right: int, bottom: int, thickness: int
-) -> list[list[tuple[int, int]]]:
-    """Return the four rectangles (top, right, bottom, left) of a frame."""
-    return [
-        [(left, top), (right, top + thickness)],
-        [(right - thickness, top), (right, bottom)],
-        [(left, bottom - thickness), (right, bottom)],
-        [(left, top), (left + thickness, bottom)],
-    ]
-
-
-# pylint: disable-next=too-many-arguments,too-many-positional-arguments,too-many-locals
-def gun_border_image(
-    input_png: str | Path,
-    output_png: str | Path,
-    aspect_ratio: str | None,
-    inner_border_size_pct: int = 2,
-    outer_border_size_pct: int = 3,
-    inner_border_color: str = "#ffffff",
-    outer_border_color: str = "#000000",
-) -> int:
-    """Draw a lightgun border on an image and return its total thickness.
-
-    A good default border that works in most circumstances is 2% of the screen
-    width in white, surrounded by 3% of the screen width in black. The black
-    helps the lightgun detect the border against a bright background behind
-    the TV.
-
-    The ideal solution is to draw the games inside the border rather than
-    overlap it. The lightgun thinks the outer edge of the border is the edge
-    of the game screen, so adjustments are needed in the lightgun settings to
-    keep it aligned. This is why the border normally overlaps: people then do
-    not need to calculate an adjustment. If all the games are drawn with the
-    border this way, the settings are static and the adjustment only needs to
-    be calculated once.
-    """
-    width, height = fast_image_size(input_png)
-
-    # use a 4:3 area if the aspect ratio asks for it and the image is not already 4:3
-    is_four_thirds = abs(width / height - 4 / 3) < 0.01
-    if aspect_ratio == "4:3" and not is_four_thirds:
-        area_width = int((4 / 3) * height)
-    else:
-        area_width = width
-
-    # offset to center the border area
-    offset_x = (width - area_width) // 2
-    left = offset_x
-    right = offset_x + area_width
-
-    outer_size = width * outer_border_size_pct // 100
-    inner_size = max(1, width * inner_border_size_pct // 100)
-
-    outer_shapes = _border_rectangles(left, 0, right, height, outer_size)
-    inner_shapes = _border_rectangles(
-        left + outer_size,
-        outer_size,
-        right - outer_size,
-        height - outer_size,
-        inner_size,
-    )
-
-    with Image.open(input_png) as back:
-        imgnew = Image.new("RGBA", (width, height), (0, 0, 0, 255))
-        imgnew.paste(back, (0, 0, width, height))
-    draw = ImageDraw.Draw(imgnew)
-    for shape in outer_shapes:
-        draw.rectangle(shape, fill=outer_border_color)
-    for shape in inner_shapes:
-        draw.rectangle(shape, fill=inner_border_color)
-    imgnew.save(output_png, format="PNG")
-
-    return outer_size + inner_size
-
-
-def guns_border_size(
-    width: int,
-    height: int,  # pylint: disable=unused-argument
-    inner_border_size_pct: int = 2,
-    outer_border_size_pct: int = 3,
-) -> int:
-    """Return the total border thickness for a screen width.
-
-    ``height`` is unused and only kept for signature compatibility.
-    """
-    return (width * (inner_border_size_pct + outer_border_size_pct)) // 100
-
-
-def guns_borders_color_from_config(config: SystemConfig) -> str:
-    """Return the border color (hex) selected in the configuration."""
-    key = "controllers.guns.borderscolor"
-    if key in config:
-        return _GUN_BORDER_COLORS.get(config[key], "#ffffff")
-    return "#ffffff"
-
-
 def create_transparent_bezel(output_png: Path, width: int, height: int) -> None:
     """Create a fully transparent bezel image."""
     Image.new("RGBA", (width, height), (0, 0, 0, 0)).save(output_png, format="PNG")
-
-
-class _GunInfosTextDict(TypedDict):
-    value: str
-    x: float
-    y: float
-    line_color: NotRequired[str]
-    line_size: NotRequired[int]
-    line: NotRequired[list[float]]
-    color: NotRequired[str]
-    align: NotRequired[str]
-    font_size_per_height: NotRequired[float]
-
-
-class _GunInfosDict(TypedDict):
-    texts: NotRequired[list[_GunInfosTextDict]]
-    font_size_per_height: NotRequired[float]
-    color: NotRequired[str]
-
-
-def _target_size(
-    ratio: float, width: int | None, height: int | None
-) -> tuple[int, int]:
-    """Compute the output size from a width and/or height, keeping the ratio."""
-    if width is not None and height is not None:
-        return width, height
-    if height is not None:
-        return int(height * ratio), height
-    if width is not None:
-        return width, int(width / ratio)
-    raise ValueError("width or height must be provided")
-
-
-def _get_font(cache: dict[int, FreeTypeFont], font_path: Path, size: int) -> FreeTypeFont:
-    """Return a font of the given size, loading it only once."""
-    if size not in cache:
-        cache[size] = ImageFont.truetype(font_path, size)
-    return cache[size]
-
-
-def _draw_lines(
-    draw: ImageDraw.ImageDraw, texts: list[_GunInfosTextDict], size: tuple[int, int]
-) -> None:
-    """Draw the indicator lines attached to each text."""
-    img_width, img_height = size
-    for text in texts:
-        if not text.get("value") or "line" not in text:
-            continue
-        coords = text["line"]
-        points = [
-            (x_rel * img_width, y_rel * img_height)
-            for x_rel, y_rel in zip(coords[0::2], coords[1::2])
-        ]
-        draw.line(
-            points,
-            fill=text.get("line_color", "black"),
-            width=text.get("line_size", 2),
-        )
-
-
-# pylint: disable-next=too-many-locals
-def _draw_texts(
-    draw: ImageDraw.ImageDraw,
-    data: _GunInfosDict,
-    size: tuple[int, int],
-    font_path: Path,
-) -> None:
-    """Draw the texts of the gun help image."""
-    img_width, img_height = size
-    fonts: dict[int, FreeTypeFont] = {}
-    base_font_size = int(data["font_size_per_height"] * img_height)
-    default_color = data.get("color", "black")
-
-    for text in data.get("texts", []):
-        if "x" not in text or "y" not in text or "value" not in text:
-            continue
-        pos_x = round(text["x"] * img_width)
-        pos_y = round(text["y"] * img_height)
-
-        font_size = base_font_size
-        if "font_size_per_height" in text:
-            font_size = int(text["font_size_per_height"] * img_height)
-        font = _get_font(fonts, font_path, font_size)
-
-        text_width = draw.textlength(text["value"], font)
-        align = text.get("align", "left")
-        if align == "center":
-            pos_x -= int(text_width / 2)
-        elif align == "right":
-            pos_x -= int(text_width)
-        draw.text((pos_x, pos_y), text["value"], fill=text.get("color", default_color), font=font)
-
-
-# pylint: disable-next=too-many-arguments
-def png_to_png_with_texts(
-    input_png_path: Path,
-    output_png_path: Path,
-    data: _GunInfosDict,
-    /,
-    *,
-    font_path: Path,
-    width: int | None = None,
-    height: int | None = None,
-) -> None:
-    """Resize a PNG and draw the texts and lines described in ``data`` on it."""
-    with Image.open(input_png_path) as img_big:
-        size = _target_size(img_big.width / img_big.height, width, height)
-        img = img_big.resize(size)
-    draw = ImageDraw.Draw(img)
-
-    _draw_lines(draw, data.get("texts", []), size)
-    if "font_size_per_height" in data:
-        _draw_texts(draw, data, size, font_path)
-
-    img.save(output_png_path, "PNG")
-
-
-def gun_help_replace(text: str, replacements: Mapping[str, str]) -> str:
-    """Replace every placeholder of ``replacements`` in ``text``."""
-    result = text
-    for placeholder, value in replacements.items():
-        result = result.replace(placeholder, value)
-    return result
-
-
-def _gun_text_replacements(system: str, rom: Path) -> tuple[dict[str, str], bool]:
-    """Return the button label replacements and whether they are customized."""
-    replacements = {
-        "<TRIGGER>": "TRIGGER",
-        "<ACTION>": "ACTION",
-        "<START>": "START",
-        "<SELECT>": "SELECT",
-        "<SUB1>": "SUB1",
-        "<SUB2>": "SUB2",
-        "<SUB3>": "SUB3",
-        "<UP>": "UP",
-        "<DOWN>": "DOWN",
-        "<LEFT>": "LEFT",
-        "<RIGHT>": "RIGHT",
-    }
-
-    # use a gamesgunsbuttonsdb.xml to customize the gun help of each game
-    if not ES_GUNS_ART_METADATA.exists():
-        _logger.info("gun help: metadata file not found : %s", ES_GUNS_ART_METADATA)
-        return replacements, False
-
-    game_metadata = metadata.get_games_meta_data(ES_GUNS_ART_METADATA, system, rom)
-    customize_texts = any(key.startswith("gun_") for key in game_metadata)
-    if customize_texts:
-        # keep only the replacements found in the metadata, blank the others
-        replacements = {
-            key: game_metadata.get(f"gun_{key[1:-1].lower()}", "") for key in replacements
-        }
-    return replacements, customize_texts
-
-
-# pylint: disable-next=too-many-arguments,too-many-positional-arguments,too-many-locals
-def generate_gun_help(
-    system: str,
-    rom: Path,
-    use_guns: bool,
-    guns: Guns,
-    gun_help_dir: Path,
-    gun_help_filename: str,
-    game_resolution: Resolution,
-    /,
-) -> None:
-    """Generate (or reuse from cache) the gun help image of a game."""
-    default_gun_help_path = gun_help_dir / "gun_help_default.png"  # cache for next game run
-    target_path = gun_help_dir / gun_help_filename
-
-    gun_help_dir.mkdir(parents=True, exist_ok=True)
-
-    replacements, customize_texts = _gun_text_replacements(system, rom)
-
-    # without any customization, copy the cached image to the destination
-    if (use_guns or guns) and not customize_texts and default_gun_help_path.exists():
-        shutil.copyfile(default_gun_help_path, target_path)
-        _logger.info("gun help: using cache image : %s", default_gun_help_path)
-        return
-
-    # remove any existing file
-    target_path.unlink(missing_ok=True)
-
-    # do not enable if not a gun game or no gun
-    if not (use_guns and guns):
-        _logger.info("gun help: not generating gun help image")
-        return
-
-    _logger.info("gun help: generating gun help image")
-
-    # take the first gun
-    gun_name = guns[0].name
-    help_png = _GUN_OVERLAYS_DIR / f"{gun_name}.png"
-    help_info = _GUN_OVERLAYS_DIR / f"{gun_name}.infos"
-
-    if not help_png.exists():
-        _logger.info("gun help: image doesn't exist : %s", help_png)
-        return
-
-    # try to open the help texts
-    data: _GunInfosDict = {}
-    if help_info.exists():
-        with help_info.open(encoding="utf-8") as file:
-            data = cast("_GunInfosDict", json.load(file))
-
-    # replace data in texts
-    for text in data.get("texts", []):
-        text["value"] = gun_help_replace(text["value"], replacements)
-
-    img_height = int(game_resolution["height"] * 0.5)  # half of the screen height
-    _logger.info("gun help: generating image %s", target_path)
-    png_to_png_with_texts(help_png, target_path, data, font_path=_GUN_HELP_FONT, height=img_height)
-
-    # save the default help as a cache
-    if not customize_texts:
-        shutil.copyfile(target_path, default_gun_help_path)
-        _logger.info("gun help: caching file to : %s", default_gun_help_path)
 
 
 def add_decorations(system: Emulator, input_png: Path, settings: BezelSettings) -> Path:
@@ -796,33 +448,3 @@ def add_decorations(system: Emulator, input_png: Path, settings: BezelSettings) 
     return output_png
 
 
-def gun_borders_for(system: Emulator, guns: Guns) -> GunBorders | None:
-    """Return the gun borders the game needs, or None when it needs none."""
-    size = system.guns_borders_size_name(guns)
-    if size is None:
-        return None
-    return GunBorders(size, system.guns_border_ratio_type(guns))
-
-
-def add_gun_borders(system: Emulator, input_png: Path, borders: GunBorders) -> Path:
-    """Draw the lightgun borders on a bezel image.
-
-    Args:
-        system: The running system, used for the border color.
-        input_png: The bezel image to draw on.
-        borders: The size and aspect ratio of the borders.
-
-    Returns:
-        The image with the borders.
-    """
-    _logger.debug("Draw gun borders (ratio = %s)", borders.ratio)
-    inner_size, outer_size = gun_borders_size(borders.size)
-    gun_border_image(
-        input_png,
-        _GUN_BORDERS_BEZEL_PNG,
-        borders.ratio,
-        inner_size,
-        outer_size,
-        guns_borders_color_from_config(system.config),
-    )
-    return _GUN_BORDERS_BEZEL_PNG

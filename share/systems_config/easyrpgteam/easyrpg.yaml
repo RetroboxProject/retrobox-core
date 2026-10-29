@@ -11,10 +11,7 @@ easyrpg:
   - easyrpg
   theme: easyrpg
   emulators:
-    easyrpg:
+    libretro:
       cores:
         easyrpg:
           default: true
-    libretro:
-      cores:
-        easyrpg: {}

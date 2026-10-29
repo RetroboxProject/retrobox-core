@@ -16,7 +16,7 @@ groups:
       PORT 2:
         - name: CONTROLLER TYPE
           value: controller2_bsnes
-          description: Device plugged into port 2 (light guns are set in LIGHT GUNS).
+          description: Device plugged into port 2.
           retroarch_option: input_libretro_device_p2
           choices:
             - name: Gamepad (Default)

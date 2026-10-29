@@ -23,25 +23,10 @@ apple2:
   - apple2
   theme: apple2
   emulators:
-    gsplus:
-      cores:
-        gsplus:
-          default: true
-          incompatible_extensions:
-          - .mfi
-          - .dfi
-          - .rti
-          - .edd
-          - .woz
-          - .wav
-          - .zip
-          - .7z
-          - .chd
-          - .hdv
-          - .2mg
     libretro:
       cores:
-        mame: {}
+        mame:
+          default: true
     mame:
       cores:
         mame: {}

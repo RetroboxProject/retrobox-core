@@ -13,8 +13,5 @@ spectravideo:
   emulators:
     libretro:
       cores:
-        bluemsx: {}
-    openmsx:
-      cores:
-        openmsx:
+        bluemsx:
           default: true

@@ -21,11 +21,5 @@ pet:
   emulators:
     libretro:
       cores:
-        vice_xpet: {}
-    vice:
-      cores:
-        xpet:
+        vice_xpet:
           default: true
-          incompatible_extensions:
-          - .m3u
-          - .7z

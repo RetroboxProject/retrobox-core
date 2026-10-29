@@ -14,7 +14,6 @@ from typing import TYPE_CHECKING
 from retrobox.paths import SAVES, mkdir_if_not_exists
 
 from ... import Command
-from ...utils import bezels as bezels_util
 from ...utils.bezel_policy import NO_BEZEL, configured_bezel, is_bezel_forced_off
 from ..Generator import Generator
 from . import mame_command, mameControllers
@@ -45,7 +44,7 @@ def _decorations_option(config: Config) -> str | None:
     return config.get_str("bezel") or None
 
 
-def _write_bezel(game: MameGame, resolution, guns) -> None:
+def _write_bezel(game: MameGame, resolution) -> None:
     """Write the artwork of the game, falling back to no bezel if it fails.
 
     Whether a bezel may be drawn at all is decided by ``bezel_policy``.
@@ -55,7 +54,6 @@ def _write_bezel(game: MameGame, resolution, guns) -> None:
         rom=game.rom,
         resolution=resolution,
         bezel=configured_bezel(game.system.config),
-        gun_borders=bezels_util.gun_borders_for(game.system, guns),
         machine_name=game.mess.sys_name if game.mess is not None else "",
     )
     try:
@@ -143,7 +141,7 @@ class MameGenerator(Generator):
         game = create_game(system, rom)
         command_array, cfg_path, input_options = _build_command_line(game, gameResolution)
 
-        _write_bezel(game, gameResolution, guns)
+        _write_bezel(game, gameResolution)
 
         mameControllers.generatePadsConfig(
             cfg_path,

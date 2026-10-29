@@ -14,17 +14,5 @@ quake2:
   emulators:
     libretro:
       cores:
-        vitaquake2: {}
-    vkquake2:
-      cores:
-        vkquake2:
-          incompatible_extensions:
-          - .zip
-          - .7zip
-    yquake2:
-      cores:
-        yquake2:
+        vitaquake2:
           default: true
-          incompatible_extensions:
-          - .zip
-          - .7zip

@@ -21,16 +21,6 @@ dos:
         dosbox:
           incompatible_extensions:
           - .zip
-    dosbox_staging:
-      cores:
-        dosbox_staging:
-          incompatible_extensions:
-          - .zip
-    dosboxx:
-      cores:
-        dosbox-x:
-          incompatible_extensions:
-          - .zip
     libretro:
       cores:
         dosbox_pure:

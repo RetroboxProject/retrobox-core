@@ -11,5 +11,4 @@ Each module owns one concern of launching a game:
 * ``controller_monitor``: controller hot-plug watching.
 * ``hud``: the MangoHud overlay (HUD text and environment).
 * ``hud_bezel``: building the bezel image MangoHud draws as background.
-* ``gun_overlays``: gun help image and internal gun borders.
 """

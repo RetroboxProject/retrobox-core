@@ -7,7 +7,6 @@ sharedFeatures:
   - videomode
   - bezel
   - bezel_stretch
-  - use_guns
   - use_wheels
   - wheel_rotation
   - wheel_deadzone
@@ -1908,7 +1907,7 @@ systems:
                 value: 0
           - name: ENABLE MOUSE
             value: use_mouse
-            description: "Enable mouse input for trackballs, spinners, lightguns (if no gun connected), and similar controls"
+            description: "Enable mouse input for trackballs, spinners and similar controls"
             choices:
               - name: Enabled
                 value: 1
@@ -2209,25 +2208,6 @@ groups:
             value: autorol
   CONTROLS:
     submenus:
-      LIGHT GUNS:
-        - name: "OFF-SCREEN RELOAD BUTTON"
-          value: offscreenreload
-          description: Set gun button 2 to reload.
-          choices:
-            - name: On
-              value: 1
-            - name: Off (Default)
-              value: 0
-        - name: CROSSHAIR
-          value: mame_crosshair
-          description: None
-          choices:
-            - name: Disabled (Default)
-              value: disabled
-            - name: Enabled
-              value: enabled
-            - name: When moving
-              value: onmove
   ADVANCED OPTIONS:
     items:
       - name: BGFX VIDEO FILTER

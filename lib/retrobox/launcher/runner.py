@@ -12,7 +12,7 @@ from retrobox.configgen import profiler
 from retrobox.configgen.controller import Controller
 from retrobox.configgen.Emulator import Emulator
 from retrobox.configgen.generators import get_generator
-from retrobox.configgen.gun import Gun
+from retrobox.configgen.gun import Guns
 from retrobox.configgen.utils import metadata, videoMode, wheelsUtils
 from retrobox.configgen.utils.overlayfs import mount_overlayfs
 from retrobox.configgen.utils.squashfs import mount_squashfs
@@ -27,7 +27,6 @@ from retrobox.paths import (
 )
 
 from .controller_monitor import ControllerMonitor
-from .gun_overlays import draw_internal_gun_borders, generate_gun_help
 from .hooks import call_game_hooks
 from .hud import setup_hud
 from .power import apply_power_profile, restore_power_profile
@@ -116,7 +115,7 @@ def start_rom(args: argparse.Namespace, max_players: int, rom: Path, original_ro
     previous_power_profile = apply_power_profile(system.config.get("power_profile", "balanced"))
 
     game_metadata = metadata.get_games_meta_data(ES_GAMES_METADATA, args.system, rom)
-    guns = Gun.get_and_precalibrate_all(system, rom)
+    guns: Guns = []  # light guns are unsupported
 
     exit_code = 0
     with wheelsUtils.configure_wheels(
@@ -210,8 +209,6 @@ def _run_emulator(session: GameSession) -> int:
         )
 
         setup_hud(session, cmd)
-        generate_gun_help(session)
-        draw_internal_gun_borders(session)
 
         with profiler.pause():
             session.inputs.monitor.start()

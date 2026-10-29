@@ -11,13 +11,10 @@ oricatmos:
   - oricatmos
   theme: oric
   emulators:
-    clk:
-      cores:
-        clk:
-          default: true
     libretro:
       cores:
-        mame: {}
+        mame:
+          default: true
     mame:
       cores:
         mame: {}

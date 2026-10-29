@@ -46,7 +46,5 @@ ES_EXECUTABLE: Final = (
 
 # Recursos de ES y configgen (sistema)
 _ES_RESOURCES_DIR: Final = FRONTEND_DIR / "resources"
-ES_GUNS_METADATA: Final = _ES_RESOURCES_DIR / "gungames.xml"
 ES_WHEELS_METADATA: Final = _ES_RESOURCES_DIR / "wheelgames.xml"
 ES_GAMES_METADATA: Final = _ES_RESOURCES_DIR / "gamesdb.xml"
-ES_GUNS_ART_METADATA: Final = DEFAULTS_DIR / "data" / "gamesbuttonsdb.xml"

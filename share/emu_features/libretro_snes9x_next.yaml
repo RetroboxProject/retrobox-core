@@ -16,7 +16,7 @@ groups:
       PORT 2:
         - name: CONTROLLER TYPE
           value: controller2_snes9x_next
-          description: Device plugged into port 2 (light guns are set in LIGHT GUNS).
+          description: Device plugged into port 2.
           core_option: false
           choices:
             - name: Gamepad (Default)

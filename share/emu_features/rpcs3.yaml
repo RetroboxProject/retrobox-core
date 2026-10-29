@@ -5,7 +5,6 @@ sharedFeatures:
   - videomode
   - bezel
   - bezel_stretch
-  - use_guns
   - use_wheels
   - wheel_rotation
   - wheel_deadzone
@@ -383,16 +382,6 @@ groups:
           value: rpcs3_rumble4
           description: Enable controller rumble capabilities if supported by the controller.
           preset: switchon
-      LIGHT GUNS:
-        - name: SHOW LIGHT GUN CROSSHAIRS
-          order: 99
-          value: rpcs3_crosshairs
-          description: ""
-          choices:
-            - name: Off
-              value: false
-            - name: On
-              value: true
       PORT 5:
         - name: PS3 CONTROLLER
           value: rpcs3_controller5
