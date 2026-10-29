@@ -8,7 +8,12 @@ import shutil
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from retrobox.paths import HUD_CONFIG_FILE, MANGOHUD_BIN
+from retrobox.paths import (
+    HUD_CONFIG_FILE,
+    MANGOHUD_BIN,
+    MANGOHUD_PREFIX_DIR,
+    MANGOHUD_VULKAN_LAYER_DIR,
+)
 
 from .hud_bezel import get_hud_bezel
 from .session import effective_core
@@ -131,6 +136,39 @@ def _resolve_mangohud_binary() -> Path | None:
     return None
 
 
+_DEFAULT_XDG_DATA_DIRS = "/usr/local/share:/usr/share"
+
+
+def _expose_vulkan_layer(cmd: Command) -> None:
+    """Make the Vulkan loader find the bundled MangoHud implicit layer.
+
+    The layer's manifest lives in the private prefix
+    (MANGOHUD_VULKAN_LAYER_DIR), which is on none of the loader's search
+    paths: without help, the loader never sees the layer and Vulkan games
+    get no HUD even though RETROBOX_MANGOHUD=1 is set. (OpenGL works
+    because it goes through the "mangohud --dlsym" wrapper, not a layer.)
+
+    The loader reads implicit layers from "<dir>/vulkan/implicit_layer.d"
+    for every <dir> in XDG_DATA_DIRS, in every loader version, so the
+    prefix's share/ is appended to it. The newer VK_ADD_IMPLICIT_LAYER_PATH
+    would be cleaner but is missing from older loaders (Ubuntu 24.04 ships
+    1.3.275, which lacks it). It goes last, and the prefix only holds
+    vulkan/, so nothing else that reads XDG_DATA_DIRS is affected.
+    """
+    if not MANGOHUD_VULKAN_LAYER_DIR.is_dir():
+        _logger.warning(
+            "MangoHud Vulkan layer directory %s not found: Vulkan games will get no HUD",
+            MANGOHUD_VULKAN_LAYER_DIR,
+        )
+        return
+
+    share = str(MANGOHUD_PREFIX_DIR / "share")
+    current = cmd.env.get("XDG_DATA_DIRS") or os.environ.get("XDG_DATA_DIRS") or _DEFAULT_XDG_DATA_DIRS
+    if share in str(current).split(":"):
+        return
+    cmd.env["XDG_DATA_DIRS"] = f"{current}:{share}"
+
+
 def _configure_mangohud_env(cmd: Command, mangohud_bin: Path) -> None:
     """Set the environment variables that drive the MangoHud Vulkan layer.
 
@@ -170,6 +208,7 @@ def _configure_mangohud_env(cmd: Command, mangohud_bin: Path) -> None:
         cmd.env["RETROBOX_MANGOHUD_DISABLE"] = None
         cmd.env["MANGOHUD"] = "0"
         cmd.env["DISABLE_MANGOHUD"] = "1"
+        _expose_vulkan_layer(cmd)
     else:
         # Fell back to whatever "mangohud" is on PATH. That build has
         # no notion of RETROBOX_MANGOHUD, and doesn't carry the
@@ -234,7 +273,9 @@ def setup_hud(session: GameSession, cmd: Command) -> None:
         # is safe to use again instead of setting LD_PRELOAD by hand here.
         cmd.array = [str(mangohud_bin), "--dlsym", *cmd.array]
 
-    # Vulkan: MANGOHUD=1 is enough to trigger the Vulkan Implicit Layer on
-    # its own. We deliberately do NOT prepend the mangohud binary to
-    # cmd.array here, since doing so triggers a fatal
-    # "eglStreamPostD3DTextureANGLE" error on Asahi.
+    # Vulkan: the implicit layer is switched on by the environment set in
+    # _configure_mangohud_env() (RETROBOX_MANGOHUD=1 for the bundled build,
+    # MANGOHUD=1 for the system one) and, for the bundled build, made
+    # visible to the loader by _expose_vulkan_layer(). We deliberately do NOT
+    # prepend the mangohud binary to cmd.array here, since doing so triggers
+    # a fatal "eglStreamPostD3DTextureANGLE" error on Asahi.
