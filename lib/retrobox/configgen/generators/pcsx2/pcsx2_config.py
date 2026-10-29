@@ -13,7 +13,7 @@ next.
 from __future__ import annotations
 
 import logging
-from pathlib import Path
+import re
 from typing import TYPE_CHECKING
 
 from retrobox.paths import CACHE, CHEATS, LOGS, ROMS, SAVES, SCREENSHOTS, mkdir_if_not_exists
@@ -53,7 +53,12 @@ _FMV_RATIO_OFF = "Off"
 # what the menu stored for "Off" before its value was written as PCSX2 spells it
 _FMV_RATIO_OFF_ALIASES = ("false", "off", "0")
 
+# SCPH-7xxxx v02.30 (Europe), 2008-02-20
 _DEFAULT_BIOS = "ps2-0230e-20080220.bin"
+# PCSX2 resets the whole configuration and runs its setup wizard when the [UI]
+# SettingsVersion of PCSX2.ini is missing or differs from its own (1 so far)
+_SETTINGS_VERSION = "1"
+_MIN_BIOS_SIZE = 1 << 20  # real BIOS images are 4 MiB; this skips NVM/MEC and dumps
 _MAX_VOLUME = 200  # PCSX2 can amplify up to twice the volume (+6 dB)
 
 _HOTKEYS = (
@@ -109,6 +114,19 @@ def uses_opengl(config: SystemConfig) -> bool:
     return resolve_renderer(config) in (RENDERER_OPENGL, RENDERER_AUTOMATIC)
 
 
+def _configure_ui(settings: CaseSensitiveConfigParser) -> None:
+    """Keep PCSX2 from running its first-run setup wizard.
+
+    The wizard opens (and the settings are reset) when the config is new or has no
+    settings version. The folders, BIOS, renderer and resolution it would ask for are
+    all written by this module, so it is never needed.
+    """
+    _ensure_sections(settings, "UI")
+    if not settings.has_option("UI", "SettingsVersion"):
+        settings.set("UI", "SettingsVersion", _SETTINGS_VERSION)
+    settings.set("UI", "SetupWizardIncomplete", "false")
+
+
 def _configure_folders(settings: CaseSensitiveConfigParser) -> None:
     """Point PCSX2 to the folders of this setup."""
     # remove inconsistent SaveStates casing if it exists
@@ -131,16 +149,48 @@ def _configure_folders(settings: CaseSensitiveConfigParser) -> None:
     mkdir_if_not_exists(CACHE / "ps2")
 
 
-def _configure_bios(settings: CaseSensitiveConfigParser, config: SystemConfig) -> None:
-    """Select the BIOS.
+def _installed_bios() -> list[str]:
+    """List the BIOS files installed, the European ones first (ps2-<version><region>-<date>.bin)."""
+    if not _PCSX2_BIOS.is_dir():
+        return []
+    names = [
+        path.name for path in _PCSX2_BIOS.glob("*.bin") if path.stat().st_size >= _MIN_BIOS_SIZE
+    ]
+    return sorted(names, key=lambda name: (re.match(r"^ps2-\d+e-", name.lower()) is None, name))
+
+
+def _find_bios(config: SystemConfig) -> str:
+    """Return the name of the BIOS file to use.
+
+    The BIOS the game asks for wins. Otherwise the European 2008 one is used, and if
+    it is not installed, any other BIOS found (European ones first).
 
     Raises:
         RetroboxException: If the BIOS file is not found.
     """
-    bios_file = str(config.get("pcsx2_forcebios", _DEFAULT_BIOS))
-    if not Path(f"{_PCSX2_BIOS}/{bios_file}").is_file():
-        raise RetroboxException(f"PS2 BIOS not found: {bios_file}")
-    settings.set("Filenames", "BIOS", bios_file)
+    requested = str(config.get("pcsx2_forcebios", _DEFAULT_BIOS))
+    if requested in _AUTO_VALUES:
+        requested = _DEFAULT_BIOS
+    if (_PCSX2_BIOS / requested).is_file():
+        return requested
+
+    if config.get("pcsx2_forcebios") is not config.MISSING:
+        raise RetroboxException(f"PS2 BIOS not found: {requested}")
+
+    candidates = _installed_bios()
+    if not candidates:
+        raise RetroboxException(f"PS2 BIOS not found: {requested}")
+    _logger.warning("BIOS %s not found, using %s", requested, candidates[0])
+    return candidates[0]
+
+
+def _configure_bios(settings: CaseSensitiveConfigParser, config: SystemConfig) -> None:
+    """Select the BIOS.
+
+    Raises:
+        RetroboxException: If no BIOS file is found.
+    """
+    settings.set("Filenames", "BIOS", _find_bios(config))
 
 
 def _configure_emu_core(settings: CaseSensitiveConfigParser, config: SystemConfig) -> None:
@@ -224,6 +274,7 @@ def configure_ini(
 
     settings = CaseSensitiveConfigParser(interpolation=None)
     settings.read(PCSX2_CFG)
+    _configure_ui(settings)
     _ensure_sections(
         settings, "Folders", "Filenames", "EmuCore", "EmuCore/GS", "SPU2/Output", "InputSources",
         "Hotkeys",
@@ -271,3 +322,4 @@ def get_in_game_ratio(config: SystemConfig, resolution: Resolution) -> float:
         # fills the window, so it depends on the physical screen
         return resolution["width"] / resolution["height"]
     return 4 / 3
+
