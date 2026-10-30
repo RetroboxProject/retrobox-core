@@ -11,8 +11,6 @@ from __future__ import annotations
 
 import configparser
 import logging
-import re
-from functools import cache
 from pathlib import Path
 from typing import TYPE_CHECKING, Final
 
@@ -21,10 +19,11 @@ from retrobox.paths import ROMS, ensure_parents_and_open
 from ...controller import evdev_to_hidraw
 from ...utils import vulkan
 from ...utils.audio_gain import gain_to_percent
+from .sm2emu_controls import layout_settings
+from .sm2emu_games import game_family, game_set
 from .sm2emu_paths import (
     SM2EMU_BUILD_INFO,
     SM2EMU_CFG,
-    SM2EMU_GAMES_DB,
     SM2EMU_NVRAM,
     SM2EMU_SCREENSHOTS,
 )
@@ -50,11 +49,6 @@ ASPECT_SQUARE: Final = "square"
 ASPECT_STRETCH: Final = "stretch"
 _NATIVE_WIDTH: Final = 496  # the picture of the hardware, in square pixels
 _NATIVE_HEIGHT: Final = 384
-
-# a <game> tag of games.xml; the file is read by pugixml, which is not strict
-# XML ("--" in comments), so the tags are scanned instead of parsing the file
-_GAME_TAG: Final = re.compile(r"<game\s([^>]*)>")
-_ATTRIBUTE: Final = re.compile(r'(\w+)\s*=\s*"([^"]*)"')
 
 _MAX_VOLUME: Final = 150  # sm2-emu caps the volume of a game family at 150 %
 _PLAYERS: Final = 2  # Model 2 cabinets have at most two players
@@ -94,6 +88,13 @@ _WHEEL_BUTTONS: Final[Mapping[str, tuple[str, ...]]] = {
     "wheel_button_gear_down": _GEAR_DOWN_INPUTS,
 }
 _UNSET: Final = "-1"
+
+# the sections sm2-emu names after the tabs of its overlay; any other one is
+# the layout of a game family, where only the pad layout keys belong to it
+_TAB_SECTIONS: Final = frozenset(
+    ("video", "audio", "paths", "gamepad", "wheel", "lightgun", "network", "system")
+)
+_PAD_KEY_PREFIXES: Final = ("pad1_button_", "pad2_button_", "pad1_axis_", "pad2_axis_")
 
 
 def _ini_bool(value: bool) -> str:
@@ -208,44 +209,18 @@ def _video_settings(config: SystemConfig, resolution: Resolution) -> dict[str, s
 # ---------------------------------------------------------------------------
 
 
-@cache
-def _families() -> dict[str, str]:
-    """Return the family of every set in games.xml: its parent, or itself."""
-    try:
-        text = SM2EMU_GAMES_DB.read_text(encoding="utf-8")
-    except OSError as error:
-        _logger.debug("cannot read %s: %s", SM2EMU_GAMES_DB, error)
-        return {}
-    families: dict[str, str] = {}
-    for tag in _GAME_TAG.finditer(text):
-        attributes = dict(_ATTRIBUTE.findall(tag.group(1)))
-        if name := attributes.get("name"):
-            families[name] = attributes.get("parent") or name
-    return families
-
-
-def game_family(rom: Path) -> str | None:
-    """Return the family of the set of a ROM: its parent set, or itself.
-
-    sm2-emu finds the set of an archive by the CRC of its files, whatever its
-    name; Retrobox only knows it when the archive has the name of the set.
-    """
-    return _families().get(rom.stem.lower())
-
-
 def _audio_settings(config: SystemConfig, rom: Path | None) -> dict[str, str]:
     """Return the volume of the game family, when the game sets an audio gain.
 
     sm2-emu has no master volume, only a volume per game family (100 % by
     default, 150 % at most) used when ``game_volume`` is on. Without a gain
-    set for the game, or for an archive not named after its set, the volumes
-    chosen in the overlay are left as they are.
+    set for the game, or for an archive whose game is not identified, the
+    volumes chosen in the overlay are left as they are.
     """
     gain = config.get("sm2_audio_gain")
     if gain is config.MISSING or rom is None:
         return {}
     if (family := game_family(rom)) is None:
-        _logger.warning("%s is not named after an sm2-emu set: its volume is not set", rom.name)
         return {}
     return {
         "game_volume": "true",
@@ -357,11 +332,20 @@ def _wheel_settings(
 
 
 def _input_settings(
-    config: SystemConfig, controllers: Controllers, wheels: DeviceInfoMapping
+    config: SystemConfig, rom: Path | None, controllers: Controllers, wheels: DeviceInfoMapping
 ) -> dict[str, str]:
-    """Return the [gamepad] keys: player order, rumble and sticks, and the shortcuts."""
+    """Return the [gamepad] keys: player order, button layout, rumble, sticks and shortcuts.
+
+    The configuration GUI (no ``rom``) gets the default layout.
+    """
     pad1, pad2 = _pad_devices(controllers, wheels)
+    layout = layout_settings(
+        config,
+        game_set(rom) if rom is not None else None,
+        game_family(rom) if rom is not None else None,
+    )
     return {
+        **layout,
         "pad1_device": pad1,
         "pad2_device": pad2,
         # the Guide chords would fire twice: gamepadly maps the hotkeys to the keys
@@ -407,18 +391,44 @@ def _key_of(line: str) -> str | None:
     return stripped.split("=", 1)[0].strip().lower()
 
 
+def _section_of(line: str) -> str | None:
+    """Return the name of a ``[section]`` line, or None for any other line."""
+    stripped = line.strip()
+    if not stripped.startswith("["):
+        return None
+    return stripped[1:].split("]", 1)[0].strip().lower()
+
+
+def _is_family_section(section: str) -> bool:
+    """Tell whether a section is the layout of a game family rather than a tab."""
+    return section != "" and section not in _TAB_SECTIONS
+
+
+def family_sections(text: str) -> set[str]:
+    """Return the game families that have their own pad layout in sm2-emu.ini."""
+    sections = (_section_of(line) for line in text.splitlines())
+    return {section for section in sections if section is not None and _is_family_section(section)}
+
+
 def merge_ini(existing: str, managed: Mapping[str, str]) -> str:
     """Return ``existing`` with the ``managed`` keys set.
 
-    A key already in the file is replaced where it is, as long as it is not in
-    a game family section. The others are added before the first section,
-    where every key applies to all the games.
+    A key already in the file is replaced where it is. The pad layout keys of
+    a game family section are the user's layout of that game and are never
+    touched. The keys not found are added before the first section, where
+    every key applies to all the games.
     """
     remaining = dict(managed)
     lines: list[str] = []
+    section = ""
     for line in existing.splitlines():
+        if (name := _section_of(line)) is not None:
+            section = name
         key = _key_of(line)
-        if key is not None and key in remaining:
+        owned_by_family = (
+            key is not None and _is_family_section(section) and key.startswith(_PAD_KEY_PREFIXES)
+        )
+        if key is not None and key in remaining and not owned_by_family:
             lines.append(f"{key} = {remaining.pop(key)}")
         else:
             lines.append(line)
@@ -444,11 +454,15 @@ def write_config(
     managed = {
         **_video_settings(config, resolution),
         **_audio_settings(config, rom),
-        **_input_settings(config, controllers, wheels),
+        **_input_settings(config, rom, controllers, wheels),
         **_wheel_settings(config, controllers, wheels),
         **_system_settings(config),
     }
 
     existing = SM2EMU_CFG.read_text(encoding="utf-8") if SM2EMU_CFG.exists() else ""
+    if rom is not None and (family := game_family(rom)) in family_sections(existing):
+        _logger.info(
+            "sm2-emu.ini has its own [%s] pad layout (saved from the overlay): it is kept", family
+        )
     with ensure_parents_and_open(SM2EMU_CFG, "w") as ini:
         ini.write(merge_ini(existing, managed))

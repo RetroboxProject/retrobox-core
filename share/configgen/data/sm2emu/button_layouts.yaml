@@ -1,0 +1,174 @@
+# sm2-emu: gamepad button layout of each Model 2 game.
+#
+# The per-game layouts come from RetroBat (system/resources/inputmapping/sm2emu.yml,
+# https://github.com/RetroBat-Official/retrobat), which carries over the layouts its
+# configgen writes for each game in the old m2emulator (Model2.Controllers.cs
+# of RetroBat's emulatorlauncher; the face buttons match game by game).
+#
+# Copy this file to ~/.config/retrobox/configgen/data/sm2emu/button_layouts.yaml
+# to change it: the copy replaces this one as a whole.
+#
+# Keys are the buttons of the pad, by POSITION, as SDL sees them once Retrobox
+# has handed it the EmulationStation mapping of the pad: south (A on Xbox,
+# Cross on PlayStation), east, west, north, l1, r1, l2, r2, l3, r3, select,
+# start, up, down, left, right. So a layout never undoes the mapping made in
+# EmulationStation: it only says which cabinet control sits on which position.
+#
+# Values are sm2-emu controls: Button1 to Button4, Up, Down, Left, Right, Start,
+# Coin, GearUp, GearDown. Several controls are separated by commas; a control is
+# driven by one button only (the first one listed wins).
+#
+# Always mapped unless a layout changes them: d-pad = directions, start = Start,
+# select = Coin, l1 = GearDown, r1 = GearUp. The left stick always moves too,
+# steering and aiming are on the left stick, the accelerator on the right
+# trigger and the brake on the left trigger (sm2-emu's analogue defaults).
+#
+# Sections are looked for in this order, the first one found is used:
+#   with an arcade panel layout: <set>_<panel>, <family>_<panel>, default_<panel>
+#   then: <set>, <family>, default
+# <family> is the parent set (vf2 for vf2a); <panel> is modern8, 8alternative
+# or 6alternative. The set is only known when the archive has its name.
+#
+# sm2-emu limits: the VR / view buttons of the driving games are always south,
+# east, west, north; Virtual On, Desert Tank, Sky Target, Ski Super G and Water
+# Ski have their own fixed layouts.
+
+# Gamepad, as the m2emulator fighting games:
+#     L1 | R1
+#        N
+#      W   E
+#        S
+default:
+  west: Button1
+  north: Button2
+  south: Button3
+  east: Button4
+
+# Arcade panels:
+#   modern8:              W | N | R1     8alternative and 6alternative:  W | N | L1
+#                         S | E | R2                                     S | E | R1
+default_modern8:
+  west: Button1
+  north: Button2
+  r1: Button3
+  south: Button4
+default_8alternative:
+  west: Button1
+  north: Button2
+  l1: Button3
+  south: Button4
+default_6alternative:
+  west: Button1
+  north: Button2
+  l1: Button3
+  south: Button4
+
+# Fighting games (vf2, lastbrnx and schamp use the default layout)
+doa:
+  east: Button1
+  west: Button2
+  south: Button3
+  north: Button4
+fvipers:
+  west: Button1
+  north: Button2
+  east: Button3
+  south: Button4
+
+# Sports and shoot'em ups (dynamcop uses the default layout)
+vstriker:
+  south: Button1
+  east: Button2
+  west: Button3
+  north: Button4
+pltkids:
+  west: Button1
+  south: Button2
+  north: Button3
+  east: Button4
+zerogun:
+  west: Button1
+  south: Button2
+  east: Button3
+  north: Button4
+zeroguna:
+  west: Button1
+  south: Button2
+  east: Button3
+  north: Button4
+
+# Light gun games on a gamepad: left stick = aim, Button1 = shoot (also the
+# right trigger), Button2 = reload / missile (also the left trigger)
+bel:
+  south: Button1
+  east: Button2
+  west: Button3
+  north: Button4
+gunblade:
+  south: Button1
+  east: Button2
+  west: Button3
+  north: Button4
+hotd:
+  south: Button1
+  east: Button2
+  west: Button3
+  north: Button4
+rchase2:
+  south: Button1
+  east: Button2
+  west: Button3
+  north: Button4
+vcop:
+  south: Button1
+  east: Button2
+  west: Button3
+  north: Button4
+vcop2:
+  south: Button1
+  east: Button2
+  west: Button3
+  north: Button4
+
+# Driving games: face buttons where the VR buttons are, gears on L1 / R1,
+# pedals on the triggers
+daytona:
+  south: Button1
+  east: Button2
+  west: Button3
+  north: Button4
+srallyc:
+  south: Button1
+  east: Button2
+  west: Button3
+  north: Button4
+indy500:
+  south: Button1
+  east: Button2
+  west: Button3
+  north: Button4
+overrev:
+  south: Button1
+  east: Button2
+  west: Button3
+  north: Button4
+sgt24h:
+  south: Button1
+  east: Button2
+  west: Button3
+  north: Button4
+stcc:
+  south: Button1
+  east: Button2
+  west: Button3
+  north: Button4
+manxtt:
+  south: Button1
+  east: Button2
+  west: Button3
+  north: Button4
+motoraid:
+  south: Button1
+  east: Button2
+  west: Button3
+  north: Button4

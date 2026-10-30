@@ -185,6 +185,22 @@ groups:
   CONTROLS:
     submenus:
       CONTROLLERS:
+        - name: BUTTON LAYOUT
+          value: sm2_button_layout
+          description: Which pad button drives each cabinet button. Per game follows each game (fighting, driving, shooting...); the buttons stay the ones mapped in EmulationStation.
+          choices:
+            - name: Per game (Default)
+              value: auto
+            - name: "Arcade panel: modern 8 buttons"
+              value: modern8
+            - name: "Arcade panel: 8 buttons alternative"
+              value: 8alternative
+            - name: "Arcade panel: 6 buttons"
+              value: 6alternative
+            - name: sm2-emu default
+              value: emulator
+            - name: Keep the one set in sm2-emu
+              value: custom
         - name: RUMBLE
           value: sm2_pad_rumble
           description: Vibrate on the impacts of the driving games.
