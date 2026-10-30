@@ -20,3 +20,6 @@ model2:
       cores:
         model2emu:
           default: true
+    sm2-emu:
+      cores:
+        sm2-emu: {}

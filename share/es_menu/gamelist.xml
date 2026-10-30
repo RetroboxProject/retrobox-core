@@ -68,6 +68,18 @@
 		<region>wr</region>
 	</game>
 	<game>
+		<path>./sm2-emu.menu</path>
+		<name>sm2-emu (Model 2)</name>
+		<desc>Run sm2-emu (Model 2): its game picker and settings menu.</desc>
+		<genre>Emulator</genre>
+		<image>./media/sm2-emu-logo.png</image>
+		<marquee>./media/sm2-emu-logo.png</marquee>
+		<developer>Daniel Martin (dmanlfc)</developer>
+		<publisher>sm2-emu contributors</publisher>
+		<lang>en</lang>
+		<region>wr</region>
+	</game>
+	<game>
 		<path>./melonds.menu</path>
 		<name>MelonDS (NDS)</name>
 		<desc>Run MelonDS (NDS).</desc>

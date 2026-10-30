@@ -1,0 +1,263 @@
+emulator_name: sm2-emu
+features:
+  - padtokeyboard
+sharedFeatures:
+  - power_profile
+  - tdp
+  - videomode
+  - bezel
+  - bezel_stretch
+  - hud
+  - hud_corner
+  - hud_custom
+  - bezel.tattoo
+  - bezel.tattoo_corner
+  - bezel.tattoo_file
+  - bezel.resize_tattoo
+  - rewind
+  - use_wheels
+  - wheel_rotation
+groups:
+  GENERAL:
+    submenus:
+      SCREEN:
+        - name: GRAPHICS API
+          value: sm2_graphics_backend
+          description: Renderer. Vulkan falls back to OpenGL when it is not available. Software needs no GPU and suits weak ones.
+          choices:
+            - name: OpenGL (Default)
+              value: opengl
+            - name: Vulkan
+              value: vulkan
+            - name: Software
+              value: software
+        - name: RENDERING RESOLUTION
+          value: sm2_render_scale
+          description: Enhancement. Internal 3D resolution. OpenGL and Vulkan only, ignored by the software renderer.
+          choices:
+            - name: 1x native (496x384) (Default)
+              value: 1
+            - name: 2x (992x768)
+              value: 2
+            - name: 3x (1488x1152)
+              value: 3
+            - name: 4x (1984x1536)
+              value: 4
+            - name: 5x (2480x1920)
+              value: 5
+            - name: 6x (2976x2304)
+              value: 6
+            - name: 7x (3472x2688)
+              value: 7
+            - name: 8x 4K (3968x3072)
+              value: 8
+        - name: GAME ASPECT RATIO
+          value: sm2_aspect_mode
+          description: Shape of the picture. 16:9 widens the 3D into the sides (experimental, OpenGL and Vulkan only). Bezels are only drawn in 4:3.
+          choices:
+            - name: "4:3 (Default)"
+              value: "4:3"
+            - name: "16:9 Widescreen"
+              value: "16:9"
+            - name: Square pixels
+              value: square
+            - name: Stretch to screen
+              value: stretch
+        - name: SCALING METHOD
+          value: sm2_scaling_method
+          description: How the finished frame is magnified to the screen.
+          choices:
+            - name: Nearest
+              value: nearest
+            - name: Bilinear
+              value: bilinear
+            - name: Sharp bilinear (Default)
+              value: sharp
+            - name: Integer
+              value: integer
+        - name: VSYNC
+          value: sm2_vsync
+          description: Fix screen tearing. Leave it off on VRR displays.
+          choices:
+            - name: Off (Default)
+              value: 0
+            - name: On
+              value: 1
+        - name: TEXTURE FILTERING
+          value: sm2_texture_filter
+          description: Anisotropic sharpens the surfaces seen at an angle (roads, walls). OpenGL and Vulkan only.
+          choices:
+            - name: Faithful (Default)
+              value: faithful
+            - name: Anisotropic
+              value: anisotropic
+        - name: ANISOTROPIC FILTERING
+          value: sm2_anisotropy
+          description: Level of the anisotropic texture filtering, when it is on. Clamped to what the GPU supports.
+          choices:
+            - name: 2x
+              value: 2
+            - name: 4x (Default)
+              value: 4
+            - name: 8x
+              value: 8
+            - name: 16x
+              value: 16
+        - name: 2D UPSCALE FILTER
+          value: sm2_upscale_2d
+          description: Smooths the edges of the 2D layers (HUD, text, menus). OpenGL and Vulkan only.
+          choices:
+            - name: Faithful (Default)
+              value: faithful
+            - name: xBR
+              value: xbr
+            - name: ScaleFX
+              value: scalefx
+        - name: TRANSLUCENCY
+          value: sm2_translucency
+          description: The hardware draws see-through surfaces as a checkerboard. Blended draws them see-through. OpenGL and Vulkan only.
+          choices:
+            - name: Stipple (Default)
+              value: stipple
+            - name: Blended
+              value: blended
+        - name: EXTENDED DRAW DISTANCE
+          value: sm2_draw_distance
+          description: Draw the scenery up to the edge of the course. Daytona USA only.
+          choices:
+            - name: Off
+              value: 0
+            - name: On (Default)
+              value: 1
+      SHADERS:
+        - name: CRT FILTER
+          value: sm2_crt_enabled
+          description: Scanlines, shadow mask, glow and curvature drawn by sm2-emu. Tune it in the emulator menu (Hotkey + B).
+          choices:
+            - name: Off (Default)
+              value: 0
+            - name: On
+              value: 1
+      AUDIO:
+        - name: AUDIO VOLUME GAIN
+          value: sm2_audio_gain
+          description: Volume of the game in dB. sm2-emu cannot go louder than +3.5 dB (150 %). Unset, the volume set in the emulator menu is kept.
+          choices:
+            - name: "-12"
+              value: "-12.0"
+            - name: "-10"
+              value: "-10.0"
+            - name: "-8"
+              value: "-8.0"
+            - name: "-6"
+              value: "-6.0"
+            - name: "-4"
+              value: "-4.0"
+            - name: "-2"
+              value: "-2.0"
+            - name: 0 (No gain)
+              value: 0
+            - name: +2
+              value: 2.0
+            - name: +3.5 (Max)
+              value: 3.5
+      EMULATION:
+        - name: REWIND MEMORY
+          value: sm2_rewind_memory
+          description: Memory kept to rewind when REWIND is on. More goes further back (128 MB is about 35 seconds).
+          choices:
+            - name: 64 MB
+              value: 64
+            - name: 128 MB (Default)
+              value: 128
+            - name: 256 MB
+              value: 256
+            - name: 512 MB
+              value: 512
+        - name: NOTIFICATIONS
+          value: sm2_notifications
+          description: Show a message when a state is saved or loaded.
+          choices:
+            - name: Off
+              value: 0
+            - name: On (Default)
+              value: 1
+  CONTROLS:
+    submenus:
+      CONTROLLERS:
+        - name: RUMBLE
+          value: sm2_pad_rumble
+          description: Vibrate on the impacts of the driving games.
+          choices:
+            - name: Off
+              value: 0
+            - name: On (Default)
+              value: 1
+        - name: RUMBLE STRENGTH
+          value: sm2_pad_rumble_strength
+          description: Strength of the rumble, in percent of the motors of the pad.
+          choices:
+            - name: 25%
+              value: 25
+            - name: 50% (Default)
+              value: 50
+            - name: 75%
+              value: 75
+            - name: 100%
+              value: 100
+        - name: STICK DEADZONE
+          value: sm2_pad_stick_deadzone
+          description: Stick travel around the centre that reads as centre. Raise it for a stick that does not settle at rest.
+          choices:
+            - name: 0%
+              value: 0
+            - name: 5% (Default)
+              value: 5
+            - name: 10%
+              value: 10
+            - name: 15%
+              value: 15
+            - name: 20%
+              value: 20
+        - name: CENTRED STICK AIM
+          value: sm2_pad_centred_aim
+          description: In the gun games, the crosshair goes where the stick points and back to the centre at rest, instead of moving like a mouse.
+          choices:
+            - name: Off (Default)
+              value: 0
+            - name: On
+              value: 1
+      WHEELS:
+        - name: WHEEL FORCE FEEDBACK
+          value: sm2_wheel_ffb
+          description: The forces of the drive board of the game, on wheels that support them.
+          choices:
+            - name: Off
+              value: 0
+            - name: On (Default)
+              value: 1
+        - name: WHEEL FORCE FEEDBACK STRENGTH
+          value: sm2_wheel_ffb_strength
+          description: At 100% the strongest force of the game is the full force of the wheel.
+          choices:
+            - name: 25%
+              value: 25
+            - name: 50% (Default)
+              value: 50
+            - name: 75%
+              value: 75
+            - name: 100%
+              value: 100
+            - name: 150%
+              value: 150
+  ADVANCED OPTIONS:
+    submenus:
+      PERFORMANCE:
+        - name: THREADED SOFTWARE RENDERER
+          value: sm2_software_async
+          description: The software renderer draws on its own thread, one frame behind. Faster, with one frame of latency.
+          choices:
+            - name: Off
+              value: 0
+            - name: On (Default)
+              value: 1

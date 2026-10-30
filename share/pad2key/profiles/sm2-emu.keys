@@ -1,0 +1,70 @@
+{
+    "actions_player1": [
+        {
+            "trigger": ["hotkey", "start"],
+            "type": "key",
+            "target": "KEY_F9",
+            "description": "Exit emulator"
+        },
+        {
+            "trigger": ["hotkey", "b"],
+            "type": "key",
+            "target": "KEY_F10",
+            "description": "Menu"
+        },
+        {
+            "trigger": ["hotkey", "a"],
+            "type": "key",
+            "target": "KEY_P",
+            "description": "Pause"
+        },
+        {
+            "trigger": ["hotkey", "y"],
+            "type": "key",
+            "target": "KEY_F6",
+            "description": "Save state"
+        },
+        {
+            "trigger": ["hotkey", "x"],
+            "type": "key",
+            "target": "KEY_F7",
+            "description": "Restore state"
+        },
+        {
+            "trigger": ["hotkey", "left"],
+            "type": "key",
+            "target": "KEY_BACKSPACE",
+            "description": "Rewind"
+        },
+        {
+            "trigger": ["hotkey", "right"],
+            "type": "key",
+            "target": "KEY_TAB",
+            "description": "Fast forward"
+        },
+        {
+            "trigger": ["hotkey", "pageup"],
+            "type": "key",
+            "target": "KEY_F12",
+            "description": "Screenshot"
+        },
+        {
+            "trigger": ["hotkey", "pagedown"],
+            "type": "key",
+            "target": "KEY_F8",
+            "description": "Show FPS"
+        },
+        {
+            "trigger": ["hotkey", "l3"],
+            "type": "key",
+            "target": "KEY_9",
+            "description": "Service"
+        },
+        {
+            "trigger": ["hotkey", "r3"],
+            "type": "key",
+            "target": "KEY_0",
+            "description": "Test"
+        }
+    ]
+}

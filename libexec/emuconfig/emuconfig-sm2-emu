@@ -1,0 +1,12 @@
+#!/bin/bash
+# Open sm2-emu without a game: its game picker, with the settings overlay (F10).
+
+if [[ -n "${WAYLAND_DISPLAY:-}" ]]; then
+    export SDL_VIDEODRIVER=wayland
+    export SDL_VIDEO_WAYLAND_WMCLASS="emuconfig-sm2-emu"
+else
+    DISPLAY="$(getLocalXDisplay)"
+    export DISPLAY
+fi
+
+exec "${RETROBOX_ROOTDIR}/bin/retrobox-launch" -system model2 -emulator sm2-emu -rom config

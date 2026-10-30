@@ -13,7 +13,7 @@ This project brings the parts that matter most to a desktop Linux installation:
 - `batocera-configgen` writing emulator configs automatically on game launch
 - Bezels work in Vulkan-powered emulators (and RetroArch no matter the graphics API) via a patched MangoHud build -- the same approach batocera uses.
 - Shader support on libretro 
-- Adapted controller autoconfiguration for RetroArch, Flycast, Dolphin, PCSX2, PPSSPP, Cemu, Ryujinx and Eden. More to come.
+- Adapted controller autoconfiguration for RetroArch, Flycast, Dolphin, PCSX2, PPSSPP, Cemu, Ryujinx, Eden and sm2-emu (Model 2). More to come.
 
 ## Architecture
 

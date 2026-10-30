@@ -16,6 +16,7 @@ _GENERATOR_MAP: Final[dict[str, tuple[str, str]]] = {
     'melonds': ('melonds.melondsGenerator', 'MelonDSGenerator'),
     'model2emu': ('model2emu.model2emuGenerator', 'Model2EmuGenerator'),
     'ppsspp': ('ppsspp.ppssppGenerator', 'PPSSPPGenerator'),
+    'sm2-emu': ('sm2emu.sm2emuGenerator', 'Sm2EmuGenerator'),
     'scummvm': ('scummvm.scummvmGenerator', 'ScummVMGenerator'),
     'shadps4': ('shadps4.shadps4Generator', 'shadPS4Generator'),
     'eden': ('eden.edenGenerator', 'EdenGenerator'),
