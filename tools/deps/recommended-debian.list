@@ -1,2 +1,6 @@
 power-profiles-daemon
 vulkan-tools
+fontconfig
+fonts-dejavu-core
+wl-clipboard
+xclip

@@ -18,6 +18,7 @@ from ...controller import generate_sdl_game_controller_config
 from ...exceptions import RetroboxException
 from ..Generator import Generator
 from . import sm2emu_config
+from .sm2emu_games import game_set
 from .sm2emu_paths import (
     SM2EMU_BIN,
     SM2EMU_CFGDIR,
@@ -93,6 +94,10 @@ class Sm2EmuGenerator(Generator):
 
         command: list[str | Path] = [SM2EMU_BIN, "--config", SM2EMU_CFGDIR]
         if game is not None:
+            # A merged archive holds every revision of a game and sm2-emu would
+            # boot the first complete one it knows: the archive name picks it.
+            if (named_set := game_set(game)) is not None:
+                command.extend(["--game", named_set])
             command.append(game)
 
         return Command.Command(

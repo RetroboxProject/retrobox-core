@@ -27,6 +27,7 @@ from retrobox.paths import (
 )
 
 from .controller_monitor import ControllerMonitor
+from .emulator_setup import ensure_emulator
 from .hooks import call_game_hooks
 from .hud import setup_hud
 from .power import apply_power_profile, restore_power_profile
@@ -111,6 +112,13 @@ def start_rom(args: argparse.Namespace, max_players: int, rom: Path, original_ro
     system = Emulator(args, original_rom)
     _log_system_settings(system)
 
+    # find the generator
+    generator = get_generator(system.config.emulator, system.config.core)
+
+    # a missing emulator: offer to install it, or go back to the frontend
+    if not ensure_emulator(system.config.emulator, player_controllers):
+        return 0
+
     # power profiles
     previous_power_profile = apply_power_profile(system.config.get("power_profile", "balanced"))
 
@@ -121,9 +129,6 @@ def start_rom(args: argparse.Namespace, max_players: int, rom: Path, original_ro
     with wheelsUtils.configure_wheels(
         player_controllers, system, game_metadata
     ) as (controllers, wheels):
-        # find the generator
-        generator = get_generator(system.config.emulator, system.config.core)
-
         with _game_rom_context(system, generator, rom, original_rom) as game_rom:
             exit_code = _run_game(
                 GameSession(
@@ -172,9 +177,11 @@ def _run_game(session: GameSession, previous_power_profile: str | None) -> int:
 def _gamepad_manager(**kwargs):
     """Gamepadly (pad -> keyboard hotkeys) is a separate package; run without it if absent."""
     try:
-        from gamepadly import GamepadManager
+        from gamepadly import GamepadManager  # pylint: disable=import-outside-toplevel
     except ImportError:
-        _logger.warning("gamepadly is not installed: gamepad hotkeys (e.g. Hotkey+Start) are disabled")
+        _logger.warning(
+            "gamepadly is not installed: gamepad hotkeys (e.g. Hotkey+Start) are disabled"
+        )
         return contextlib.nullcontext()
     return GamepadManager(**kwargs)
 

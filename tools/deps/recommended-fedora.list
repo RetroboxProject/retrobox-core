@@ -2,3 +2,8 @@
 power-profiles-daemon
 vulkan-tools
 vlc-libs
+fontconfig
+dejavu-sans-fonts
+dejavu-sans-mono-fonts
+wl-clipboard
+xclip
