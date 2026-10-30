@@ -94,6 +94,7 @@ cat > "${DESTDIR}${SYSCONF_DIR}/retrobox.ini" <<'EOF'
 #bios_dir  = /srv/games/bios
 
 #[advanced]
+## Virtual terminal of the labwc gaming session (retrobox-labwc component)
 #labwc_tty = 1
 
 #[environ]

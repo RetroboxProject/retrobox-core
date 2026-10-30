@@ -163,10 +163,10 @@ It installs the same layout as the package: `/opt/retrobox` (or `/var/opt/retrob
 
 ### Components
 
-The core is modular. EmulationStation ([`retrobox-emulationstation`](https://github.com/RetroboxProject/retrobox-emulationstation)) and the patched MangoHud ([`retrobox-mangohud`](https://github.com/RetroboxProject/retrobox-mangohud)) are separate projects; [`gamepadly`](https://github.com/RetroboxProject/gamepadly) (pad-to-keyboard mapper, a regular Python package) is too. `retrobox-core` ships no frontend, no MangoHud, no theme (not even *iconic*) and compiles nothing.
+The core is modular. EmulationStation ([`retrobox-emulationstation`](https://github.com/RetroboxProject/retrobox-emulationstation)), the patched MangoHud ([`retrobox-mangohud`](https://github.com/RetroboxProject/retrobox-mangohud)) and the labwc gaming session on its own TTY ([`retrobox-labwc`](https://github.com/RetroboxProject/retrobox-labwc)) are separate projects; [`gamepadly`](https://github.com/RetroboxProject/gamepadly) (pad-to-keyboard mapper, a regular Python package) is too. `retrobox-core` ships no frontend, no MangoHud, no theme (not even *iconic*) and compiles nothing.
 
-- **Packages (.deb/.rpm):** `retrobox-core` only *recommends* `retrobox-emulationstation`, `retrobox-mangohud` and `python3-gamepadly`; install them with the package manager. Those packages are built per architecture (amd64, arm64); the core is architecture-independent (`_all.deb`, `noarch.rpm`).
-- **install.sh:** `--with emulationstation` / `--with mangohud` downloads the component's own `install.sh` (the one at the root of its repository, or `--with NAME=<URL or local path>`) and runs it:
+- **Packages (.deb/.rpm):** `retrobox-core` only *recommends* `retrobox-emulationstation`, `retrobox-mangohud` and `python3-gamepadly` (and *suggests* `retrobox-labwc`); install them with the package manager. Those packages are built per architecture (amd64, arm64); the core is architecture-independent (`_all.deb`, `noarch.rpm`).
+- **install.sh:** `--with emulationstation` / `--with mangohud` / `--with labwc` downloads the component's own `install.sh` (the one at the root of its repository, or `--with NAME=<URL or local path>`) and runs it:
 
   ```
   install.sh --prefix DIR --bin-dir DIR [--no-deps] [--user]
@@ -204,7 +204,7 @@ Install directory (read-only):
 ├── lib/
 │   └── retrobox/              # the Python package: paths, startup, launcher, configgen, utils
 ├── libexec/                   # internal helpers: emuconfig/ (per-emulator config launchers), stubs/, mangohud/ (from the retrobox-mangohud component)
-├── share/                     # read-only defaults (the lowest config layer): systems_config/, emu_features/, configgen/, hooks/, pad2key/, labwc/...
+├── share/                     # read-only defaults (the lowest config layer): systems_config/, emu_features/, configgen/, hooks/, pad2key/...
 ├── system/                    # files for the host: udev rules, kernel/sysctl tuning
 ├── tools/                     # installers (emulators, utils, music, bezels) and deps/*.list
 ├── frontend/                  # EmulationStation seed config; the frontend and themes are separate packages

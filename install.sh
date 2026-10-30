@@ -27,7 +27,8 @@
 #                     /etc/retrobox are kept)
 #   -h, --help
 #
-# Components (EmulationStation, MangoHud, ...) live in their own repositories
+# Components (EmulationStation, MangoHud, the labwc gaming session...) live in
+# their own repositories
 # and bring their own `install.sh`, which this script downloads and runs as
 #
 #   install.sh --prefix DIR --bin-dir DIR [--no-deps] [--user]

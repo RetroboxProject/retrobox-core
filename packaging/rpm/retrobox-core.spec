@@ -17,6 +17,7 @@ Conflicts:      retrobox
 Recommends:     retrobox-emulationstation
 Recommends:     retrobox-mangohud
 Recommends:     python3-gamepadly
+Suggests:       retrobox-labwc
 @RECOMMENDS@
 
 %description

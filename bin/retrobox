@@ -12,7 +12,7 @@
 #                                            source (repeatable)
 #   retrobox --setup-emulator             list available emulators
 #   retrobox --setup-util <name>          run a single utility installer
-#                                            (e.g. labwc-config) (repeatable)
+#                                            from tools/utils/ (repeatable)
 #   retrobox --setup-util                 list available utility installers
 #   retrobox --setup-music <name>         install a single music pack
 #                                            (e.g. music-pack-2). Can be
@@ -102,11 +102,12 @@ Usage: $(basename "${BASH_SOURCE[0]}") [OPTIONS] [-- ARGS...]
                             repeated to install several at once. Called
                             with no name, lists every installer available
                             under tools/emulators/.
---setup-util <name>         Run a single utility installer (e.g.
-                            --setup-util labwc-config). Can be repeated to
-                            install several at once. Called with no name,
-                            lists every installer available under
-                            tools/utils/.
+--setup-util <name>         Run a single utility installer from
+                            tools/utils/. Can be repeated to install
+                            several at once. Called with no name, lists
+                            every installer available there. (The labwc
+                            gaming session is now its own component:
+                            retrobox-labwc.)
 --setup-music <name>        Install a single music pack (e.g.
                             --setup-music music-pack-2). Can be
                             repeated to install several at once. Called

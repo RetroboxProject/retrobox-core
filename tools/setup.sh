@@ -187,6 +187,12 @@ function setup_emulator() {
 function setup_util() {
     local name="$1"
     local script="${TOOLS_DIR}/utils/${name}.sh"
+    if [[ "${name}" == "labwc-config" ]]; then
+        log_err "The labwc gaming session moved to its own component, retrobox-labwc"
+        log_err "(https://github.com/RetroboxProject/retrobox-labwc): install its package,"
+        log_err "or run install.sh --with labwc, then run retrobox-labwc-setup as your user."
+        return 1
+    fi
     if [[ ! -f "${script}" ]]; then
         log_err "No installer found for utility '${name}' (expected ${script})."
         return 1
