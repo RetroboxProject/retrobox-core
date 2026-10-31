@@ -167,6 +167,29 @@ esac
 can_write "${PREFIX}" || die "${PREFIX} is not writable. Choose another --prefix, or --user."
 MANIFEST="${PREFIX}/.install-manifest"
 
+# Let the menus notice the entry and the icon now rather than at next login
+# (best effort: each tool is only there on some desktops).
+refresh_desktop_caches() {
+    if command -v update-desktop-database >/dev/null 2>&1; then
+        priv update-desktop-database -q "${SHARE_DIR}/applications" 2>/dev/null || true
+    fi
+    # touching the theme directory makes icon caches look again
+    [[ -d "${SHARE_DIR}/icons/hicolor" ]] && priv touch "${SHARE_DIR}/icons/hicolor"
+    if [[ -f "${SHARE_DIR}/icons/hicolor/icon-theme.cache" ]] && command -v gtk-update-icon-cache >/dev/null 2>&1; then
+        priv gtk-update-icon-cache -q -f -t "${SHARE_DIR}/icons/hicolor" 2>/dev/null || true
+    fi
+    if [[ "${EUID}" -ne 0 ]]; then
+        local kbuild
+        for kbuild in kbuildsycoca6 kbuildsycoca5; do
+            if command -v "${kbuild}" >/dev/null 2>&1; then
+                "${kbuild}" --noincremental >/dev/null 2>&1 || true
+                break
+            fi
+        done
+    fi
+    return 0
+}
+
 # --- uninstall ----------------------------------------------------------------
 if [[ "${UNINSTALL}" -eq 1 ]]; then
     [[ -f "${MANIFEST}" ]] || die "No install found in ${PREFIX} (missing .install-manifest)."
@@ -183,6 +206,7 @@ if [[ "${UNINSTALL}" -eq 1 ]]; then
         [[ -n "${f}" ]] && priv rm -f "${f}"
     done < "${MANIFEST}"
     priv rm -rf "${PREFIX}"
+    refresh_desktop_caches
     command -v udevadm >/dev/null 2>&1 && priv udevadm control --reload-rules >/dev/null 2>&1 || true
     ok "Removed. Your data in ~/.config/retrobox and ~/.local/share/retrobox, and ${SYSCONF_DIR:-/etc/retrobox}, were kept."
     exit 0
@@ -364,12 +388,25 @@ priv mkdir -p "${BIN_DIR}"
 priv ln -sfn "${PREFIX}/bin/retrobox" "${BIN_DIR}/retrobox"
 record "${BIN_DIR}/retrobox"
 
-priv mkdir -p "${SHARE_DIR}/applications" "${SHARE_DIR}/icons/hicolor/scalable/apps"
+# Application menu entry: /usr/local/share (~/.local/share with --user).
+# The icon is a set of PNGs, not the SVG: Qt (KDE) doesn't draw the logo's
+# glow filter. The 512 px one is the logo inside the tree, linked.
+priv mkdir -p "${SHARE_DIR}/applications"
 sed "s|@BIN@|${BIN_DIR}/retrobox|g" "${WORK}/x/extras/retrobox.desktop.in" > "${WORK}/retrobox.desktop"
 priv install -m 644 "${WORK}/retrobox.desktop" "${SHARE_DIR}/applications/retrobox.desktop"
-priv install -m 644 "${WORK}/x/extras/retrobox.svg" "${SHARE_DIR}/icons/hicolor/scalable/apps/retrobox.svg"
 record "${SHARE_DIR}/applications/retrobox.desktop"
-record "${SHARE_DIR}/icons/hicolor/scalable/apps/retrobox.svg"
+ICON_DIR="${SHARE_DIR}/icons/hicolor"
+for icon in "${WORK}"/x/extras/icons/hicolor/*/apps/retrobox.png; do
+    dest="${ICON_DIR}/$(basename "$(dirname "$(dirname "${icon}")")")/apps/retrobox.png"
+    priv install -D -m 644 "${icon}" "${dest}"
+    record "${dest}"
+done
+priv mkdir -p "${ICON_DIR}/512x512/apps"
+priv ln -sfn "${PREFIX}/share/icons/retrobox_logo.png" "${ICON_DIR}/512x512/apps/retrobox.png"
+record "${ICON_DIR}/512x512/apps/retrobox.png"
+# the SVG icon of older versions would win over the PNGs in some desktops
+priv rm -f "${ICON_DIR}/scalable/apps/retrobox.svg"
+refresh_desktop_caches
 
 if [[ -n "${UDEV_DIR}" ]]; then
     for rules in "${WORK}"/x/extras/udev/*.rules; do

@@ -24,12 +24,10 @@
 #
 # All of the above are maintenance operations: they run and then exit,
 # they don't start the frontend afterwards. Any other argument is passed
-# through to retrobox.startup (lib/retrobox/startup/run.py) untouched — this includes
-# --pcgames-sync, which is not handled here but recognized by
-# retrobox.startup itself: it enables syncing installed PC games (Steam,
-# Lutris, Heroic) before starting the frontend, and is stripped before the
-# remaining arguments reach EmulationStation. Without it, the sync is
-# skipped.
+# through to retrobox.startup (lib/retrobox/startup/run.py) untouched, which
+# hands it to EmulationStation. Syncing installed PC games (Steam, Heroic,
+# Lutris) before the frontend starts is set in retrobox.ini: steam_sync,
+# heroic_sync and lutris_sync under [core].
 set -eo pipefail
 # readlink -f (not just dirname) so this also works when invoked through a
 # symlink such as /usr/bin/retrobox -> /opt/retrobox/bin/retrobox.
@@ -122,15 +120,11 @@ Usage: $(basename "${BASH_SOURCE[0]}") [OPTIONS] [-- ARGS...]
 -h, --help                  Show this help and exit.
 
 Anything else is forwarded as-is to retrobox.startup (lib/retrobox/startup/run.py),
-which in turn passes it to the frontend (EmulationStation) — with one
-exception:
+which in turn passes it to the frontend (EmulationStation).
 
---pcgames-sync              Sync installed PC games (Steam, Lutris,
-                            Heroic) into their EmulationStation ROM
-                            directories before starting the frontend.
-                            Without it, the sync is skipped. Handled by
-                            retrobox.startup, not forwarded to
-                            EmulationStation.
+Syncing installed PC games into their EmulationStation ROM directories
+before the frontend starts is set in retrobox.ini, under [core]:
+steam_sync, heroic_sync and lutris_sync (true/false, off by default).
 
 With no options, Retrobox runs the platform setup automatically the first
 time (and only the first time) it's launched, then starts the frontend.

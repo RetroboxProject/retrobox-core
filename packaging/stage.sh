@@ -16,7 +16,7 @@
 #   /usr/lib/udev/rules.d/                 udev rules
 #   /usr/share/polkit-1/rules.d/           polkit rules
 #   /usr/share/applications/retrobox.desktop
-#   /usr/share/icons/hicolor/scalable/apps/retrobox.svg
+#   /usr/share/icons/hicolor/<N>x<N>/apps/retrobox.png   (menu icon, see below)
 #   /usr/share/doc/retrobox-core/copyright
 #
 # Nothing in the tree is ever written to at runtime: user data lives in the
@@ -82,6 +82,10 @@ cat > "${DESTDIR}${SYSCONF_DIR}/retrobox.ini" <<'EOF'
 #autocorrect_paths = true
 ## Systems to hide from the menu, e.g. gba,psp
 #ignore_systems =
+## Add the installed PC games of each launcher to its system on every start
+#steam_sync  = false
+#heroic_sync = false
+#lutris_sync = false
 
 #[paths]
 ## Move everything Retrobox keeps (default: ~/.local/share/retrobox and
@@ -124,14 +128,22 @@ install -m 644 "${SRC}/system/polkit/50-retrobox-nvidia-powerd.rules" \
     "${POLKIT_DIR}/50-retrobox-nvidia-powerd.rules"
 
 # --- 4. Desktop entry + icon ------------------------------------------------
-mkdir -p "${DESTDIR}/usr/share/applications" \
-         "${DESTDIR}/usr/share/icons/hicolor/scalable/apps"
+# The logo's neon glow is an SVG blur filter, which Qt (KDE's menus) doesn't
+# draw: the icon goes in as PNGs at the usual sizes (packaging/icons, made by
+# dev/render_icons.py), not as a scalable SVG. The 512 px one is the logo's
+# own export inside the tree, linked rather than copied.
+mkdir -p "${DESTDIR}/usr/share/applications"
 sed -e "s|@BIN@|${BIN_LINK}|g" \
     "${SRC}/packaging/retrobox.desktop.in" \
     > "${DESTDIR}/usr/share/applications/retrobox.desktop"
 chmod 644 "${DESTDIR}/usr/share/applications/retrobox.desktop"
-install -m 644 "${SRC}/share/icons/retrobox_logo.svg" \
-    "${DESTDIR}/usr/share/icons/hicolor/scalable/apps/retrobox.svg"
+for icon in "${SRC}"/packaging/icons/hicolor/*/apps/retrobox.png; do
+    size_dir="$(basename "$(dirname "$(dirname "${icon}")")")"
+    install -D -m 644 "${icon}" "${DESTDIR}/usr/share/icons/hicolor/${size_dir}/apps/retrobox.png"
+done
+mkdir -p "${DESTDIR}/usr/share/icons/hicolor/512x512/apps"
+ln -s "${INSTALL_ROOT}/share/icons/retrobox_logo.png" \
+    "${DESTDIR}/usr/share/icons/hicolor/512x512/apps/retrobox.png"
 
 # --- 5. Licence -------------------------------------------------------------
 mkdir -p "${DESTDIR}/usr/share/doc/retrobox-core"

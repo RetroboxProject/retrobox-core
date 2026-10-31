@@ -10,7 +10,9 @@
 #   extras/udev/         udev rules
 #   extras/polkit/       polkit rules
 #   extras/etc/retrobox/ system-wide configuration template
-#   extras/retrobox.desktop.in, extras/retrobox.svg
+#   extras/retrobox.desktop.in, extras/icons/hicolor/<N>x<N>/apps/retrobox.png
+#                        (512x512 is not there: install.sh links it to the
+#                        logo inside the tree)
 #   extras/deps/*.list, extras/deps.sh, extras/requirements.txt
 #                        what install.sh needs to bring the dependencies; they
 #                        are not part of the installed tree
@@ -49,7 +51,7 @@ cp "${STAGE}"/usr/lib/udev/rules.d/*.rules "${TOP}/extras/udev/"
 cp "${STAGE}"/usr/share/polkit-1/rules.d/*.rules "${TOP}/extras/polkit/"
 cp -a "${STAGE}/etc/retrobox" "${TOP}/extras/etc/retrobox"
 cp "${SRC}/packaging/retrobox.desktop.in" "${TOP}/extras/retrobox.desktop.in"
-cp "${STAGE}/usr/share/icons/hicolor/scalable/apps/retrobox.svg" "${TOP}/extras/retrobox.svg"
+cp -r "${SRC}/packaging/icons" "${TOP}/extras/icons"
 mkdir -p "${TOP}/extras/deps"
 cp "${SRC}"/tools/deps/*.list "${TOP}/extras/deps/"
 cp "${SRC}/tools/lib/deps.sh" "${TOP}/extras/deps.sh"

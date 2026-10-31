@@ -150,8 +150,14 @@ jobs:
           test "$(retrobox --version)" != ""
           test -f /opt/retrobox/bin/retrobox
           test -f /etc/retrobox/retrobox.ini
+          test -f /usr/local/share/applications/retrobox.desktop
+          grep -qx 'Exec=/usr/local/bin/retrobox' /usr/local/share/applications/retrobox.desktop
+          test -s /usr/local/share/icons/hicolor/48x48/apps/retrobox.png
+          test -s /usr/local/share/icons/hicolor/512x512/apps/retrobox.png
           bash dist/install.sh --uninstall
           test ! -e /opt/retrobox
+          test ! -e /usr/local/share/applications/retrobox.desktop
+          test ! -e /usr/local/share/icons/hicolor/48x48/apps/retrobox.png
 
   release:
     if: startsWith(github.ref, 'refs/tags/v')

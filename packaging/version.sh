@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 # Version derivation shared by the package builders. Source it:
 #   . packaging/version.sh; VERSION="$(derive_version "${SRC}")"
 #

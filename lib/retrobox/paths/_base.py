@@ -66,7 +66,8 @@ def check_env_dirs(variable: str, default_dir: Path) -> Path:
 # alphabetical order, so `retrobox.ini.d/50-mypaths.ini` beats retrobox.ini.
 #
 # Sections:
-#   [core]    -> autocorrect_paths, ignore_systems, ...
+#   [core]    -> autocorrect_paths, ignore_systems, steam_sync, heroic_sync,
+#                lutris_sync, ...
 #   [paths]   -> data_dir, state_dir (where everything else lives; what the
 #                README calls "data" and "state"), roms_dir, saves_dir,
 #                bios_dir. For the last three, if autocorrect_paths is true
@@ -139,7 +140,8 @@ def _load_layered_ini(files: "Iterable[Path]") -> CaseSensitiveConfigParser:
             parser.read(path, encoding="utf-8")
         except (configparser.Error, OSError, UnicodeDecodeError) as exc:
             # A broken drop-in must not take the whole program down.
-            print(f"retrobox: ignoring unreadable config {path}: {str(exc).splitlines()[0]}", file=sys.stderr)
+            reason = str(exc).splitlines()[0]
+            print(f"retrobox: ignoring unreadable config {path}: {reason}", file=sys.stderr)
             continue
         for raw_section in parser.sections():
             section = raw_section.lower() if raw_section.lower() in _KNOWN_SECTIONS else raw_section
@@ -260,6 +262,18 @@ def get_ini_value(section: str, key: str, default: str = "") -> str:
     return _PATHS_CONFIG.get(section, key, fallback=default).strip()
 
 
+def get_ini_bool(section: str, key: str, default: bool = False) -> bool:
+    """Read a yes/no value of the merged retrobox.ini.
+
+    true/1/yes/on mean yes; any other value set means no; unset or empty
+    gives ``default``.
+    """
+    value = get_ini_value(section, key)
+    if not value:
+        return default
+    return value.lower() in _TRUE_VALUES
+
+
 # ---------------------------------------------------------------------------
 # Installation layout: system side vs user side
 #
@@ -327,7 +341,9 @@ def _resolve_dir(override: str, xdg_var: str, xdg_fallback: Path, ini_key: str =
     return base / "retrobox"
 
 
-SYSCONF_DIR: Final[Path] = Path(os.environ.get("RETROBOX_SYSCONFDIR", "").strip() or "/etc/retrobox")
+SYSCONF_DIR: Final[Path] = Path(
+    os.environ.get("RETROBOX_SYSCONFDIR", "").strip() or "/etc/retrobox"
+)
 CONFIG_DIR: Final[Path] = _resolve_dir("RETROBOX_CONFIGDIR", "XDG_CONFIG_HOME", _XDG_CONFIG)
 
 # retrobox.ini must be read as soon as CONFIG_DIR is known and BEFORE the other
@@ -340,7 +356,9 @@ _PATHS_CONFIG: Final[CaseSensitiveConfigParser] = _load_layered_ini(
 _bootstrap_env(_PATHS_CONFIG)
 
 DATA_DIR: Final[Path] = _resolve_dir("RETROBOX_DATADIR", "XDG_DATA_HOME", _XDG_DATA, "data_dir")
-STATE_DIR: Final[Path] = _resolve_dir("RETROBOX_STATEDIR", "XDG_STATE_HOME", _XDG_STATE, "state_dir")
+STATE_DIR: Final[Path] = _resolve_dir(
+    "RETROBOX_STATEDIR", "XDG_STATE_HOME", _XDG_STATE, "state_dir"
+)
 
 # Make sure the mutable directories exist. A failure here must not break
 # the import: whoever needs the directory will report a meaningful error

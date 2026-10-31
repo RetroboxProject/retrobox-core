@@ -31,6 +31,15 @@ retrobox --version
 rpm -qc retrobox-core | grep -qx /etc/retrobox/retrobox.ini \
     || fail "/etc/retrobox/retrobox.ini is not a config file of the package"
 
+echo "--- application menu entry and icon"
+[[ -f /usr/share/applications/retrobox.desktop ]] || fail "no /usr/share/applications/retrobox.desktop"
+grep -qx 'Exec=/usr/bin/retrobox' /usr/share/applications/retrobox.desktop \
+    || fail "the menu entry does not run /usr/bin/retrobox"
+for size in 16 22 24 32 48 64 96 128 256 512; do
+    [[ -s "/usr/share/icons/hicolor/${size}x${size}/apps/retrobox.png" ]] \
+        || fail "no ${size}x${size} icon"
+done
+
 echo "--- startup as an unprivileged user"
 user_home="$(mktemp -d)"
 chown nobody "${user_home}"

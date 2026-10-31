@@ -2,9 +2,12 @@
 Type=Application
 Name=Retrobox
 Name[es]=Retrobox
+GenericName=Gaming frontend
+GenericName[es]=Frontend de juegos
 Comment=Retrogaming, gaming and multimedia platform
 Comment[es]=Plataforma de gaming, retrogaming y multimedia
-Categories=Game;
+Categories=Game;Emulator;
+Keywords=emulation;emulator;retro;games;emulationstation;batocera;
 Exec=@BIN@
 Icon=retrobox
 Terminal=false

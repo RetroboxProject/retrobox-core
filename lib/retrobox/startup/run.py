@@ -3,10 +3,11 @@
 Manages arguments, prepares the environment, generates configurations,
 and launches the frontend (EmulationStation).
 
-Accepts one flag of its own, "--pcgames-sync", which enables syncing
-installed PC games (Steam, Lutris, Heroic) into their EmulationStation
-ROM directories before startup; without it, the sync is skipped. Any
-other argument is forwarded to EmulationStation untouched.
+Installed PC games (Steam, Heroic, Lutris) are synced into their
+EmulationStation ROM directories before startup when retrobox.ini asks for
+it ([core] steam_sync, heroic_sync, lutris_sync; all off by default).
+Every argument is forwarded to EmulationStation untouched, except the
+retired "--pcgames-sync" flag, which is dropped with a warning.
 """
 
 from __future__ import annotations
@@ -19,11 +20,6 @@ import subprocess
 import sys
 import types
 from pathlib import Path
-
-_logger = logging.getLogger(__name__)
-
-# Global flag to ensure teardown runs only once
-_TEARDOWN_DONE: bool = False
 
 # retrobox.ini (layered: /etc/retrobox + ~/.config/retrobox) is loaded by
 # retrobox.paths._base at import time, BEFORE its Final constants are
@@ -44,6 +40,7 @@ from retrobox.paths import (
     RUNTIME_DIR,
     _USER_ES_DIR,
     DirectoryCreationError,
+    get_ini_bool,
     mkdir_if_not_exists,
 )
 from retrobox.configgen.utils.logger import setup_logging
@@ -54,7 +51,16 @@ from retrobox.startup.frontend_conf.es_ini_generator import (
 )
 from retrobox.startup.frontend_conf.features_list_generator import generate_es_features
 from retrobox.startup.frontend_conf.system_list_generator import generate_es_systems
-from retrobox.startup.frontend_conf.pcgames_utils import heroic_es_sync, lutris_es_sync, steam_es_sync
+from retrobox.startup.frontend_conf.pcgames_utils import (
+    heroic_es_sync,
+    lutris_es_sync,
+    steam_es_sync,
+)
+
+_logger = logging.getLogger(__name__)
+
+# Global flag to ensure teardown runs only once
+_TEARDOWN_DONE: bool = False
 
 
 def is_emulationstation_running(es_binary: Path) -> bool:
@@ -227,7 +233,29 @@ def _handle_sigterm(signum: int, frame: types.FrameType | None) -> None:
     """
     raise SystemExit(128 + signum)
 
-_PCGAMES_SYNC_FLAG = "--pcgames-sync"
+# Replaced by the [core] *_sync keys of retrobox.ini; still dropped so that
+# old shortcuts don't pass it on to EmulationStation.
+_RETIRED_PCGAMES_SYNC_FLAG = "--pcgames-sync"
+
+# [core] key -> (sync function, ROM directory name)
+_PCGAMES_SYNCS = (
+    ("steam_sync", steam_es_sync, "steam"),
+    ("heroic_sync", heroic_es_sync, "heroic"),
+    ("lutris_sync", lutris_es_sync, "lutris"),
+)
+
+
+def sync_pcgames() -> None:
+    """Sync the PC game launchers that retrobox.ini enables ([core] *_sync).
+
+    Raises:
+        DirectoryCreationError: a ROM directory could not be created.
+    """
+    for key, sync, system in _PCGAMES_SYNCS:
+        if get_ini_bool("core", key):
+            sync(ROMS / system)
+        else:
+            _logger.debug("Skipping the %s sync ([core] %s is off).", system, key)
 
 
 def main() -> int:
@@ -243,10 +271,9 @@ def main() -> int:
 def _main() -> int:
     """Run the main entry point for the Retrobox startup script.
 
-    Consumes the "--pcgames-sync" flag (if present) to decide whether to
-    sync installed PC games (Steam, Lutris, Heroic) before starting the
-    frontend; that flag is never forwarded to EmulationStation. Any other
-    argument is passed straight through to the "emulationstation" binary.
+    Syncs the installed PC games that retrobox.ini enables (see
+    sync_pcgames()) and passes every argument straight through to the
+    "emulationstation" binary, except the retired "--pcgames-sync".
 
     Returns:
         The exit code of the application.
@@ -255,9 +282,13 @@ def _main() -> int:
     signal.signal(signal.SIGTERM, _handle_sigterm)
 
     args = sys.argv[1:]
-    do_pcgames_sync = _PCGAMES_SYNC_FLAG in args
-    if do_pcgames_sync:
-        args = [arg for arg in args if arg != _PCGAMES_SYNC_FLAG]
+    if _RETIRED_PCGAMES_SYNC_FLAG in args:
+        args = [arg for arg in args if arg != _RETIRED_PCGAMES_SYNC_FLAG]
+        _logger.warning(
+            "%s is gone: set steam_sync, heroic_sync and lutris_sync under [core] "
+            "in retrobox.ini instead. Ignoring it.",
+            _RETIRED_PCGAMES_SYNC_FLAG,
+        )
 
     if not RETROBOX_ROOTDIR.is_dir():
         _logger.error("Invalid Retrobox directory: %s", RETROBOX_ROOTDIR)
@@ -267,19 +298,12 @@ def _main() -> int:
         _logger.error("Retrobox (EmulationStation) is already running.")
         return 1
 
-    if do_pcgames_sync:
-        try:
-            steam_es_sync(ROMS / "steam")
-            lutris_es_sync(ROMS / "lutris")
-            heroic_es_sync(ROMS / "heroic")
-        except DirectoryCreationError as exc:
-            # Notification already sent by safe_mkdir; just exit cleanly.
-            _logger.error("Aborting startup: %s", exc)
-            return 1
-    else:
-        _logger.debug(
-            "Skipping PC games sync (pass %s to enable it).", _PCGAMES_SYNC_FLAG
-        )
+    try:
+        sync_pcgames()
+    except DirectoryCreationError as exc:
+        # Notification already sent by safe_mkdir; just exit cleanly.
+        _logger.error("Aborting startup: %s", exc)
+        return 1
 
     try:
         _logger.info("=========")

@@ -73,7 +73,17 @@ fi
 /usr/lib/udev/rules.d/64-retrobox.rules
 /usr/share/polkit-1/rules.d/50-retrobox-nvidia-powerd.rules
 /usr/share/applications/retrobox.desktop
-/usr/share/icons/hicolor/scalable/apps/retrobox.svg
+# listed one by one: a glob would miss the 512 px link (its target is in /opt)
+/usr/share/icons/hicolor/16x16/apps/retrobox.png
+/usr/share/icons/hicolor/22x22/apps/retrobox.png
+/usr/share/icons/hicolor/24x24/apps/retrobox.png
+/usr/share/icons/hicolor/32x32/apps/retrobox.png
+/usr/share/icons/hicolor/48x48/apps/retrobox.png
+/usr/share/icons/hicolor/64x64/apps/retrobox.png
+/usr/share/icons/hicolor/96x96/apps/retrobox.png
+/usr/share/icons/hicolor/128x128/apps/retrobox.png
+/usr/share/icons/hicolor/256x256/apps/retrobox.png
+/usr/share/icons/hicolor/512x512/apps/retrobox.png
 %license /usr/share/doc/retrobox-core/copyright
 
 %changelog
