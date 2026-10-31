@@ -23,6 +23,7 @@ from xml.dom import minidom
 from yaml.parser import ParserError
 from yaml.scanner import ScannerError
 
+from retrobox.configgen.utils.logger import OK
 from retrobox.paths import ES_FEATURES_CFG, ES_FEATURES_TMP, layered_files
 from retrobox.utils.features_yaml import load_feature_yaml
 
@@ -350,7 +351,7 @@ def _link_features_file(output_path: Path) -> None:
         if ES_FEATURES_CFG.exists() or ES_FEATURES_CFG.is_symlink():
             ES_FEATURES_CFG.unlink()
         ES_FEATURES_CFG.symlink_to(output_path)
-        _logger.info("Successfully linked: %s", ES_FEATURES_CFG)
+        _logger.debug("Linked %s -> %s", ES_FEATURES_CFG, output_path)
     except FileNotFoundError as err:
         _logger.error("Can't create symlink in %s: %s", ES_FEATURES_CFG.parent, err)
         raise
@@ -399,13 +400,12 @@ def generate_es_features(yaml_dir: Path | None = None, output_path: Path = ES_FE
     ):
         ES_FEATURES_CFG.unlink()
 
-    _logger.info("Begin generating: %s", output_path)
+    _logger.debug("Generating %s", output_path)
     final_xml = _pretty_xml(_build_tree(_load_sources(yaml_files)))
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(final_xml, encoding="utf-8")
-    _logger.info("Successfully generated: %s", output_path)
+    _logger.log(OK, "Generated %s", output_path.name)
 
     if output_path != ES_FEATURES_CFG:
         _link_features_file(output_path)
-    _logger.info("=========")

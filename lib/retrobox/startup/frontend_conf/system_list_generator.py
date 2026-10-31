@@ -9,6 +9,7 @@ import yaml
 from yaml.scanner import ScannerError
 from yaml.parser import ParserError
 
+from retrobox.configgen.utils.logger import OK
 from retrobox.paths import (
     BIN_DIR,
     IGNORED_SYSTEMS,
@@ -169,7 +170,7 @@ def generate_es_systems(base_path: Path | None = None, output_path: Path = ES_SY
     """Rebuild es_systems.cfg from the (layered) systems_config YAML tree."""
     yaml_files = _system_yaml_files(base_path)
 
-    _logger.info("Begin generating %s", output_path)
+    _logger.debug("Generating %s", output_path)
 
     _unlink_if_present(output_path)
     if output_path != ES_SYSTEMS_CFG:
@@ -182,14 +183,12 @@ def generate_es_systems(base_path: Path | None = None, output_path: Path = ES_SY
             _append_system(root, *system)
 
     output_path.write_text(_to_pretty_xml(root), encoding="utf-8")
-    _logger.info("Successfully generated: %s", output_path)
+    _logger.log(OK, "Generated %s", output_path.name)
 
     if output_path != ES_SYSTEMS_CFG:
         try:
             ES_SYSTEMS_CFG.symlink_to(output_path)
-            _logger.info("Successfully linked: %s", ES_SYSTEMS_CFG)
+            _logger.debug("Linked %s -> %s", ES_SYSTEMS_CFG, output_path)
         except FileNotFoundError as e:
             _logger.error("Can't create symlink in %s: %s", ES_SYSTEMS_CFG.parent, e)
             raise
-
-    _logger.info("=========")

@@ -173,13 +173,13 @@ def run_emulationstation(args: list[str], update_theme: bool = False) -> int:
 
     ensure_default_theme(update=update_theme)
 
-    _logger.info("=========")
-
     # Force SDL2 to use the native Wayland backend instead of falling back
     # to XWayland/XRandR. "wayland,x11" keeps x11 as a fallback in case the
     # Wayland backend fails to initialize for any reason.
     es_env = os.environ.copy()
     es_env["SDL_VIDEODRIVER"] = "wayland,x11"
+
+    _logger.info("Starting EmulationStation")
 
     result = subprocess.run(
         [str(ES_EXECUTABLE), "--home", str(FRONTEND_HOME), *map(str, args)],
@@ -294,7 +294,6 @@ def _main() -> int:
         return 1
 
     try:
-        _logger.info("=========")
         return run_emulationstation(args, update_theme=update_theme)
     finally:
         teardown()

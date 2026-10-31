@@ -24,6 +24,7 @@ import zipfile
 from pathlib import Path
 from typing import Final
 
+from retrobox.configgen.utils.logger import OK
 from retrobox.paths import FRONTEND_DIR, THEMES_DIR
 
 _logger = logging.getLogger(__name__)
@@ -146,7 +147,7 @@ def _install_default_theme() -> bool:
         _logger.error("Couldn't install %s: %s", DEFAULT_THEME_NAME, exc)
         return False
 
-    _logger.info("Default theme installed: %s", target)
+    _logger.log(OK, "Default theme installed: %s", target)
     return True
 
 

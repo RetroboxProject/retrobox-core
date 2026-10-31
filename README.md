@@ -242,6 +242,10 @@ System and user directories (see [Paths](#paths)):
 
 Components install into the same directory, so installing them into `/opt/retrobox` needs `sudo`.
 
+### Logs
+
+Every Retrobox tool, bash or Python, prints the same kind of line: `[INFO]`, `[ OK ]`, `[WARN]` or `[ERR ]`, then a `yyyy-mm-dd_hh:mm:ss` timestamp and the message (colored on a terminal; `NO_COLOR=1` turns colors off). The terminal shows `INFO` and above; `RETROBOX_DEBUG=1` adds the `[DBG ]` lines. The files in `~/.local/state/retrobox/logs/` (`retrobox-startup.log`, `retrobox-launch.log`, rotated) always hold everything, with the source location of each line.
+
 ## License
 
 This project is a derivative of [batocera-configgen](https://github.com/batocera-linux/batocera.linux/tree/master/package/batocera/core/batocera-configgen), part of the `batocera.linux` project which is licensed under the GPLv2 License.

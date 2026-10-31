@@ -16,6 +16,7 @@ import sqlite3
 from pathlib import Path
 from typing import Any, Callable
 
+from retrobox.configgen.utils.logger import OK
 from retrobox.paths import safe_mkdir
 
 from retrobox.startup.frontend_conf.pcgames_paths import (
@@ -107,7 +108,7 @@ def _clear_pcgame_links(system_dir: Path, ext: str) -> None:
         system_dir: The directory to clean.
         ext: File extension to delete (without the leading dot).
     """
-    _logger.info("Deleting %s links for clean import: %s", ext, system_dir)
+    _logger.debug("Deleting .%s launchers for a clean import: %s", ext, system_dir)
 
     if not system_dir.is_dir():
         return
@@ -155,7 +156,7 @@ def lutris_es_sync(target: Path) -> int:
         _logger.debug("[%s] %s.lynx -> %s", runner or "no runner", name_clean, link)
         total += 1
 
-    _logger.info("%d Lutris launchers generated at %s", total, target)
+    _logger.log(OK, "%d Lutris launchers generated in %s", total, target)
     return total
 
 
@@ -255,8 +256,9 @@ def steam_es_sync(target: Path) -> int:
         _logger.debug("Library: %s", steamapps_dir)
         total += _sync_steam_library(steamapps_dir, target)
 
-    _logger.info(
-        "%d Steam launchers generated at %s (%d scanned libraries)",
+    _logger.log(
+        OK,
+        "%d Steam launchers generated in %s (%d libraries scanned)",
         total, target, len(libraries),
     )
     return total
@@ -289,7 +291,7 @@ def heroic_es_sync(target: Path) -> int:
             _write_heroic_link(target, title, app_name, "legendary")
             total += 1
     else:
-        _logger.info("Not found: %s", _EPIC_JSON)
+        _logger.debug("Not found: %s", _EPIC_JSON)
 
     # GOG
     data = _load_json(_GOG_JSON)
@@ -303,7 +305,7 @@ def heroic_es_sync(target: Path) -> int:
             _write_heroic_link(target, title, app_name, "gog")
             total += 1
     else:
-        _logger.info("Not found: %s", _GOG_JSON)
+        _logger.debug("Not found: %s", _GOG_JSON)
 
     # Sideload / external apps
     data = _load_json(_HEROIC_SIDELOAD_JSON)
@@ -316,9 +318,9 @@ def heroic_es_sync(target: Path) -> int:
             _write_heroic_link(target, title, app_name, "sideload")
             total += 1
     else:
-        _logger.info("Not found: %s", _HEROIC_SIDELOAD_JSON)
+        _logger.debug("Not found: %s", _HEROIC_SIDELOAD_JSON)
 
-    _logger.info("%d Heroic launchers generated at %s", total, target)
+    _logger.log(OK, "%d Heroic launchers generated in %s", total, target)
     return total
 
 

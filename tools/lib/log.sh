@@ -7,9 +7,11 @@
 #   log_warn "message"
 #   log_err  "message"      # goes to stderr
 #
-# Scheme: the tag (including brackets) is colored per level, the rest of the
-# line is white, and the whole line is bold. Colors are skipped automatically
-# when stdout isn't a terminal, or when NO_COLOR is set (see no-color.org).
+# Format: "[TAG] yyyy-mm-dd_hh:mm:ss message", the same as the Python side
+# (lib/retrobox/configgen/utils/logger.py). The tag (including brackets) is
+# colored per level, the rest of the line is white, and the whole line is
+# bold. Colors are skipped automatically when stdout isn't a terminal, or
+# when NO_COLOR is set (see no-color.org).
 
 if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
     _LOG_BOLD=$'\033[1m'
@@ -33,8 +35,8 @@ fi
 _log() {
     local color="$1" tag="$2"
     shift 2
-    printf '%s%s[%s]%s %s%s\n' \
-        "${_LOG_BOLD}" "${color}" "${tag}" "${_LOG_WHITE}" "$*" "${_LOG_RESET}"
+    printf '%s%s[%s]%s %(%Y-%m-%d_%H:%M:%S)T %s%s\n' \
+        "${_LOG_BOLD}" "${color}" "${tag}" "${_LOG_WHITE}" -1 "$*" "${_LOG_RESET}"
 }
 
 log_info() { _log "${_LOG_CYAN}"   "INFO" "$@"; }

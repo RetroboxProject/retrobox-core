@@ -2,6 +2,7 @@
 import logging
 from pathlib import Path
 
+from retrobox.configgen.utils.logger import OK
 from retrobox.configgen.generators.libretro.libretroPaths import (
     _RETROARCH_AUDIO_FILTERS,
     _RETROARCH_VIDEO_FILTERS
@@ -98,14 +99,14 @@ def generate_emulationstation_ini(output_path: Path = ES_INI_TMP):
     Generates emulationstation.ini for directory mappings to some retrobox resources.
     """
 
-    _logger.info("Begin generating %s", output_path)
+    _logger.debug("Generating %s", output_path)
 
     if output_path.exists():
         output_path.unlink()
 
     try:
         output_path.write_text(INI_CONTENT, encoding="utf-8")
-        _logger.info("Successfully generated: %s", output_path)
+        _logger.log(OK, "Generated %s", output_path.name)
     except OSError as e:
         _logger.error("Couldn't write %s: %s", output_path, e)
         raise
@@ -115,7 +116,7 @@ def generate_emulationstation_ini(output_path: Path = ES_INI_TMP):
             if ES_INI_CFG.exists() or ES_INI_CFG.is_symlink():
                 ES_INI_CFG.unlink()
             ES_INI_CFG.symlink_to(output_path)
-            _logger.info("Successfully linked: %s", ES_INI_CFG)
+            _logger.debug("Linked %s -> %s", ES_INI_CFG, output_path)
         except FileNotFoundError:
             _logger.error(
                 "Can't create symlink in %s",
@@ -125,4 +126,3 @@ def generate_emulationstation_ini(output_path: Path = ES_INI_TMP):
         except OSError as e:
             _logger.error("Failed to link %s -> %s: %s", ES_INI_CFG, output_path, e)
             raise
-    _logger.info("=========")
