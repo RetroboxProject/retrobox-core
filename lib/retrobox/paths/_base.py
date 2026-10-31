@@ -262,18 +262,6 @@ def get_ini_value(section: str, key: str, default: str = "") -> str:
     return _PATHS_CONFIG.get(section, key, fallback=default).strip()
 
 
-def get_ini_bool(section: str, key: str, default: bool = False) -> bool:
-    """Read a yes/no value of the merged retrobox.ini.
-
-    true/1/yes/on mean yes; any other value set means no; unset or empty
-    gives ``default``.
-    """
-    value = get_ini_value(section, key)
-    if not value:
-        return default
-    return value.lower() in _TRUE_VALUES
-
-
 # ---------------------------------------------------------------------------
 # Installation layout: system side vs user side
 #

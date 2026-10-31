@@ -4,7 +4,6 @@ lutris:
   manufacturer: Lutris
   release: 2013
   hardware: None
-  path: ../roms/lutris
   extension:
   - .lynx
   platform:

@@ -4,7 +4,6 @@ heroic:
   manufacturer: Heroic
   release: 2020
   hardware: None
-  path: ../roms/heroic
   extension:
   - .heroic
   platform:

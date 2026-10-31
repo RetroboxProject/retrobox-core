@@ -54,7 +54,15 @@ Configuration is layered, read-only code and writable user data are separate, an
 
 `$XDG_CONFIG_HOME`, `$XDG_DATA_HOME` and `$XDG_STATE_HOME` are honoured. The data and state directories can also be set from `[paths]` in `retrobox.ini` (`data_dir`, `state_dir`; the environment variables win), and `roms`, `saves` and `bios` can be moved on their own (`roms_dir`, `saves_dir`, `bios_dir`); the last layer that sets a key wins. A value may be quoted and may end in ` # comment`. If a configured `roms_dir`/`saves_dir`/`bios_dir` is not a readable directory, Retrobox warns on stderr and uses the default one (unless `autocorrect_paths = false`).
 
-Other `[core]` keys: `ignore_systems` (systems hidden from the menu, e.g. `gba,psp`) and `steam_sync`, `heroic_sync`, `lutris_sync` (`true`/`false`, off by default): on every start, add the games installed in that launcher to its system (`.steam`, `.heroic`, `.lutris` entries in its ROM directory). They replace the old `--pcgames-sync` flag, which is now ignored with a warning.
+Other `[core]` keys: `ignore_systems` (systems hidden from the menu, e.g. `gba,psp`) and `steam_sync`, `heroic_sync`, `lutris_sync`: on every start, add the games installed in that launcher to its system (`.steam`, `.heroic`, `.lynx` entries). Each one takes:
+
+| Value | Entries go to (and the ES system reads from) |
+|---|---|
+| `none` (default) | nothing is synced; the system reads `<roms_dir>/<launcher>` |
+| `on-base-dir` | always `<data dir>/roms/<launcher>`, wherever `roms_dir` points |
+| `follow-roms-dir` | `<roms_dir>/<launcher>` (which may be `<data dir>/roms` or anywhere else) |
+
+They replace the old `--pcgames-sync` flag, which is now ignored with a warning; the `true`/`false` values of v0.0.25 still work (as `follow-roms-dir`/`none`), with a warning.
 
 `lib/retrobox/paths` is the single place where all of this is resolved. Shell scripts get the result as `RETROBOX_*` variables (`PYTHONPATH=<install dir>/lib python3 -m retrobox.paths` prints them, `--get section.key` reads a merged ini value; `tools/lib/paths.sh` loads them).
 
@@ -165,7 +173,7 @@ It installs the same layout as the package: `/opt/retrobox` (or `/var/opt/retrob
 
 ### Components
 
-The core is modular. EmulationStation ([`retrobox-emulationstation`](https://github.com/RetroboxProject/retrobox-emulationstation)), the patched MangoHud ([`retrobox-mangohud`](https://github.com/RetroboxProject/retrobox-mangohud)) and the labwc gaming session on its own TTY ([`retrobox-labwc`](https://github.com/RetroboxProject/retrobox-labwc)) are separate projects; [`gamepadly`](https://github.com/RetroboxProject/gamepadly) (pad-to-keyboard mapper, a regular Python package) is too. `retrobox-core` ships no frontend, no MangoHud, no theme (not even *iconic*) and compiles nothing.
+The core is modular. EmulationStation ([`retrobox-emulationstation`](https://github.com/RetroboxProject/retrobox-emulationstation)), the patched MangoHud ([`retrobox-mangohud`](https://github.com/RetroboxProject/retrobox-mangohud)) and the labwc gaming session on its own TTY ([`retrobox-labwc`](https://github.com/RetroboxProject/retrobox-labwc)) are separate projects; [`gamepadly`](https://github.com/RetroboxProject/gamepadly) (pad-to-keyboard mapper, a regular Python package) is too. `retrobox-core` ships no frontend, no MangoHud, no theme and compiles nothing. If EmulationStation finds no theme at all (neither in `<install dir>/frontend/themes` nor in `<data dir>/themes`), `retrobox` downloads the latest commit of [*es-theme-iconic*](https://github.com/manu-creative-411/es-theme-iconic) into `<data dir>/themes` before starting; `retrobox --update-default-theme` downloads it again (update, or reinstall if it was removed) and then starts. If the download fails, it says so and starts anyway.
 
 - **Packages (.deb/.rpm):** `retrobox-core` only *recommends* `retrobox-emulationstation`, `retrobox-mangohud` and `python3-gamepadly` (and *suggests* `retrobox-labwc`); install them with the package manager. Those packages are built per architecture (amd64, arm64); the core is architecture-independent (`_all.deb`, `noarch.rpm`).
 - **install.sh:** `--with emulationstation` / `--with mangohud` / `--with labwc` downloads the component's own `install.sh` (the one at the root of its repository, or `--with NAME=<URL or local path>`) and runs it:
@@ -182,7 +190,7 @@ The core is modular. EmulationStation ([`retrobox-emulationstation`](https://git
 ### From a checkout
 
 1. Clone this repo and run `retrobox --setup` (installs the dependencies from `tools/deps/` with apt or dnf and the udev rules; gamepadly is installed separately with its own `install.sh` or `python3-gamepadly`).
-2. EmulationStation, MangoHud and the themes (e.g. *iconic*) are separate components: install their packages, or their `install.sh` into the checkout (`install.sh --with ...` does it for a normal install).
+2. EmulationStation, MangoHud and the themes (e.g. *iconic*) are separate components: install their packages, or their `install.sh` into the checkout (`install.sh --with ...` does it for a normal install). Without any theme, *iconic* is downloaded on the first start (see above).
 
 Python dependencies for a virtualenv: `pip install -r requirements.txt`.
 

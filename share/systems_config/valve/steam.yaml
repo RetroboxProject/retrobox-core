@@ -4,7 +4,6 @@ steam:
   manufacturer: Valve
   release: 2003
   hardware: None
-  path: ../roms/steam
   extension:
   - .steam
   platform:

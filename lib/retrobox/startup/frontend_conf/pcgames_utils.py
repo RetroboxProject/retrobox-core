@@ -2,6 +2,9 @@
 Utilities for syncing installed PC games (Steam, Lutris, Heroic) with
 EmulationStation by generating launcher files (.steam, .lynx, .heroic)
 in the corresponding ROM directories.
+
+Each store is synced according to `[core] <system>_sync` in retrobox.ini
+(see SyncMode): `none`, `on-base-dir` or `follow-roms-dir`.
 """
 
 from __future__ import annotations
@@ -11,22 +14,22 @@ import logging
 import re
 import sqlite3
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from retrobox.paths import safe_mkdir
 
-from .pcgames_paths import (
+from retrobox.startup.frontend_conf.pcgames_paths import (
     _EPIC_JSON,
     _GOG_JSON,
     _HEROIC_SIDELOAD_JSON,
-    _HEROIC_SYSTEM_YAML,
     _INVALID_FILENAME_CHARS,
     _LUTRIS_DB_CANDIDATES,
-    _LUTRIS_SYSTEM_YAML,
     _SKIP_NAME_RE,
     _STEAM_ROOTS,
-    _STEAM_SYSTEM_YAML,
-    resolve_system_roms_dir,
+    PCGAMES_SYSTEMS,
+    SyncMode,
+    get_sync_mode,
+    pcgames_roms_dir,
 )
 
 _logger = logging.getLogger(__name__)
@@ -117,19 +120,12 @@ def lutris_es_sync(target: Path) -> int:
     Scan games installed in Lutris (via its SQLite database) and generate
     a .lynx launcher file for each one in `target`.
 
-    If share/systems_config/lutris/lutris.yaml defines a "path"
-    override, that directory is used instead of `target` (see
-    resolve_system_roms_dir for details).
-
     Args:
-        target: Default directory where .lynx files will be created,
-            used unless overridden by the system's YAML.
+        target: Directory where .lynx files will be created.
 
     Returns:
         The number of launcher files generated.
     """
-    target = resolve_system_roms_dir(_LUTRIS_SYSTEM_YAML, "lutris", target)
-
     lutris_db = next((c for c in _LUTRIS_DB_CANDIDATES if c.is_file()), None)
     if lutris_db is None:
         _logger.debug("Lutris database not found at: %s", _LUTRIS_DB_CANDIDATES)
@@ -163,24 +159,83 @@ def lutris_es_sync(target: Path) -> int:
     return total
 
 
+def _steam_libraries(steam_root: Path) -> list[Path]:
+    """
+    List the Steam library folders, the root one first and without duplicates.
+
+    Args:
+        steam_root: The Steam installation directory.
+
+    Returns:
+        The library directories (empty if libraryfolders.vdf is missing).
+    """
+    library_vdf = next(
+        (
+            candidate
+            for candidate in (
+                steam_root / "steamapps" / "libraryfolders.vdf",
+                steam_root / "libraryfolder.vdf",
+            )
+            if candidate.is_file()
+        ),
+        None,
+    )
+    if library_vdf is None:
+        _logger.debug(
+            "Couldn't find Steam library files (libraryfolders.vdf / libraryfolder.vdf)"
+        )
+        return []
+
+    _logger.debug("Steam library read from: %s", library_vdf)
+    vdf_text = library_vdf.read_text(encoding="utf-8", errors="ignore")
+    paths = [steam_root, *map(Path, re.findall(r'"path"\s*"([^"]*)"', vdf_text, re.IGNORECASE))]
+    return list(dict.fromkeys(paths))
+
+
+def _sync_steam_library(steamapps_dir: Path, target: Path) -> int:
+    """
+    Write a .steam launcher in `target` for each game of one Steam library.
+
+    Args:
+        steamapps_dir: The library's steamapps directory.
+        target: Directory where .steam files will be created.
+
+    Returns:
+        The number of launcher files generated.
+    """
+    total = 0
+    for acf in sorted(steamapps_dir.glob("appmanifest_*.acf")):
+        text = acf.read_text(encoding="utf-8", errors="ignore")
+        appid = _vdf_get(text, "appid")
+        name = _vdf_get(text, "name")
+        if not appid or not name:
+            continue
+        if _SKIP_NAME_RE.search(name):
+            _logger.debug("Skipping: %s (appid: %s)", name, appid)
+            continue
+
+        clean_name = _clear_name(name)
+        link = f"steam://rungameid/{appid}"
+        (target / f"{clean_name}.steam").write_text(link, encoding="utf-8")
+        _logger.debug("%s.steam -> %s", clean_name, link)
+        total += 1
+
+    if total == 0:
+        _logger.info("No Steam games found in: %s", steamapps_dir)
+    return total
+
+
 def steam_es_sync(target: Path) -> int:
     """
     Scan games installed in Steam (across all libraries) and generate
     a .steam launcher file for each one in `target`.
 
-    If share/systems_config/valve/steam.yaml defines a "path"
-    override, that directory is used instead of `target` (see
-    resolve_system_roms_dir for details).
-
     Args:
-        target: Default directory where .steam files will be created,
-            used unless overridden by the system's YAML.
+        target: Directory where .steam files will be created.
 
     Returns:
         The number of launcher files generated.
     """
-    target = resolve_system_roms_dir(_STEAM_SYSTEM_YAML, "steam", target)
-
     steam_root = next((r for r in _STEAM_ROOTS if (r / "steamapps").is_dir()), None)
     if steam_root is None:
         _logger.debug("Steam installation not found at: %s", _STEAM_ROOTS)
@@ -189,86 +244,20 @@ def steam_es_sync(target: Path) -> int:
     _logger.debug("Steam found at: %s", steam_root)
     _clear_pcgame_links(target, "steam")
 
-    library_vdf = next(
-        (
-            c
-            for c in (
-                steam_root / "steamapps" / "libraryfolders.vdf",
-                steam_root / "libraryfolder.vdf",
-            )
-            if c.is_file()
-        ),
-        None,
-    )
-    if library_vdf is None:
-        _logger.debug(
-            "Couldn't find Steam library files (libraryfolders.vdf / libraryfolder.vdf)"
-        )
+    libraries = [lib / "steamapps" for lib in _steam_libraries(steam_root)]
+    libraries = [lib for lib in libraries if lib.is_dir()]
+    if not libraries:
         return 0
 
-    _logger.debug("Steam library read from: %s", library_vdf)
-
-    library_paths = [
-        Path(p)
-        for p in re.findall(
-            r'"path"\s*"([^"]*)"',
-            library_vdf.read_text(encoding="utf-8", errors="ignore"),
-            re.IGNORECASE,
-        )
-    ]
-    library_paths.insert(0, steam_root)
-
-    seen: set[Path] = set()
-    unique_paths: list[Path] = []
-    for p in library_paths:
-        if p in seen:
-            continue
-        seen.add(p)
-        unique_paths.append(p)
-
     safe_mkdir(target)
-
     total = 0
-    found_libs = 0
-
-    for lib in unique_paths:
-        steamapps_dir = lib / "steamapps"
-        if not steamapps_dir.is_dir():
-            continue
-
+    for steamapps_dir in libraries:
         _logger.debug("Library: %s", steamapps_dir)
-        found_libs += 1
-        games_in_lib = 0
-
-        for acf in sorted(steamapps_dir.glob("appmanifest_*.acf")):
-            text = acf.read_text(encoding="utf-8", errors="ignore")
-            appid = _vdf_get(text, "appid")
-            name = _vdf_get(text, "name")
-
-            if not appid or not name:
-                continue
-
-            if _SKIP_NAME_RE.search(name):
-                _logger.debug("Skipping: %s (appid: %s)", name, appid)
-                continue
-
-            clean_name = _clear_name(name)
-            link = f"steam://rungameid/{appid}"
-            file_path = target / f"{clean_name}.steam"
-            file_path.write_text(link, encoding="utf-8")
-            _logger.debug("%s.steam -> %s", clean_name, link)
-
-            games_in_lib += 1
-            total += 1
-
-        if games_in_lib == 0:
-            _logger.info("No Steam games found in: %s", steamapps_dir)
+        total += _sync_steam_library(steamapps_dir, target)
 
     _logger.info(
         "%d Steam launchers generated at %s (%d scanned libraries)",
-        total,
-        target,
-        found_libs,
+        total, target, len(libraries),
     )
     return total
 
@@ -278,19 +267,12 @@ def heroic_es_sync(target: Path) -> int:
     Scan games installed in Heroic (Epic/legendary, GOG, and sideload) and
     generate a .heroic launcher file for each one in `target`.
 
-    If share/systems_config/heroic/heroic.yaml defines a "path"
-    override, that directory is used instead of `target` (see
-    resolve_system_roms_dir for details).
-
     Args:
-        target: Default directory where .heroic files will be created,
-            used unless overridden by the system's YAML.
+        target: Directory where .heroic files will be created.
 
     Returns:
         The number of launcher files generated.
     """
-    target = resolve_system_roms_dir(_HEROIC_SYSTEM_YAML, "heroic", target)
-
     safe_mkdir(target)
     _clear_pcgame_links(target, "heroic")
 
@@ -337,4 +319,36 @@ def heroic_es_sync(target: Path) -> int:
         _logger.info("Not found: %s", _HEROIC_SIDELOAD_JSON)
 
     _logger.info("%d Heroic launchers generated at %s", total, target)
+    return total
+
+
+_SYNCERS: dict[str, Callable[[Path], int]] = {
+    "steam": steam_es_sync,
+    "lutris": lutris_es_sync,
+    "heroic": heroic_es_sync,
+}
+
+
+def sync_pcgames() -> int:
+    """
+    Sync every PC-games store whose `[core] <system>_sync` is not `none`.
+
+    The launchers go to pcgames_roms_dir(<system>), the same directory
+    es_systems.cfg points EmulationStation at.
+
+    Returns:
+        The total number of launcher files generated.
+
+    Raises:
+        DirectoryCreationError: If a target directory can't be created.
+    """
+    total = 0
+    for system in PCGAMES_SYSTEMS:
+        mode = get_sync_mode(system)
+        if mode is SyncMode.NONE:
+            _logger.debug("Skipping %s sync ([core] %s_sync = none)", system, system)
+            continue
+        target = pcgames_roms_dir(system)
+        _logger.info("Syncing %s games (%s) into %s", system, mode.value, target)
+        total += _SYNCERS[system](target)
     return total

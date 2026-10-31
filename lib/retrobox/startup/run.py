@@ -4,9 +4,14 @@ Manages arguments, prepares the environment, generates configurations,
 and launches the frontend (EmulationStation).
 
 Installed PC games (Steam, Heroic, Lutris) are synced into their
-EmulationStation ROM directories before startup when retrobox.ini asks for
-it ([core] steam_sync, heroic_sync, lutris_sync; all off by default).
-Every argument is forwarded to EmulationStation untouched, except the
+EmulationStation ROM directories before startup as retrobox.ini says
+([core] steam_sync, heroic_sync, lutris_sync: none, on-base-dir or
+follow-roms-dir; none by default). If EmulationStation has no theme at all,
+the default one is installed first.
+
+Accepts one flag of its own, "--update-default-theme", which downloads the
+default theme again (updating or reinstalling it) before startup. Every
+other argument is forwarded to EmulationStation untouched, except the
 retired "--pcgames-sync" flag, which is dropped with a warning.
 """
 
@@ -36,11 +41,9 @@ from retrobox.paths import (
     FRONTEND_HOME,
     LOGS,
     RETROBOX_ROOTDIR,
-    ROMS,
     RUNTIME_DIR,
     _USER_ES_DIR,
     DirectoryCreationError,
-    get_ini_bool,
     mkdir_if_not_exists,
 )
 from retrobox.configgen.utils.logger import setup_logging
@@ -51,11 +54,8 @@ from retrobox.startup.frontend_conf.es_ini_generator import (
 )
 from retrobox.startup.frontend_conf.features_list_generator import generate_es_features
 from retrobox.startup.frontend_conf.system_list_generator import generate_es_systems
-from retrobox.startup.frontend_conf.pcgames_utils import (
-    heroic_es_sync,
-    lutris_es_sync,
-    steam_es_sync,
-)
+from retrobox.startup.frontend_conf.pcgames_utils import sync_pcgames
+from retrobox.startup.frontend_conf.theme_bootstrap import ensure_default_theme
 
 _logger = logging.getLogger(__name__)
 
@@ -147,12 +147,13 @@ def setup_emulationstation_config() -> None:
     generate_es_features()
 
 
-def run_emulationstation(args: list[str]) -> int:
+def run_emulationstation(args: list[str], update_theme: bool = False) -> int:
     """
     Execute the EmulationStation binary with the provided arguments.
 
     Args:
         args: List of command-line arguments to pass to EmulationStation.
+        update_theme: Download the default theme again before starting.
 
     Returns:
         The return code of the EmulationStation process.
@@ -169,6 +170,8 @@ def run_emulationstation(args: list[str]) -> int:
     if not ES_EXECUTABLE.is_file():
         _logger.error("EmulationStation binary not found at %s", ES_EXECUTABLE)
         return 1
+
+    ensure_default_theme(update=update_theme)
 
     _logger.info("=========")
 
@@ -236,26 +239,7 @@ def _handle_sigterm(signum: int, frame: types.FrameType | None) -> None:
 # Replaced by the [core] *_sync keys of retrobox.ini; still dropped so that
 # old shortcuts don't pass it on to EmulationStation.
 _RETIRED_PCGAMES_SYNC_FLAG = "--pcgames-sync"
-
-# [core] key -> (sync function, ROM directory name)
-_PCGAMES_SYNCS = (
-    ("steam_sync", steam_es_sync, "steam"),
-    ("heroic_sync", heroic_es_sync, "heroic"),
-    ("lutris_sync", lutris_es_sync, "lutris"),
-)
-
-
-def sync_pcgames() -> None:
-    """Sync the PC game launchers that retrobox.ini enables ([core] *_sync).
-
-    Raises:
-        DirectoryCreationError: a ROM directory could not be created.
-    """
-    for key, sync, system in _PCGAMES_SYNCS:
-        if get_ini_bool("core", key):
-            sync(ROMS / system)
-        else:
-            _logger.debug("Skipping the %s sync ([core] %s is off).", system, key)
+_UPDATE_THEME_FLAG = "--update-default-theme"
 
 
 def main() -> int:
@@ -271,9 +255,10 @@ def main() -> int:
 def _main() -> int:
     """Run the main entry point for the Retrobox startup script.
 
-    Syncs the installed PC games that retrobox.ini enables (see
-    sync_pcgames()) and passes every argument straight through to the
-    "emulationstation" binary, except the retired "--pcgames-sync".
+    Syncs the installed PC games as retrobox.ini says (see sync_pcgames())
+    and passes every argument straight through to the "emulationstation"
+    binary, except "--update-default-theme" (consumed here) and the retired
+    "--pcgames-sync".
 
     Returns:
         The exit code of the application.
@@ -282,6 +267,9 @@ def _main() -> int:
     signal.signal(signal.SIGTERM, _handle_sigterm)
 
     args = sys.argv[1:]
+    update_theme = _UPDATE_THEME_FLAG in args
+    if update_theme:
+        args = [arg for arg in args if arg != _UPDATE_THEME_FLAG]
     if _RETIRED_PCGAMES_SYNC_FLAG in args:
         args = [arg for arg in args if arg != _RETIRED_PCGAMES_SYNC_FLAG]
         _logger.warning(
@@ -307,7 +295,7 @@ def _main() -> int:
 
     try:
         _logger.info("=========")
-        return run_emulationstation(args)
+        return run_emulationstation(args, update_theme=update_theme)
     finally:
         teardown()
 

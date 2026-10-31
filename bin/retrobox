@@ -25,9 +25,11 @@
 # All of the above are maintenance operations: they run and then exit,
 # they don't start the frontend afterwards. Any other argument is passed
 # through to retrobox.startup (lib/retrobox/startup/run.py) untouched, which
-# hands it to EmulationStation. Syncing installed PC games (Steam, Heroic,
-# Lutris) before the frontend starts is set in retrobox.ini: steam_sync,
-# heroic_sync and lutris_sync under [core].
+# hands it to EmulationStation, except --update-default-theme: retrobox.startup
+# consumes it, downloads the default theme (es-theme-iconic) again and then
+# starts the frontend. Syncing installed PC games (Steam, Heroic, Lutris)
+# before the frontend starts is set in retrobox.ini: steam_sync, heroic_sync
+# and lutris_sync under [core].
 set -eo pipefail
 # readlink -f (not just dirname) so this also works when invoked through a
 # symlink such as /usr/bin/retrobox -> /opt/retrobox/bin/retrobox.
@@ -119,12 +121,21 @@ Usage: $(basename "${BASH_SOURCE[0]}") [OPTIONS] [-- ARGS...]
 --version                   Print the installed version and exit.
 -h, --help                  Show this help and exit.
 
+--update-default-theme      Download the default theme (es-theme-iconic)
+                            again, updating it or reinstalling it if it
+                            was removed, then start the frontend. Without
+                            it, the theme is only installed when there is
+                            no theme at all.
+
 Anything else is forwarded as-is to retrobox.startup (lib/retrobox/startup/run.py),
 which in turn passes it to the frontend (EmulationStation).
 
 Syncing installed PC games into their EmulationStation ROM directories
 before the frontend starts is set in retrobox.ini, under [core]:
-steam_sync, heroic_sync and lutris_sync (true/false, off by default).
+steam_sync, heroic_sync and lutris_sync, each one of
+  none             don't sync (default)
+  on-base-dir      always <data dir>/roms/<steam|heroic|lutris>
+  follow-roms-dir  <roms_dir>/<steam|heroic|lutris>
 
 With no options, Retrobox runs the platform setup automatically the first
 time (and only the first time) it's launched, then starts the frontend.

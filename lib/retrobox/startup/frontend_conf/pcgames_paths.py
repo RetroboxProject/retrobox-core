@@ -1,24 +1,24 @@
-"""Path/candidate lookup helpers for the Steam, Lutris and Heroic sync."""
+"""Paths, candidates and sync modes for the Steam, Lutris and Heroic sync."""
 
+import functools
 import logging
 import os
-from pathlib import Path
 import re
-
-import yaml
-from yaml.parser import ParserError
-from yaml.scanner import ScannerError
+from enum import Enum
+from pathlib import Path
+from typing import Final
 
 from retrobox.paths import (
     _USER_HOME,
     _XDG_CONFIG,
     _XDG_DATA,
-    FRONTEND_DIR,
-    SYSTEMS_CONF_DIR,
-    layered_file,
+    DATA_DIR,
+    ROMS,
+    get_ini_value,
 )
 
 _logger = logging.getLogger(__name__)
+
 
 def _env_paths(var_name: str) -> tuple[Path, ...]:
     """Read an `os.pathsep`-separated environment variable into paths.
@@ -34,6 +34,7 @@ def _env_paths(var_name: str) -> tuple[Path, ...]:
     if not raw:
         return ()
     return tuple(Path(p).expanduser() for p in raw.split(os.pathsep) if p.strip())
+
 
 _LUTRIS_DB_CANDIDATES = (
     _XDG_DATA / "lutris" / "pga.db",
@@ -58,101 +59,86 @@ _EPIC_JSON = _HEROIC_CONFIG / "legendaryConfig" / "legendary" / "installed.json"
 _GOG_JSON = _HEROIC_CONFIG / "gog_store" / "installed.json"
 _HEROIC_SIDELOAD_JSON = _HEROIC_CONFIG / "sideload_apps" / "library.json"
 
-# systems_config YAML files that define each PC-games system, used to look
-# up an optional ROM-directory override (see resolve_system_roms_dir below).
-# The highest-priority layer (user > /etc/retrobox > shipped) wins.
-_STEAM_SYSTEM_YAML = layered_file("systems_config/valve/steam.yaml") or SYSTEMS_CONF_DIR / "valve" / "steam.yaml"
-_LUTRIS_SYSTEM_YAML = layered_file("systems_config/lutris/lutris.yaml") or SYSTEMS_CONF_DIR / "lutris" / "lutris.yaml"
-_HEROIC_SYSTEM_YAML = layered_file("systems_config/heroic/heroic.yaml") or SYSTEMS_CONF_DIR / "heroic" / "heroic.yaml"
 
+class SyncMode(str, Enum):
+    """How the launchers of one PC-games store are synced into ES.
 
-def resolve_system_roms_dir(yaml_path: Path, system_key: str, default: Path) -> Path:
+    Read from `[core] <system>_sync` in retrobox.ini (e.g. `steam_sync`).
     """
-    Resolve the ROM directory to use for a PC-games system, honoring an
-    optional "path" override defined in its systems_config YAML file.
 
-    This lets a system's ROM folder live somewhere other than under
-    ROMS_DIR (e.g. on a separate disk that may not always be mounted),
-    by declaring its own "path" in
-    share/systems_config/.../<system>.yaml:
+    # Don't sync anything (default).
+    NONE = "none"
+    # Always use <data_dir>/roms/<system>, wherever roms_dir points.
+    ON_BASE_DIR = "on-base-dir"
+    # Use <roms_dir>/<system>, i.e. follow the configured ROMs directory.
+    FOLLOW_ROMS_DIR = "follow-roms-dir"
 
-        lutris:
-          path: ../roms/lutris
-          ...
 
-    That "path" may be absolute, or relative to $RETROBOX_ROOT/frontend
-    (FRONTEND_DIR) -- the same base EmulationStation resolves "path"
-    against for the equivalent entries in es_systems.cfg.
+# ES system name (top-level key of its systems_config YAML) of each store.
+PCGAMES_SYSTEMS: Final[tuple[str, ...]] = ("steam", "lutris", "heroic")
 
-    If the override resolves to a directory that doesn't exist yet (e.g.
-    its disk isn't mounted) or isn't writable, `default` is used instead.
+# The yes/no values these keys took in v0.0.25, mapped to the closest mode
+# (that version synced into <roms_dir>/<system>).
+_LEGACY_VALUES: Final[dict[str, SyncMode]] = {
+    **dict.fromkeys(("true", "1", "yes", "on"), SyncMode.FOLLOW_ROMS_DIR),
+    **dict.fromkeys(("false", "0", "no", "off"), SyncMode.NONE),
+}
+
+
+@functools.cache
+def get_sync_mode(system: str) -> SyncMode:
+    """
+    Read the sync mode of a PC-games store from retrobox.ini.
 
     Args:
-        yaml_path: Path to the system's YAML definition file.
-        system_key: Top-level key inside the YAML (e.g. "lutris").
-        default: Directory to fall back to if the YAML defines no
-            override, the override isn't usable, or the YAML can't be
-            read/parsed.
+        system: ES system name of the store (one of PCGAMES_SYSTEMS).
 
     Returns:
-        The resolved Path to use as the sync target.
+        The configured SyncMode; SyncMode.NONE when the key is unset or
+        holds an unknown value (the latter with a warning). The old
+        yes/no values are still accepted, with a warning. Cached: the
+        ini doesn't change while Retrobox runs, and this way an invalid
+        value is only reported once.
     """
-    if not yaml_path.is_file():
-        return default
-
+    key = f"{system}_sync"
+    raw = get_ini_value("core", key, SyncMode.NONE.value).lower()
     try:
-        data = yaml.safe_load(yaml_path.read_text(encoding="utf-8"))
-    except (OSError, ScannerError, ParserError) as exc:
-        _logger.debug("Couldn't read %s: %s", yaml_path, exc)
-        return default
+        return SyncMode(raw)
+    except ValueError:
+        pass
 
-    if not isinstance(data, dict):
-        return default
-
-    sys_content = data.get(system_key)
-    if not isinstance(sys_content, dict):
-        return default
-
-    raw_path = sys_content.get("path")
-    if not raw_path:
-        return default
-
-    path = Path(str(raw_path)).expanduser()
-    if not path.is_absolute():
-        path = (FRONTEND_DIR / path).resolve()
-
-    if not _is_usable_roms_dir(path):
+    expected = ", ".join(mode.value for mode in SyncMode)
+    legacy = _LEGACY_VALUES.get(raw)
+    if legacy is not None:
         _logger.warning(
-            "Alternate ROMs path for '%s' (%s, from %s) doesn't exist or isn't "
-            "writable, falling back to %s",
-            system_key, path, yaml_path, default,
+            "[core] %s = %s is deprecated (expected one of: %s); using %s",
+            key, raw, expected, legacy.value,
         )
-        return default
+        return legacy
 
-    if path != default:
-        _logger.info(
-            "Using alternate ROMs path for '%s' (from %s): %s",
-            system_key, yaml_path, path,
-        )
-
-    return path
+    _logger.warning(
+        "[core] %s = %s is not valid (expected one of: %s); not syncing %s",
+        key, raw, expected, system,
+    )
+    return SyncMode.NONE
 
 
-def _is_usable_roms_dir(path: Path) -> bool:
+def pcgames_roms_dir(system: str) -> Path:
     """
-    Check whether `path` is a directory that can actually be written to.
+    Directory that holds the launchers of a PC-games store.
 
-    Deliberately does NOT create `path` if it's missing: for an override
-    coming from an unmounted disk, the directory simply won't be there,
-    and blindly mkdir-ing it would create a phantom folder on the wrong
-    filesystem instead of surfacing the problem so we can fall back.
+    It is both where the sync writes and the `path` es_systems.cfg gives
+    EmulationStation for that system, so both always agree. With
+    SyncMode.NONE nothing is written, but the system still points at
+    <roms_dir>/<system>, like any other system.
 
     Args:
-        path: The candidate ROMs directory to check.
+        system: ES system name of the store (one of PCGAMES_SYSTEMS).
 
     Returns:
-        True if `path` exists, is a directory, and is writable.
+        <data_dir>/roms/<system> for SyncMode.ON_BASE_DIR, otherwise
+        <roms_dir>/<system>.
     """
-    if not path.is_dir():
-        return False
-    return os.access(path, os.W_OK | os.X_OK)
+    if get_sync_mode(system) is SyncMode.ON_BASE_DIR:
+        return DATA_DIR / "roms" / system
+    return ROMS / system

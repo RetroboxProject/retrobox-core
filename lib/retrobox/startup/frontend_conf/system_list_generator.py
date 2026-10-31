@@ -17,6 +17,7 @@ from retrobox.paths import (
     ES_SYSTEMS_TMP,
     ROMS,
 )
+from retrobox.startup.frontend_conf.pcgames_paths import PCGAMES_SYSTEMS, pcgames_roms_dir
 
 _logger = logging.getLogger(__name__)
 
@@ -91,96 +92,104 @@ def _system_yaml_files(base_path: Path | None) -> list[str]:
     return sorted(str(p) for p in Path(base_path).rglob("*.yaml"))
 
 
+def _load_system(yaml_path: str) -> tuple[str, dict] | None:
+    """
+    Read one system definition.
+
+    Args:
+        yaml_path: The system's YAML file.
+
+    Returns:
+        (system name, its settings), or None if the file is invalid, empty
+        or the system is listed in [core] ignore_systems.
+    """
+    try:
+        with open(yaml_path, "r", encoding="utf-8") as f:
+            data = yaml.safe_load(f)
+    except (ScannerError, ParserError) as e:
+        _logger.error("YAML syntax error while reading %s: %s", yaml_path, e)
+        return None
+
+    if not isinstance(data, dict) or not data:
+        return None
+
+    sys_name, sys_content = next(iter(data.items()))
+    if not isinstance(sys_content, dict):
+        return None
+    if sys_name.lower() in IGNORED_SYSTEMS:
+        _logger.info(
+            "Skipping '%s' (listed in [core] ignore_systems): %s", sys_name, yaml_path
+        )
+        return None
+    return sys_name, sys_content
+
+
+def _append_system(root: ET.Element, sys_name: str, sys_content: dict) -> None:
+    """Append the <system> node of one system to `root`, filling in defaults."""
+    if sys_name in PCGAMES_SYSTEMS:
+        # Must match where the PC-games sync writes ([core] <system>_sync).
+        sys_content["path"] = str(pcgames_roms_dir(sys_name))
+    else:
+        sys_content.setdefault("path", str(ROMS / sys_name))
+    sys_content.setdefault("command", " ".join(DEFAULT_COMMAND))
+
+    system_elem = ET.SubElement(root, "system")
+    ET.SubElement(system_elem, "name").text = sys_name
+
+    for key, value in sys_content.items():
+        if key == "name":
+            continue
+
+        child_elem = ET.SubElement(system_elem, key)
+        if key in ("platform", "extension"):
+            child_elem.text = " ".join(value) if isinstance(value, list) else str(value)
+        elif key == "emulators":
+            _append_emulator_nodes(child_elem, value)
+        else:
+            child_elem.text = str(value) if value is not None else ""
+
+
+def _to_pretty_xml(root: ET.Element) -> str:
+    """Serialize `root` indented with tabs, without blank lines."""
+    pretty_xml = minidom.parseString(ET.tostring(root, "utf-8")).toprettyxml(indent="\t")
+    lines = [
+        line for line in pretty_xml.splitlines()
+        if line.strip() and not line.lstrip().startswith("<?xml")
+    ]
+    return "\n".join(['<?xml version="1.0" encoding="UTF-8"?>', *lines])
+
+
+def _unlink_if_present(path: Path) -> None:
+    """Remove a file or symlink (even a dangling one) if it exists."""
+    if path.exists() or path.is_symlink():
+        path.unlink()
+
+
 def generate_es_systems(base_path: Path | None = None, output_path: Path = ES_SYSTEMS_TMP):
     """Rebuild es_systems.cfg from the (layered) systems_config YAML tree."""
     yaml_files = _system_yaml_files(base_path)
 
     _logger.info("Begin generating %s", output_path)
 
-    if output_path.exists() or output_path.is_symlink():
-        output_path.unlink()
-
-    if output_path != ES_SYSTEMS_CFG and \
-    (ES_SYSTEMS_CFG.exists() or ES_SYSTEMS_CFG.is_symlink()):
-        ES_SYSTEMS_CFG.unlink()
-
-    output_cfg_file: str = str(output_path)
+    _unlink_if_present(output_path)
+    if output_path != ES_SYSTEMS_CFG:
+        _unlink_if_present(ES_SYSTEMS_CFG)
 
     root = ET.Element("systemList")
-
     for yaml_path in yaml_files:
-        try:
-            with open(yaml_path, 'r', encoding='utf-8') as f:
-                data = yaml.safe_load(f)
-        except (ScannerError, ParserError) as e:
-            _logger.error("YAML syntax error while reading %s: %s", yaml_path, e)
-            continue
+        system = _load_system(yaml_path)
+        if system is not None:
+            _append_system(root, *system)
 
-        if not isinstance(data, dict) or not data:
-            continue
-
-        sys_name, sys_content = next(iter(data.items()))
-
-        if sys_name.lower() in IGNORED_SYSTEMS:
-            _logger.info(
-                "Skipping '%s' (listed in [core] ignore_systems): %s",
-                sys_name, yaml_path,
-            )
-            continue
-
-        system_elem = ET.SubElement(root, "system")
-        name_elem = ET.SubElement(system_elem, "name")
-        name_elem.text = sys_name
-        if "path" not in sys_content:
-            sys_content["path"] = str(Path(f"{ROMS}/{sys_name}"))
-
-        # Ensure the 'command' field is present if it's missing from the YAML
-        if "command" not in sys_content:
-            sys_content["command"] = " ".join(DEFAULT_COMMAND)
-
-        for key, value in sys_content.items():
-            if key == "name":
-                continue
-
-            child_elem = ET.SubElement(system_elem, key)
-
-            if key in ["platform", "extension"]:
-                child_elem.text = " ".join(value) if isinstance(value, list) else str(value)
-            elif key == "emulators":
-                _append_emulator_nodes(child_elem, value)
-            else:
-                child_elem.text = str(value) if value is not None else ""
-
-    rough_string = ET.tostring(root, 'utf-8')
-    reparsed = minidom.parseString(rough_string)
-    pretty_xml = reparsed.toprettyxml(indent="\t", encoding="utf-8")
-
-    decoded_xml = pretty_xml.decode('utf-8')
-    clean_lines = []
-
-    for line in decoded_xml.splitlines():
-        stripped = line.strip()
-        if stripped and not stripped.startswith("<?xml"):
-            clean_lines.append(line)
-
-    final_lines = ['<?xml version="1.0" encoding="UTF-8"?>'] + clean_lines
-    final_xml = "\n".join(final_lines)
-
-    with open(output_cfg_file, 'w', encoding='utf-8') as f:
-        f.write(final_xml)
-    _logger.info("Successfully generated: %s", output_cfg_file)
+    output_path.write_text(_to_pretty_xml(root), encoding="utf-8")
+    _logger.info("Successfully generated: %s", output_path)
 
     if output_path != ES_SYSTEMS_CFG:
         try:
-            if ES_SYSTEMS_CFG.exists() or ES_SYSTEMS_CFG.is_symlink():
-                ES_SYSTEMS_CFG.unlink()
             ES_SYSTEMS_CFG.symlink_to(output_path)
             _logger.info("Successfully linked: %s", ES_SYSTEMS_CFG)
         except FileNotFoundError as e:
-            _logger.error(
-                "Can't create symlink in %s: %s",
-                ES_SYSTEMS_CFG.parent, e
-            )
+            _logger.error("Can't create symlink in %s: %s", ES_SYSTEMS_CFG.parent, e)
             raise
 
     _logger.info("=========")

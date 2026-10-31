@@ -82,10 +82,14 @@ cat > "${DESTDIR}${SYSCONF_DIR}/retrobox.ini" <<'EOF'
 #autocorrect_paths = true
 ## Systems to hide from the menu, e.g. gba,psp
 #ignore_systems =
-## Add the installed PC games of each launcher to its system on every start
-#steam_sync  = false
-#heroic_sync = false
-#lutris_sync = false
+## Add the installed PC games of each launcher to its system on every start:
+##   none            don't sync anything
+##   on-base-dir     always <data_dir>/roms/<steam|heroic|lutris>
+##   follow-roms-dir <roms_dir>/<steam|heroic|lutris> (roms_dir may be
+##                   <data_dir>/roms or anywhere else)
+#steam_sync  = none
+#heroic_sync = none
+#lutris_sync = none
 
 #[paths]
 ## Move everything Retrobox keeps (default: ~/.local/share/retrobox and
