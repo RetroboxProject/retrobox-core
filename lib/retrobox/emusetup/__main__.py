@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 from .app import Options, SetupScreen
+from .i18n import pick_language
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -29,6 +30,13 @@ def main(argv: list[str] | None = None) -> int:
         "--pad-map", action="append", default=[], metavar="NAME=TYPE:ID:VALUE",
         help="player 1 input from es_input.cfg (repeatable)",
     )
+    parser.add_argument("--menu-font", type=Path, help="font of the message and buttons")
+    parser.add_argument("--help-font", type=Path, help="font of the hint line")
+    parser.add_argument(
+        "--lang", help="language of the texts (default: from the system locale)"
+    )
+    parser.add_argument("--icon", type=Path, help="window icon (PNG)")
+    parser.add_argument("--wm-class", help="X11 WM_CLASS / Wayland app_id of the window")
     parser.add_argument("command", nargs=argparse.REMAINDER, help="installer command, after --")
     args = parser.parse_args(argv)
     command = args.command[1:] if args.command[:1] == ["--"] else args.command
@@ -44,6 +52,11 @@ def main(argv: list[str] | None = None) -> int:
             pad_guid=args.pad_guid,
             pad_device=args.pad_device,
             pad_mapping=args.pad_map,
+            menu_font=args.menu_font,
+            help_font=args.help_font,
+            language=args.lang or pick_language(),
+            icon=args.icon,
+            wm_class=args.wm_class,
         )
     ).run()
 

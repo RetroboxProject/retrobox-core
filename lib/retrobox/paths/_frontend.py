@@ -10,7 +10,7 @@ import shutil
 from pathlib import Path
 from typing import Final
 
-from ._base import CONFIG_DIR, DATA_DIR, DEFAULTS_DIR, RETROBOX_ROOTDIR, RUNTIME_DIR
+from ._base import CONFIG_DIR, DATA_DIR, RETROBOX_ROOTDIR, RUNTIME_DIR
 
 # FRONTEND_DIR: the (read-only) frontend install: binary, resources and the
 # themes installed by theme packages (retrobox-core ships none).
@@ -27,6 +27,9 @@ THEMES_DIR: Final = DATA_DIR / "themes"
 MUSIC_DIR: Final = DATA_DIR / "music"
 
 _USER_ES_DIR: Final = FRONTEND_HOME / ".emulationstation"
+# X11 WM_CLASS / Wayland app_id of every Retrobox window (EmulationStation and
+# the emulator setup screen); StartupWMClass of retrobox.desktop.
+ES_WM_CLASS: Final = "retrobox-emulationstation"
 ES_SETTINGS_CFG: Final = _USER_ES_DIR / "es_settings.cfg"
 ES_FEATURES_CFG: Final = _USER_ES_DIR / "es_features.cfg"
 ES_SYSTEMS_CFG: Final = _USER_ES_DIR / "es_systems.cfg"
@@ -48,3 +51,5 @@ ES_EXECUTABLE: Final = (
 _ES_RESOURCES_DIR: Final = FRONTEND_DIR / "resources"
 ES_WHEELS_METADATA: Final = _ES_RESOURCES_DIR / "wheelgames.xml"
 ES_GAMES_METADATA: Final = _ES_RESOURCES_DIR / "gamesdb.xml"
+# Where EmulationStation looks for its ":/" resources (e.g. its default font).
+ES_RESOURCE_DIRS: Final = (_ES_RESOURCES_DIR, _USER_ES_DIR / "resources")

@@ -5,6 +5,10 @@ with SDL2's renderer; text is rasterised once per change with Pillow and kept
 in textures, so the screen only redraws when something changes (at most
 ``_MAX_FPS`` times a second while the installer is printing) and sleeps in
 SDL_WaitEvent the rest of the time.
+
+The message and the buttons use the menu font of the EmulationStation theme
+and the hint line its help font (see ``theme``), unless they lack a glyph the
+current language needs; the texts follow the language of ``i18n``.
 """
 
 from __future__ import annotations
@@ -21,6 +25,7 @@ from typing import TYPE_CHECKING, NamedTuple
 import sdl2
 from PIL import Image, ImageDraw, ImageFont
 
+from .i18n import DEFAULT_LANGUAGE, Texts, texts_for
 from .keys import key_bytes
 from .pad import Action, PadInput, parse_mapping
 from .process import InstallerProcess
@@ -45,6 +50,7 @@ _CURSOR = (200, 200, 200)
 _ACCENT = (0, 95, 184)
 _SCROLL_STEP = 3
 _TERM_PAD = 8
+_ICON_SIZE = 128
 
 # clipboard tools that keep serving the text after the window is gone
 _CLIPBOARD_TOOLS = (
@@ -96,6 +102,11 @@ class Options:  # pylint: disable=too-many-instance-attributes
     pad_guid: str | None = None
     pad_device: str | None = None
     pad_mapping: Sequence[str] = field(default_factory=tuple)
+    menu_font: Path | None = None
+    help_font: Path | None = None
+    language: str = DEFAULT_LANGUAGE
+    icon: Path | None = None
+    wm_class: str | None = None
 
 
 # ---------------------------------------------------------------------- fonts
@@ -116,16 +127,53 @@ def _font_file(pattern: str) -> str | None:
     return next((path for path in _FONT_FALLBACKS[pattern] if Path(path).is_file()), None)
 
 
+def _covers(font: _Font, text: str) -> bool:
+    """Whether ``font`` has a glyph for every visible character of ``text``.
+
+    A missing character is drawn with the font's "missing glyph" (glyph 0),
+    the same one a private-use code point gets.
+    """
+    if not isinstance(font, ImageFont.FreeTypeFont):
+        return True
+    missing = _glyph(font, "\U0010fffd")
+    return all(_glyph(font, char) != missing for char in set(text) if not char.isspace())
+
+
+def _glyph(font: ImageFont.FreeTypeFont, char: str) -> tuple[tuple[int, int], bytes]:
+    """The size and pixels ``font`` draws for ``char``."""
+    left, top, right, bottom = font.getbbox(char)
+    image = Image.new("L", (max(1, int(right - left)), max(1, int(bottom - top))))
+    ImageDraw.Draw(image).text((-left, -top), char, font=font, fill=255)
+    return image.size, image.tobytes()
+
+
 class _Fonts:  # pylint: disable=too-few-public-methods
-    """The fonts of one layout, sized from the screen height."""
+    """The fonts of one layout, sized from the screen height.
+
+    ``themed`` is the theme's (menu, help) font files; ``sample`` is all the
+    text the screen may show, to reject a themed font missing some glyph.
+    """
 
     _files: dict[str, str | None] = {}
 
-    def __init__(self, height: int) -> None:
-        self.title = self._load("sans-serif:bold", max(18, round(height / 24)))
-        self.button = self._load("sans-serif", max(14, round(height / 40)))
-        self.hint = self._load("sans-serif", max(11, round(height / 64)))
+    def __init__(
+        self, height: int, themed: tuple[Path | None, Path | None], sample: str
+    ) -> None:
+        menu, help_font = themed
+        self.title = self._themed(menu, "sans-serif:bold", max(18, round(height / 24)), sample)
+        self.button = self._themed(menu, "sans-serif", max(14, round(height / 40)), sample)
+        self.hint = self._themed(help_font, "sans-serif", max(11, round(height / 64)), sample)
         self.mono = self._load("monospace", max(11, round(height / 60)))
+
+    @classmethod
+    def _themed(cls, path: Path | None, pattern: str, size: int, sample: str) -> _Font:
+        """The theme's font if it can draw ``sample``, else the system one."""
+        if path is not None:
+            with contextlib.suppress(OSError):
+                font = ImageFont.truetype(str(path), size)
+                if _covers(font, sample):
+                    return font
+        return cls._load(pattern, size)
 
     @classmethod
     def _load(cls, pattern: str, size: int) -> _Font:
@@ -206,6 +254,7 @@ class SetupScreen:  # pylint: disable=too-many-instance-attributes,too-few-publi
 
     def __init__(self, options: Options) -> None:
         self._options = options
+        self._texts: Texts = texts_for(options.language)
         self._state = State.ASK
         self._terminal = TerminalBuffer()
         self._process: InstallerProcess | None = None
@@ -243,6 +292,12 @@ class SetupScreen:  # pylint: disable=too-many-instance-attributes,too-few-publi
         sdl2.SDL_SetHint(sdl2.SDL_HINT_RENDER_SCALE_QUALITY, b"1")
         sdl2.SDL_SetHint(sdl2.SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, b"1")
         sdl2.SDL_SetHint(sdl2.SDL_HINT_VIDEO_MINIMIZE_ON_FOCUS_LOSS, b"0")
+        if self._options.wm_class:
+            # WM_CLASS on X11, app_id on Wayland: what ties the window to the
+            # desktop entry (its icon and name in the task bar)
+            wm_class = self._options.wm_class.encode()
+            sdl2.SDL_SetHint(b"SDL_VIDEO_X11_WMCLASS", wm_class)
+            sdl2.SDL_SetHint(b"SDL_VIDEO_WAYLAND_WMCLASS", wm_class)
         if sdl2.SDL_Init(sdl2.SDL_INIT_VIDEO | sdl2.SDL_INIT_GAMECONTROLLER) != 0:
             return EXIT_UNAVAILABLE
         try:
@@ -278,6 +333,7 @@ class SetupScreen:  # pylint: disable=too-many-instance-attributes,too-few-publi
         )
         if not self._window:
             return False
+        self._set_icon()
         for flags in (sdl2.SDL_RENDERER_PRESENTVSYNC, sdl2.SDL_RENDERER_SOFTWARE):
             self._renderer = sdl2.SDL_CreateRenderer(self._window, -1, flags)
             if self._renderer:
@@ -292,6 +348,26 @@ class SetupScreen:  # pylint: disable=too-many-instance-attributes,too-few-publi
         self._layout()
         self._shown_at = sdl2.SDL_GetTicks()
         return True
+
+    def _set_icon(self) -> None:
+        """Use the application menu's logo as the window icon (X11; Wayland
+        takes it from the desktop entry matching the app_id)."""
+        path = self._options.icon
+        if path is None:
+            return
+        try:
+            with Image.open(path) as image:
+                icon = image.convert("RGBA")
+        except (OSError, ValueError):
+            return
+        icon.thumbnail((_ICON_SIZE, _ICON_SIZE))
+        pixels = icon.tobytes()
+        surface = sdl2.SDL_CreateRGBSurfaceWithFormatFrom(
+            pixels, icon.width, icon.height, 32, icon.width * 4, sdl2.SDL_PIXELFORMAT_RGBA32
+        )
+        if surface:
+            sdl2.SDL_SetWindowIcon(self._window, surface)  # SDL keeps its own copy
+            sdl2.SDL_FreeSurface(surface)
 
     def _load_background(self) -> _Texture | None:
         path = self._options.background
@@ -319,7 +395,10 @@ class SetupScreen:  # pylint: disable=too-many-instance-attributes,too-few-publi
         sdl2.SDL_GetRendererOutputSize(self._renderer, ctypes.byref(width), ctypes.byref(height))
         if (width.value, height.value) != (self._width, self._height) or self._fonts is None:
             self._width, self._height = width.value, height.value
-            self._fonts = _Fonts(self._height)
+            options = self._options
+            self._fonts = _Fonts(
+                self._height, (options.menu_font, options.help_font), self._sample_text()
+            )
         self._free_textures()
         self._layout_message()
         self._layout_buttons()
@@ -327,14 +406,18 @@ class SetupScreen:  # pylint: disable=too-many-instance-attributes,too-few-publi
         self._set_hint(self._default_hint())
         self._dirty = True
 
+    def _sample_text(self) -> str:
+        """Every text this screen can show (to check the fonts' glyphs)."""
+        return "".join(self._texts) + self._options.label + "0123456789/:.()~"
+
     def _layout_message(self) -> None:
-        label = self._options.label
+        texts = self._texts
         message = {
-            State.ASK: f"The emulator {label} is not installed. Install it?",
-            State.INSTALLING: f"Installing {label}, please wait",
-            State.FAILED: f"Error installing {label}",
-            State.DONE: f"Success installing {label}",
-        }[self._state]
+            State.ASK: texts.ask,
+            State.INSTALLING: texts.installing,
+            State.FAILED: texts.failed,
+            State.DONE: texts.done,
+        }[self._state].format(label=self._options.label)
         self._message = _render_text(self._renderer, message, self._fonts.title)
         if self._state is State.ASK:
             top = self._height * 45 // 100 - self._message.height
@@ -344,10 +427,11 @@ class SetupScreen:  # pylint: disable=too-many-instance-attributes,too-few-publi
 
     def _layout_buttons(self) -> None:
         """Size the buttons of the state and centre them in a row below the message."""
+        texts = self._texts
         labels = {
-            State.ASK: (("Yes", "yes"), ("No", "no")),
-            State.FAILED: (("OK", "ok"),),
-            State.DONE: (("OK", "ok"),),
+            State.ASK: ((texts.yes, "yes"), (texts.no, "no")),
+            State.FAILED: ((texts.ok, "ok"),),
+            State.DONE: ((texts.ok, "ok"),),
         }.get(self._state, ())
         font = self._fonts.button
         height = round(font.size * 2.2) if isinstance(font, ImageFont.FreeTypeFont) else 40
@@ -381,13 +465,17 @@ class SetupScreen:  # pylint: disable=too-many-instance-attributes,too-few-publi
         return self._columns, self._page() + 1
 
     def _default_hint(self) -> str:
+        texts = self._texts
         if self._state is State.ASK:
-            return "A / Enter: select     B / Esc: cancel"
-        if self._state is State.INSTALLING:
-            return ("Type here if the installer asks (e.g. sudo password)     "
-                    "Ctrl+Shift+C / V: copy / paste     PgUp / PgDn: scroll")
-        log = str(self._options.log_path).replace(str(Path.home()), "~", 1)
-        return f"A / Enter: continue     Ctrl+C: copy log     Full log: {log}"
+            parts = (f"A / Enter: {texts.select}", f"B / Esc: {texts.cancel}")
+        elif self._state is State.INSTALLING:
+            parts = (texts.type_here, f"Ctrl+Shift+C / V: {texts.copy_paste}",
+                     f"PgUp / PgDn: {texts.scroll}")
+        else:
+            log = str(self._options.log_path).replace(str(Path.home()), "~", 1)
+            parts = (f"A / Enter: {texts.continue_}", f"Ctrl+C: {texts.copy_log}",
+                     f"{texts.full_log}: {log}")
+        return "     ".join(parts)
 
     def _set_hint(self, text: str) -> None:
         if text == self._hint_text and self._hint is not None:
@@ -636,8 +724,7 @@ class SetupScreen:  # pylint: disable=too-many-instance-attributes,too-few-publi
         if not text:
             return
         _copy_to_clipboard(text)
-        lines = text.count("\n") + 1
-        self._set_hint(f"Copied {lines} line{'s' if lines != 1 else ''} to the clipboard")
+        self._set_hint(self._texts.copied.format(lines=text.count("\n") + 1))
 
     # -------------------------------------------------------------- install
     def _start_install(self) -> None:
@@ -648,7 +735,7 @@ class SetupScreen:  # pylint: disable=too-many-instance-attributes,too-few-publi
             self._process.start(self._options.command, self._options.log_path, self._term_size())
         except OSError as error:
             self._process = None
-            self._terminal.feed(f"Cannot run the installer: {error}\n")
+            self._terminal.feed(self._texts.cannot_run.format(error=error) + "\n")
             self._set_state(State.FAILED)
 
     def _collect_output(self) -> None:
@@ -668,10 +755,10 @@ class SetupScreen:  # pylint: disable=too-many-instance-attributes,too-few-publi
     def _finish(self, status: int) -> None:
         check = self._options.check_path
         if status == 0 and check is not None and not check.exists():
-            self._terminal.feed(f"\nThe installer finished, but {check} is still missing.\n")
+            self._terminal.feed("\n" + self._texts.still_missing.format(path=check) + "\n")
             status = 1
         elif status != 0:
-            self._terminal.feed(f"\nThe installer exited with status {status}.\n")
+            self._terminal.feed("\n" + self._texts.exit_status.format(status=status) + "\n")
         self._process = None
         self._set_state(State.DONE if status == 0 else State.FAILED)
 

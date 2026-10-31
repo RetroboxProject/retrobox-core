@@ -37,6 +37,7 @@ from retrobox.paths import (
     ES_INI_TMP,
     ES_SYSTEMS_CFG,
     ES_SYSTEMS_TMP,
+    ES_WM_CLASS,
     FRONTEND_DIR,
     FRONTEND_HOME,
     LOGS,
@@ -178,6 +179,10 @@ def run_emulationstation(args: list[str], update_theme: bool = False) -> int:
     # Wayland backend fails to initialize for any reason.
     es_env = os.environ.copy()
     es_env["SDL_VIDEODRIVER"] = "wayland,x11"
+    # Same window class whatever the binary is called, so that the desktop
+    # entry (StartupWMClass) and the task bar recognise the window.
+    es_env["SDL_VIDEO_X11_WMCLASS"] = ES_WM_CLASS
+    es_env["SDL_VIDEO_WAYLAND_WMCLASS"] = ES_WM_CLASS
 
     _logger.info("Starting EmulationStation")
 

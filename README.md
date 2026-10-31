@@ -113,6 +113,10 @@ Generators adapted from a third-party batocera package. Paths converted to this 
 
 A replacement for evmapy, now a standalone project ([`gamepadly`](https://github.com/RetroboxProject/gamepadly), package `python3-gamepadly`, recommended by the core packages; install it separately). It only requires `pygame` and `evdev`. It takes evmapy mappings generated in EmulationStation (or made by hand, since they are JSON) and is able to map every gamepad button to keyboard keys or shortcuts, as well as mouse events. It's used by the majority of emulators to send Alt+F4 with Hotkey+Start combo.
 
+### Emulator setup screen
+
+When a game needs an emulator that has an installer in `tools/emulators/` but isn't installed, a full-screen dialog (`python3 -m retrobox.emusetup`) offers to install it, shows the installer's output (and takes keyboard input, e.g. a sudo password) and launches the game afterwards. It borrows the fonts of the current EmulationStation theme (the menu font for the message and buttons, the help font for the hint line; EmulationStation's default font if the theme sets none, and a system font if a theme font lacks a glyph), follows EmulationStation's language (or the system locale; English, Spanish, Catalan, Galician, Portuguese, French, Italian, German, Dutch, Polish and Russian) and uses the application menu's logo and window class (`retrobox-emulationstation`, the same as EmulationStation and the `StartupWMClass` of `retrobox.desktop`). Its background is `share/emusetup/background.png`, replaceable from `/etc/retrobox` or `~/.config/retrobox` like any shared file.
+
 ### Apps
 
 A set of app-like shortcuts to a number of web streaming services, as well as Kodi Media Center.
