@@ -127,9 +127,16 @@ def writeControllersConfig(
 
     #pdb.set_trace()
 
-# Remove all controller configurations
+# Joypad-only per-player keys. Keyboard binds (input_playerN_<bind>, without a
+# suffix) are deliberately NOT matched, so they survive between launches and
+# RetroArch keeps its keyboard mapping (or falls back to its defaults).
+_JOYPAD_PLAYER_KEY = re.compile(
+    r'input_player\d+_(?:.*_)?(btn|axis|label|joypad_index|mouse_index|analog_dpad_mode)'
+)
+
+# Remove all controller (joypad) configurations, keeping the keyboard ones
 def cleanControllerConfig(retroconfig: UnixSettings, controllers: Controllers, /) -> None:
-    retroconfig.disable_all('input_player')
+    retroconfig.disable_matching(_JOYPAD_PLAYER_KEY)
     retroconfig.disable_all('input_hotkey')
     retroconfig.disable_all('input_enable_hotkey_btn')
 
@@ -203,9 +210,8 @@ def writeHotKeyConfig(controller: Controller, manual_config: bool, config: dict[
     for btn, rakey in hotkey_map.items():
         if btn in pad:
             k, v = _hotkey_save(rakey, pad[btn], config)
-            # Transformamos 'input_exit_emulator_btn' en 'input_player1_exit_emulator_btn'
-            # Cortamos a partir del carácter 6 ('input_') y le metemos el prefijo del player 1
-            hotkeys[k] = v
+            if k and v:
+                hotkeys[k] = v
             
     return hotkeys            
 
@@ -277,7 +283,10 @@ def generateControllerConfig(
                 
                 # Al salir del archivo, si eres Player 1, metemos la hotkey global de tu .cfg
                 if p_num == 1:
-                    config['input_enable_hotkey_btn'] = cfg_hotkey or cfg_select
+                    # Never write "None": RetroArch would parse it as button 0
+                    # and turn it into the hotkey enabler.
+                    if enabler := (cfg_hotkey or cfg_select):
+                        config['input_enable_hotkey_btn'] = enabler
                     config.update(writeHotKeyConfig(controller, True, config))
 
                 if not lightgun:

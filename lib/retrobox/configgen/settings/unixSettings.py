@@ -130,6 +130,19 @@ class UnixSettings:
                 if key[:len(name)] == name:
                     self.config.remove_option('DEFAULT', key)
 
+    def disable_matching(self, pattern: str | re.Pattern[str]) -> None:
+        """Remove every key that fully matches the regular expression ``pattern``."""
+        regex = re.compile(pattern) if isinstance(pattern, str) else pattern
+        _logger.debug("Disabling keys matching %s from %s", regex.pattern, self.settings_path)
+        if self._xml_mode:
+            for key in list(self._xml_data):
+                if regex.fullmatch(key):
+                    del self._xml_data[key]
+        else:
+            for key, _ in self.config.items('DEFAULT'):
+                if regex.fullmatch(key):
+                    self.config.remove_option('DEFAULT', key)
+
     def remove(self, name: str) -> None:
         if self._xml_mode:
             self._xml_data.pop(name, None)

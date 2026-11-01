@@ -58,8 +58,7 @@ function check_deps() {
       SDL2-devel vulkan-loader-devel vulkan-headers \
       mesa-libGL-devel mesa-libEGL-devel mesa-libGLES-devel libX11-devel \
       freetype-devel libxml2-devel \
-      libavcodec-free-devel libavformat-free-devel libavutil-free-devel \
-      libswresample-free-devel libswscale-free-devel \
+      ffmpeg-devel \
       openal-soft-devel libsndfile-devel libusb1-devel \
       systemd-devel alsa-lib-devel pipewire-devel \
       || error "No se pudieron instalar las dependencias de compilación (dnf)"

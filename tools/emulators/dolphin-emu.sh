@@ -73,8 +73,7 @@ function check_deps() {
     sudo dnf install -y \
       gcc-c++ cmake ninja-build git \
       pkgconf-pkg-config mesa-libGL-devel libX11-devel libXrandr-devel libXi-devel \
-      mesa-libEGL-devel libavcodec-free-devel libavformat-free-devel libavutil-free-devel \
-      libswresample-free-devel libswscale-free-devel systemd-devel libevdev-devel \
+      mesa-libEGL-devel ffmpeg-devel systemd-devel libevdev-devel \
       SDL3-devel fmt-devel glslang-devel pugixml-devel enet-devel xxhash-devel \
       bzip2-devel xz-devel libzstd-devel zlib-devel minizip-ng-devel lzo-devel lz4-devel \
       libspng-devel cubeb-devel libusb1-devel miniupnpc-devel libcurl-devel hidapi-devel \
