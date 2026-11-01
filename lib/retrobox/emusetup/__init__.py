@@ -2,7 +2,7 @@
 
 The launcher runs it (``python3 -m retrobox.emusetup``) in its own process
 when the emulator a game needs is not installed (or, with ``--reinstall``,
-when Shift was held to install it again), so none of its memory
+when the hotkey was held to install it again), so none of its memory
 (SDL, Pillow, fonts, the background) stays behind while the game runs. The
 startup runs it too, with ``--download``, while it downloads the default
 theme or bezels before EmulationStation starts.

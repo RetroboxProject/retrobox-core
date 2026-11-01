@@ -33,7 +33,7 @@ from .hud import setup_hud
 from .power import apply_power_profile, restore_power_profile
 from .process import run_command
 from .session import GameInputs, GameSession, effective_core
-from .shift_key import shift_held
+from .hotkey_held import hotkey_held
 
 if TYPE_CHECKING:
     import argparse
@@ -57,10 +57,6 @@ def run_rom(args: argparse.Namespace, max_players: int) -> int:
         The exit code of the launched emulator command.
     """
     original_rom = args.rom
-
-    # read first, while the key that launched the game is likely still down:
-    # Shift held asks for the emulator to be installed again (see start_rom)
-    args.reinstall_emulator = shift_held()
 
     # squashfs roms if squashed
     if original_rom.suffix == ".squashfs":
@@ -110,6 +106,9 @@ def start_rom(args: argparse.Namespace, max_players: int, rom: Path, original_ro
     mkdir_if_not_exists(RUNTIME_DIR)
 
     player_controllers = Controller.load_for_players(max_players, args)
+    # read right away, while the button that launched the game is likely still
+    # down: the hotkey held asks for the emulator to be installed again
+    args.reinstall_emulator = hotkey_held(player_controllers)
     monitor = ControllerMonitor(player_controllers)
 
     # find the system to run
@@ -121,7 +120,7 @@ def start_rom(args: argparse.Namespace, max_players: int, rom: Path, original_ro
     generator = get_generator(system.config.emulator, system.config.core)
 
     # a missing emulator: offer to install it, or go back to the frontend;
-    # Shift held: offer to install it again (to update it)
+    # hotkey held: offer to install it again (to update it)
     if not ensure_emulator(
         system.config.emulator,
         player_controllers,

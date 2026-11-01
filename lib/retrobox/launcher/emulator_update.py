@@ -1,8 +1,8 @@
 """Install an emulator again without risking the working copy.
 
 Run by the setup screen as its command (``python3 -m
-retrobox.launcher.emulator_update <emulator>``) when Shift was held while a
-game started. The emulator's own installer runs with
+retrobox.launcher.emulator_update <emulator>``) when the hotkey was held while
+a game started. The emulator's own installer runs with
 ``RETROBOX_EMULATORS_DIR`` pointing at a staging folder
 (``<emulators>/.update-<installer>/``), so it builds or downloads the new
 version there and never sees the installed one. Only when it succeeds and the

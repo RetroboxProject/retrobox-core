@@ -6,7 +6,7 @@ generator runs, read from the generator's own paths module so the two never
 drift apart. The screen itself (``retrobox.emusetup``) runs in a child
 process; the launcher just waits for its verdict.
 
-When the launcher asks for a reinstall (Shift held while the game starts),
+When the launcher asks for a reinstall (hotkey held while the game starts),
 the screen offers to install the emulator again even though it is there, to
 update it. That install goes through ``emulator_update``, which builds the
 new version in a separate folder and only replaces the installed one once it
@@ -159,7 +159,7 @@ def _reinstall(emulator: str, controllers: Controllers) -> None:
     except ValueError:
         _logger.warning("%s is outside %s: it can't be reinstalled safely", binary, EMULATORS)
         return
-    _logger.info("reinstall of %s requested (Shift held)", entry.label)
+    _logger.info("reinstall of %s requested (hotkey held)", entry.label)
     status = run_screen(
         entry.label,
         LOGS / f"emusetup-{entry.installer}.log",
@@ -175,8 +175,8 @@ def ensure_emulator(emulator: str, controllers: Controllers, reinstall: bool = F
     Args:
         emulator: The emulator of the game (``system.config.emulator``).
         controllers: The players' controllers (player 1 drives the screen).
-        reinstall: Offer to install it again even if it is installed (Shift
-            was held). A reinstall never stops the launch: when it is
+        reinstall: Offer to install it again even if it is installed (the
+            hotkey was held). A reinstall never stops the launch: when it is
             declined or fails, the installed version is still there.
 
     Returns:
