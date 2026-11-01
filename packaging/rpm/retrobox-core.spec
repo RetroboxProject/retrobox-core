@@ -13,6 +13,7 @@ License:        GPL-2.0-only
 URL:            https://github.com/RetroboxProject/retrobox-core
 BuildArch:      noarch
 Conflicts:      retrobox
+Requires(post): shadow-utils
 @REQUIRES@
 Recommends:     retrobox-emulationstation
 Recommends:     retrobox-mangohud
@@ -48,6 +49,9 @@ if command -v udevadm >/dev/null 2>&1; then
     udevadm trigger --subsystem-match=input --subsystem-match=hidraw \
         --action=change >/dev/null 2>&1 || :
 fi
+# Keyboards and mice are not covered by the seat ACLs: without the "input"
+# group RetroArch's udev driver cannot read the keyboard.
+/opt/retrobox/libexec/retrobox-input-group || :
 :
 
 %preun

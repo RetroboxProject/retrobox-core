@@ -15,6 +15,10 @@ case "$1" in
             udevadm trigger --subsystem-match=input --subsystem-match=hidraw \
                 --action=change >/dev/null 2>&1 || true
         fi
+
+        # Keyboards and mice are not covered by the seat ACLs: without the
+        # "input" group RetroArch's udev driver cannot read the keyboard.
+        /opt/retrobox/libexec/retrobox-input-group || true
         ;;
 esac
 

@@ -1,0 +1,82 @@
+#!/bin/sh
+# Add the desktop user(s) to the "input" group, so that RetroArch's udev input
+# driver (and any other evdev reader) can open keyboards and mice: systemd's
+# uaccess ACLs only cover joysticks. Run as root by the .deb/.rpm scriptlets
+# and by install.sh. The new group takes effect at the next login.
+#
+#   retrobox-input-group [USER...]
+#
+# Without arguments the user is guessed: the one who ran sudo or pkexec, or
+# else every user with a login session (PackageKit front-ends such as GNOME
+# Software or Discover set neither variable).
+set -u
+
+GROUP=input
+
+log() { echo "retrobox-input-group: $*" >&2; }
+
+if [ "$(id -u)" -ne 0 ]; then
+    log "must run as root"
+    exit 1
+fi
+
+# Make sure the group exists in /etc/group. Immutable (ostree) systems keep
+# the system groups in /usr/lib/group, where usermod cannot change them, so
+# the entry is copied into /etc/group first.
+ensure_group() {
+    grep -q "^${GROUP}:" /etc/group 2>/dev/null && return 0
+    if [ -r /usr/lib/group ] && line=$(grep "^${GROUP}:" /usr/lib/group); then
+        printf '%s\n' "${line}" >> /etc/group
+    elif ! getent group "${GROUP}" >/dev/null 2>&1; then
+        groupadd --system "${GROUP}"
+    fi
+}
+
+# Print the users to add, one per line.
+guess_users() {
+    if [ -n "${SUDO_USER:-}" ] && [ "${SUDO_USER}" != root ]; then
+        echo "${SUDO_USER}"
+    elif [ -n "${PKEXEC_UID:-}" ]; then
+        getent passwd "${PKEXEC_UID}" | cut -d: -f1
+    elif command -v loginctl >/dev/null 2>&1; then
+        loginctl list-users --no-legend 2>/dev/null \
+            | awk '$1 >= 1000 && $1 < 60000 { print $2 }'
+    fi
+}
+
+in_group() {
+    id -nG "$1" 2>/dev/null | tr ' ' '\n' | grep -qx "${GROUP}"
+}
+
+if ! ensure_group; then
+    log "could not create the '${GROUP}' group"
+    exit 1
+fi
+
+if [ "$#" -gt 0 ]; then
+    users="$*"
+else
+    users=$(guess_users | sort -u)
+fi
+
+if [ -z "${users}" ]; then
+    log "no desktop user found; run: usermod -aG ${GROUP} <user>"
+    exit 0
+fi
+
+status=0
+for user in ${users}; do
+    if ! id "${user}" >/dev/null 2>&1; then
+        log "unknown user '${user}', skipped"
+        continue
+    fi
+    in_group "${user}" && continue
+    if usermod -aG "${GROUP}" "${user}" 2>/dev/null || gpasswd -a "${user}" "${GROUP}" >/dev/null 2>&1; then
+        log "added '${user}' to the '${GROUP}' group (log out and back in for it to take effect)"
+    else
+        log "could not add '${user}' to the '${GROUP}' group"
+        status=1
+    fi
+done
+
+exit "${status}"

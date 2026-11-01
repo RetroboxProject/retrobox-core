@@ -419,6 +419,17 @@ if [[ -n "${UDEV_DIR}" ]]; then
     fi
 fi
 
+# Keyboards and mice are not covered by the seat ACLs: without the "input"
+# group RetroArch's udev driver cannot read the keyboard. With sudo the helper
+# picks the invoking user from SUDO_USER.
+if [[ "${USER_MODE}" -eq 0 ]]; then
+    priv "${PREFIX}/libexec/retrobox-input-group" \
+        || warn "Could not add your user to the 'input' group; run: sudo usermod -aG input ${SUDO_USER:-${USER}}"
+elif ! id -nG | tr ' ' '\n' | grep -qx input; then
+    warn "Per-user install: add yourself to the 'input' group so RetroArch can read the keyboard:"
+    warn "  sudo usermod -aG input ${USER}   (then log out and back in)"
+fi
+
 if [[ -n "${POLKIT_DIR}" ]]; then
     priv mkdir -p "${POLKIT_DIR}"
     for rules in "${WORK}"/x/extras/polkit/*.rules; do
