@@ -40,29 +40,6 @@ class ThemeFonts:
     help: Path | None = None
 
 
-# ----------------------------------------------------------------- es_settings
-def read_es_settings(path: Path) -> dict[str, str]:
-    """Every ``<type name="..." value="..."/>`` of es_settings.cfg.
-
-    The file may have no single root element (older EmulationStation), so its
-    content is wrapped in one before parsing.
-    """
-    try:
-        text = path.read_text(encoding="utf-8", errors="replace")
-    except OSError:
-        return {}
-    text = re.sub(r"<\?xml[^>]*\?>", "", text, count=1)
-    try:
-        root = ET.fromstring(f"<settings>{text}</settings>")
-    except ET.ParseError:
-        return {}
-    return {
-        element.get("name", ""): element.get("value", "")
-        for element in root.iter()
-        if element.get("name") is not None and element.get("value") is not None
-    }
-
-
 def find_theme(theme_dirs: Iterable[Path], theme_set: str) -> Path | None:
     """The directory of the theme EmulationStation uses.
 
@@ -212,7 +189,7 @@ def theme_fonts(
 
     Args:
         theme: The theme directory (see find_theme), or None.
-        settings: es_settings.cfg (see read_es_settings), for the subsets.
+        settings: es_settings.cfg (see ``retrobox.utils.es_settings``), for the subsets.
         resource_dirs: EmulationStation's resource directories, where its
             default font lives (used for whatever the theme doesn't set).
 

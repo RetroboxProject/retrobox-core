@@ -23,10 +23,11 @@ from retrobox.paths import (
     THEMES_DIR,
     layered_file,
 )
+from retrobox.utils.es_settings import confirm_is_east, read_es_settings
 
 from . import EXIT_UNAVAILABLE
 from .i18n import pick_language
-from .theme import find_theme, read_es_settings, theme_fonts
+from .theme import find_theme, theme_fonts
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -41,8 +42,8 @@ ICON: Final = SHARE_DIR / "icons" / "retrobox_logo.png"
 
 
 def look_arguments() -> list[str]:
-    """Language, fonts (from the EmulationStation theme), icon, window class
-    and background of the screen."""
+    """Language, fonts (from the EmulationStation theme), confirm button, icon,
+    window class and background of the screen."""
     settings = read_es_settings(ES_SETTINGS_CFG)
     language = pick_language(settings.get("Language", ""))
     theme = find_theme((FRONTEND_DIR / "themes", THEMES_DIR), settings.get("ThemeSet", ""))
@@ -50,6 +51,8 @@ def look_arguments() -> list[str]:
     _logger.debug("setup screen: language %s, theme %s, fonts %s", language, theme, fonts)
 
     arguments = ["--lang", language, "--wm-class", ES_WM_CLASS]
+    if confirm_is_east(settings):  # the same confirm button as EmulationStation
+        arguments.append("--confirm-east")
     if fonts.menu is not None:
         arguments += ["--menu-font", str(fonts.menu)]
     if fonts.help is not None:

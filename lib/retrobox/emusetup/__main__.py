@@ -45,6 +45,11 @@ def main(argv: list[str] | None = None) -> int:
         "--reinstall", action="store_true",
         help="LABEL is installed: offer to install it again (to update it)",
     )
+    parser.add_argument(
+        "--confirm-east", action="store_true",
+        help="the east button confirms and the south one goes back (Nintendo layout); "
+        "default: the south one confirms (Xbox layout), as in EmulationStation",
+    )
     parser.add_argument("command", nargs=argparse.REMAINDER, help="installer command, after --")
     args = parser.parse_args(argv)
     command = args.command[1:] if args.command[:1] == ["--"] else args.command
@@ -67,6 +72,7 @@ def main(argv: list[str] | None = None) -> int:
             wm_class=args.wm_class,
             download=args.download,
             reinstall=args.reinstall,
+            confirm_east=args.confirm_east,
         )
     ).run()
 

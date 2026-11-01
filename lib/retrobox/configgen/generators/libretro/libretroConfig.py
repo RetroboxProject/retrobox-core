@@ -14,11 +14,13 @@ from retrobox.paths import (
     BIOS,
     CHEATS,
     ES_GAMES_METADATA,
+    ES_SETTINGS_CFG,
     RECORDINGS,
     SAVES,
     SCREENSHOTS,
     mkdir_if_not_exists,
 )
+from retrobox.utils.es_settings import confirm_is_east, read_es_settings
 
 from ... import controllersConfig
 from ...settings.unixSettings import UnixSettings
@@ -177,7 +179,6 @@ _FIXED_RETROARCH_SETTINGS: dict[str, str] = {
     "config_save_on_exit": '"true"',
     "savestate_auto_save": '"false"',
     "savestate_auto_load": '"false"',
-    "menu_swap_ok_cancel_buttons": '"true"',
     "rgui_extended_ascii": '"true"',
     "rgui_show_start_screen": '"false"',
     "video_font_enable": '"true"',
@@ -623,6 +624,11 @@ def create_libretro_config(launch: LibretroLaunch, /) -> dict[str, object]:
     # menu in the previous session. Every step below may override single keys
     # of this dict depending on the system/core.
     config: dict[str, object] = dict(_FIXED_RETROARCH_SETTINGS)
+    # the menus confirm with the same button as EmulationStation. RetroArch's
+    # OK is RetroPad A, the east button (es_input.cfg "a"), unless swapped
+    config["menu_swap_ok_cancel_buttons"] = (
+        '"false"' if confirm_is_east(read_es_settings(ES_SETTINGS_CFG)) else '"true"'
+    )
 
     _apply_base_settings(config, system, launch.display.gfx_backend)
     features = load_core_features(system.config.core)

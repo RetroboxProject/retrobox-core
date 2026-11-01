@@ -130,6 +130,7 @@ class Options:  # pylint: disable=too-many-instance-attributes
     wm_class: str | None = None
     download: bool = False
     reinstall: bool = False
+    confirm_east: bool = False  # EmulationStation's InvertButtons
 
 
 # ---------------------------------------------------------------------- fonts
@@ -298,7 +299,10 @@ class SetupScreen:  # pylint: disable=too-many-instance-attributes,too-few-publi
         self._terminal = TerminalBuffer()
         self._process: InstallerProcess | None = None
         self._pad = PadInput(
-            options.pad_guid, options.pad_device, parse_mapping(options.pad_mapping)
+            options.pad_guid,
+            options.pad_device,
+            parse_mapping(options.pad_mapping, options.confirm_east),
+            options.confirm_east,
         )
         self._window = None
         self._renderer = None

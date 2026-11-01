@@ -22,7 +22,7 @@ def main(argv: list[str] | None = None) -> int:
 
     # pylint: disable=import-outside-toplevel  # only once Qt is known to be there
     from retrobox.emusetup.launch import ICON
-    from retrobox.emusetup.theme import read_es_settings
+    from retrobox.utils.es_settings import read_es_settings
     from retrobox.paths import ES_SETTINGS_CFG
     from retrobox.settings.model import SettingsModel
     from retrobox.settings.systems import available_systems

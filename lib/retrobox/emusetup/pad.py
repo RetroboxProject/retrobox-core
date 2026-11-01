@@ -4,7 +4,12 @@ The launcher hands over player 1's mapping from es_input.cfg (``--pad-map
 name=type:id:value``). EmulationStation reads joysticks through SDL too, so
 the button, hat and axis numbers are the ones SDL reports here. Without a
 mapping (the launcher was not given one), any game controller is accepted with
-SDL's standard layout, confirm being the east button: SNES "A".
+SDL's standard layout.
+
+Confirm and back are the buttons EmulationStation uses (see
+``retrobox.utils.es_settings``): by default the south button confirms and
+the east one goes back (es_input.cfg ``b`` and ``a``), and ``confirm_east``
+swaps them.
 """
 
 from __future__ import annotations
@@ -32,10 +37,9 @@ class Action(enum.Enum):
     DOWN = enum.auto()
 
 
-# es_input.cfg input name -> action (the stick names are their negative side)
+# es_input.cfg input name -> action (the stick names are their negative side);
+# "a" (east) and "b" (south) are added by parse_mapping, as confirm/back
 _ES_ACTIONS = {
-    "a": Action.CONFIRM,
-    "b": Action.BACK,
     "left": Action.LEFT,
     "right": Action.RIGHT,
     "up": Action.UP,
@@ -46,9 +50,9 @@ _ES_ACTIONS = {
 # the positive side of the stick inputs
 _OPPOSITE = {Action.LEFT: Action.RIGHT, Action.UP: Action.DOWN}
 
-_CONTROLLER_ACTIONS = {
-    sdl2.SDL_CONTROLLER_BUTTON_B: Action.CONFIRM,  # east: SNES A
-    sdl2.SDL_CONTROLLER_BUTTON_A: Action.BACK,  # south: SNES B
+# SDL game controller button -> action; BUTTON_A (south) and BUTTON_B (east)
+# are added by controller_actions, as confirm/back
+_CONTROLLER_DPAD = {
     sdl2.SDL_CONTROLLER_BUTTON_DPAD_LEFT: Action.LEFT,
     sdl2.SDL_CONTROLLER_BUTTON_DPAD_RIGHT: Action.RIGHT,
     sdl2.SDL_CONTROLLER_BUTTON_DPAD_UP: Action.UP,
@@ -63,13 +67,29 @@ class _Binding(NamedTuple):
     action: Action
 
 
-def parse_mapping(specs: Iterable[str]) -> list[_Binding]:
-    """Turn ``name=type:id:value`` strings into bindings, skipping unknown ones."""
+def controller_actions(confirm_east: bool = False) -> dict[int, Action]:
+    """Actions of the SDL game controller buttons (used when there is no mapping)."""
+    east, south = sdl2.SDL_CONTROLLER_BUTTON_B, sdl2.SDL_CONTROLLER_BUTTON_A
+    confirm, back = (east, south) if confirm_east else (south, east)
+    return {confirm: Action.CONFIRM, back: Action.BACK, **_CONTROLLER_DPAD}
+
+
+def parse_mapping(specs: Iterable[str], confirm_east: bool = False) -> list[_Binding]:
+    """Turn ``name=type:id:value`` strings into bindings, skipping unknown ones.
+
+    Args:
+        specs: Player 1's inputs, as given on the command line.
+        confirm_east: The east button (``a``) confirms instead of the south one.
+    """
+    face = {"a": Action.CONFIRM, "b": Action.BACK} if confirm_east else {
+        "a": Action.BACK, "b": Action.CONFIRM,
+    }
+    actions = {**_ES_ACTIONS, **face}
     bindings: list[_Binding] = []
     for spec in specs:
         name, _, rest = spec.partition("=")
         parts = rest.split(":")
-        action = _ES_ACTIONS.get(name)
+        action = actions.get(name)
         if action is None or len(parts) != 3 or parts[0] not in ("button", "hat", "axis"):
             continue
         try:
@@ -99,8 +119,15 @@ def _hardware_id(guid: str) -> str:
 class PadInput:
     """Turns SDL joystick events into actions."""
 
-    def __init__(self, guid: str | None, device_path: str | None, bindings: list[_Binding]) -> None:
+    def __init__(
+        self,
+        guid: str | None,
+        device_path: str | None,
+        bindings: list[_Binding],
+        confirm_east: bool = False,
+    ) -> None:
         self._guid = (guid or "").lower()
+        self._controller_actions = controller_actions(confirm_east)
         self._device_path = device_path or ""
         self._bindings = bindings
         self._player_one: int | None = None  # SDL instance id
@@ -143,7 +170,7 @@ class PadInput:
         """The action of an event, on press only (holding does not repeat)."""
         kind = event.type
         if kind == sdl2.SDL_CONTROLLERBUTTONDOWN and not self._bindings:
-            return _CONTROLLER_ACTIONS.get(event.cbutton.button)
+            return self._controller_actions.get(event.cbutton.button)
         if self._player_one is None:
             return None
         if kind == sdl2.SDL_JOYBUTTONDOWN and event.jbutton.which == self._player_one:
