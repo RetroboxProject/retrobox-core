@@ -1,8 +1,8 @@
 # retrobox-core
 
-A proof-of-concept port of the [batocera](https://github.com/batocera-linux/batocera.linux) backend stack to a standard Linux desktop (Debian / KDE Plasma / Wayland), using `batocera-configgen` as a base.
+A port of the [batocera](https://github.com/batocera-linux/batocera.linux) backend stack to a standard Linux desktop (Debian, Ubuntu or Fedora; KDE Plasma, labwc or X11), using `batocera-configgen` as a base.
 
-The goal is to have a batocera/Retrobat-like experience if paired with a compiled [batocera-emulationstation](https://github.com/batocera-linux/batocera-emulationstation) frontend, featuring automatic emulator configuration, bezels, shaders, controller mapping — without having to reboot to other OS.
+The goal is to have a batocera/Retrobat-like experience if paired with [retrobox-emulationstation](https://github.com/RetroboxProject/retrobox-emulationstation), a build of batocera-emulationstation, featuring automatic emulator configuration, bezels, shaders, controller mapping — without having to reboot to other OS.
 
 ## Motivation
 
@@ -11,22 +11,23 @@ Batocera is excellent as a dedicated gaming system, but it needs to be booted as
 This project brings the parts that matter most to a desktop Linux installation:
 
 - `batocera-configgen` writing emulator configs automatically on game launch
-- Bezels work in Vulkan-powered emulators (and RetroArch no matter the graphics API) via a patched MangoHud build -- the same approach batocera uses.
-- Shader support on libretro 
-- Adapted controller autoconfiguration for RetroArch, Flycast, Dolphin, PCSX2, PPSSPP, Cemu, Ryujinx, Eden and sm2-emu (Model 2). More to come.
+- Bezels: RetroArch draws them itself; the other emulators get them through a patched MangoHud build, the same approach batocera uses.
+- Shaders on RetroArch and ares.
+- Controller autoconfiguration for RetroArch, ares, Azahar, Cemu, Dolphin, Eden, Flycast, MAME, melonDS, PCSX2, PPSSPP, Redream, RPCS3, Ryujinx, ScummVM and sm2-emu (Model 2).
+- Gamepad hotkeys (Hotkey+Start to exit, etc.) on every emulator through [gamepadly](https://github.com/RetroboxProject/gamepadly).
 
 ## Architecture
 
 ```
 EmulationStation (separate package)
     └── on game launch → bin/retrobox-launch      (python3 -m retrobox.launcher)
-            └── configgen   (lib/retrobox/configgen: writes emulator configs, launches game)
-                    ├── libexec/stubs/batocera-resolution  (stub → kscreen-doctor / wlr-randr / xrandr)
-                    ├── libexec/stubs/batocera-vulkan      (stub → vulkaninfo)
-                    └── gamepadly (system Python package: hotkeys and pad2key configs on supported emulators and platforms)
+            ├── configgen   (lib/retrobox/configgen: writes emulator configs, builds the command)
+            │       ├── libexec/stubs/batocera-resolution  (stub → kscreen-doctor / wlr-randr / xrandr)
+            │       └── libexec/stubs/batocera-vulkan      (stub → vulkaninfo)
+            └── gamepadly   (separate Python package: hotkeys and pad2key profiles while the game runs)
 ```
 
-This repo can be cloned and used from anywhere, or installed from the `.deb` into `/opt/retrobox`. Paths have been adapted to replace the `/userdata` hierarchy: see [Paths](#paths).
+This repo can be cloned and used from anywhere, or installed into `/opt/retrobox` with the `.deb`, the `.rpm` or `install.sh`. Paths have been adapted to replace the `/userdata` hierarchy: see [Paths](#paths).
 
 ## Key changes vs upstream batocera-configgen
 
@@ -62,7 +63,7 @@ Other `[core]` keys: `ignore_systems` (systems hidden from the menu, e.g. `gba,p
 | `on-base-dir` | always `<data dir>/roms/<launcher>`, wherever `roms_dir` points |
 | `follow-roms-dir` | `<roms_dir>/<launcher>` (which may be `<data dir>/roms` or anywhere else) |
 
-Steam games are looked for in every library of every Steam installation found (native and Flatpak, as listed in their `libraryfolders.vdf`) and in the folders of `STEAM_LIBRARY_DIR` under `[environ]`: any number of them, `:`-separated, each one a library, a Steam installation or its `steamapps` folder. They replace the old `--pcgames-sync` flag, which is now ignored with a warning; the `true`/`false` values of v0.0.25 still work (as `follow-roms-dir`/`none`), with a warning.
+They replace the old `--pcgames-sync` flag, which is now ignored with a warning; the `true`/`false` values of v0.0.25 still work (as `follow-roms-dir`/`none`), with a warning.
 
 `lib/retrobox/paths` is the single place where all of this is resolved. Shell scripts get the result as `RETROBOX_*` variables (`PYTHONPATH=<install dir>/lib python3 -m retrobox.paths` prints them, `--get section.key` reads a merged ini value; `tools/lib/paths.sh` loads them).
 
@@ -83,43 +84,21 @@ Emulators that keep their binary and their config together (redream, supermodel,
 
 batocera ships several system-specific binaries that don't exist on a standard Linux install. Replacements (in `libexec/stubs/`):
 
-- **`batocera-resolution`** — reimplemented in bash using `kscreen-doctor` (KDE Wayland)
-- **`batocera-vulkan`** — reimplemented using `vulkaninfo`
-- **`batocera-mouse`** — no-op stub
+- **`batocera-resolution`**: bash wrapper over `kscreen-doctor` (KDE Wayland), `wlr-randr` (labwc and other wlroots compositors) or `xrandr` (X11)
+- **`batocera-vulkan`**: reimplemented with `vulkaninfo`
+- **`batocera-keyboard`**, **`getLocalXDisplay`**: minimal replacements for the configgen calls that expect them
 
-### RetroArch paths
+### Emulator configuration
 
-RetroArch uses `~/.config/retroarch`. The configgen is adapted accordingly, including core options path, info files, and the `input_overlay` path for bezels.
+Each emulator gets its own `XDG_CONFIG_HOME` under `~/.config/retrobox/emulators/<emu>` (RetroArch: `~/.config/retrobox/emulators/retroarch/retroarch/retroarch.cfg`), so nothing in your regular `~/.config` is touched. Controller configs use SDL device names instead of batocera's evdev ones where the emulator supports it (Dolphin, Azahar...).
 
-### Controller handling: evdev → SDL
-
-All `evdev/` references in `dolphinControllers.py` are replaced with `SDL/`, and hat input formatting is corrected for SDL. I have also improved handling of third-party "Pro Controller" gamepads.
-
-### libretroConfig bezel fix
-
-A missing call to `bezelsUtil.getBezelInfos()` in the `else` branch of `writeBezelConfig()` caused bezels to silently fail. Fixed.
-
-### renderConfig None guard
-
-`system.renderconfig` could be `None` when no `rendering-defaults.yml` is found. Added a fallback `or {}` to prevent `TypeError` on shader lookup.
-
-### Emulators of a well-known Nvidia Tegra X1 powered console (Eden, Ryujinx)
-
-Generators adapted from a third-party batocera package. Paths converted to this environment standard, AppImage-specific HOME handling resolved.
+The Eden and Ryujinx generators were adapted from a third-party batocera package.
 
 ## New components
 
 ### Gamepadly
 
-A replacement for evmapy, now a standalone project ([`gamepadly`](https://github.com/RetroboxProject/gamepadly), package `python3-gamepadly`, recommended by the core packages; install it separately). It only requires `pygame` and `evdev`. It takes evmapy mappings generated in EmulationStation (or made by hand, since they are JSON) and is able to map every gamepad button to keyboard keys or shortcuts, as well as mouse events. It's used by the majority of emulators to send Alt+F4 with Hotkey+Start combo.
-
-### Settings window
-
-`retrobox --settings` (also *Settings* in the application menu entry's actions) opens a window to change, for the current user, everything `retrobox.ini` holds: hidden systems, whether missing folders are fixed, every folder (data, state, games, saves, BIOS, screenshots, recordings, bezels, shaders, cheats, overlays), the Steam / Heroic / Lutris sync, any number of extra Steam libraries, the labwc session's TTY and free environment variables. Options with a fixed set of values are menus offering only those values.
-
-It edits `~/.config/retrobox/retrobox.ini` only, keeping its comments and order, and writes nothing but what differs from the inherited value (the system-wide `/etc/retrobox` files, or the built-in default): a setting put back to that value, or reset with its button, is removed from the file. A setting that one of your own `retrobox.ini.d/*.ini` drop-ins also sets is shown read-only, since the drop-in would win. *Apply* saves, *Accept and exit* saves and closes, *Accept and open Retrobox* saves, starts Retrobox and closes, *Close* closes without saving.
-
-The window follows EmulationStation's language (or the system locale), with the same languages as the setup screen (texts in `lib/retrobox/settingsui/i18n/<language>.yaml`, English as the fallback), and runs on PySide6 or PyQt6 (`python3-pyside6.qtwidgets` / `python3-pyqt6` on Debian and Ubuntu, `python3-pyside6` on Fedora; recommended by the packages). `retrobox.settings` holds the logic (the settings as data, the layered values, the ini editing) without any Qt; `retrobox.settingsui` only displays it.
+A replacement for evmapy, now a standalone project ([`gamepadly`](https://github.com/RetroboxProject/gamepadly), package `python3-gamepadly`, recommended by the core packages; install it separately). The launcher starts it with every game: it reads evmapy-style JSON profiles (`share/pad2key/profiles/*.keys`, overridable in `~/.config/retrobox/pad2key/profiles`) and maps gamepad buttons to keys, shortcuts and mouse events, e.g. Hotkey+Start to Alt+F4. Without it the game still runs, but with no gamepad hotkeys.
 
 ### Bezels and aspect ratios
 
@@ -131,29 +110,23 @@ When a game needs an emulator that has an installer in `tools/emulators/` but is
 
 ### Apps
 
-A set of app-like shortcuts to a number of web streaming services, as well as Kodi Media Center.
+An `apps` system with app-like shortcuts to web streaming services (opened in Chrome or Firefox kiosk mode, so one of them must be installed) and Kodi (which needs Kodi).
 
-Chrome or Firefox must be installed for these services to work (except for Kodi, which, well, requires Kodi LOL).
+`gamepadly` maps the player 1 gamepad so the web pages can be used without a mouse (`share/pad2key/profiles/apps.keys`; buttons in SNES layout):
 
-It's expected to add support for other browsers such as Brave, since all Chromium browsers offer the kiosk mode I'm using in this feature.
-
-`gamepadly` is used to map the Player1 gamepad to bring control to the webpages:
-
-* `Left Analog`: move mouse cursor.
-* `B` button (SNES layout): left click.
-* `A` button (SNES layout): go to previous webpage (sends `Alt+Left Arrow`)
-* `Y` button (SNES layout): nothing -- TODO: I'm planning to implement access to KDE Plasma's native On-Screen Keyboard
-* `X` button (SNES layout): nothing -- TODO: I want it as a screenshot button.
-* `D-Pad`: arrow keys.
-* `Start`: Play/Pause button on media players.
-* `Select`: `Tab`
-* `L1`: PageUp
-* `R1`: PageDown
-* `Hotkey+L1`: Previous media
-* `Hotkey+R1`: Next media
-* `Hotkey+Up`: Increase system volume (sends `KEY_VOLUMEUP`)
-* `Hotkey+Down`: Decrease system volume (sends `KEY_VOLUMEDOWN`)
-* `Hotkey+Start`: Exit and go back to EmulationStation
+| Input | Action |
+|---|---|
+| Left stick / right stick | Move the mouse cursor / scroll |
+| D-pad | Arrow keys |
+| B | Left click |
+| A | Back (`Alt+Left`) |
+| Start / Select | Play/Pause / `Tab` |
+| L1 / R1 | Page Up / Page Down |
+| Hotkey+L1 / Hotkey+R1 | Previous / next media |
+| Hotkey+Up / Hotkey+Down | System volume up / down |
+| Hotkey+Y | `Meta+O` (on-screen keyboard shortcut) |
+| Hotkey+X | `Meta+SysRq` (screenshot) |
+| Hotkey+Start | Exit back to EmulationStation |
 
 ## Setup
 
@@ -164,12 +137,6 @@ It's expected to add support for other browsers such as Brave, since all Chromiu
 ```bash
 sudo apt install ./retrobox-core_<version>_all.deb   # use apt, not dpkg -i: it pulls the dependencies
                                                       # installs into /opt/retrobox, /usr/bin/retrobox
-```
-
-**Fedora (.rpm):**
-
-```bash
-sudo dnf install ./retrobox-core-<version>-1.noarch.rpm   # same layout as the .deb; vlc-libs (RPM Fusion) is only recommended
 ```
 
 **Fedora (.rpm):**
@@ -231,14 +198,13 @@ Install directory (read-only):
 │   └── retrobox/              # the Python package: paths, startup, launcher, configgen, utils
 ├── libexec/                   # internal helpers: emuconfig/ (per-emulator config launchers), stubs/, mangohud/ (from the retrobox-mangohud component)
 ├── share/                     # read-only defaults (the lowest config layer): systems_config/, emu_features/, configgen/, hooks/, pad2key/...
-├── system/                    # files for the host: udev rules, kernel/sysctl tuning
-├── tools/                     # installers (emulators, utils, music, bezels) and deps/*.list
-├── frontend/                  # EmulationStation seed config; the frontend and themes are separate packages
+├── tools/                     # installers (emulators/, music/, decorations/), deps/*.list, setup scripts
+├── frontend/                  # EmulationStation seed config (the retrobox-emulationstation component installs here)
 ├── VERSION                    # (packages only)
 └── venv/                      # (install.sh on immutable systems only)
 ```
 
-Only in the repository (not installed): `dev/` (helper scripts and notes for developers), `packaging/`, `install.sh`, `.github/`, `.vscode/`. Python modules are run with `PYTHONPATH=<install dir>/lib`: `python3 -m retrobox.startup` (what `bin/retrobox` runs) and `python3 -m retrobox.launcher` (`bin/retrobox-launch`).
+Only in the repository (not installed): `dev/` (helper scripts and notes for developers), `packaging/`, `system/` (installed into `/usr/lib/udev` and polkit instead), `install.sh`, `.github/`, `.vscode/`. Python modules are run with `PYTHONPATH=<install dir>/lib`: `python3 -m retrobox.startup` (what `bin/retrobox` runs) and `python3 -m retrobox.launcher` (`bin/retrobox-launch`).
 
 System and user directories (see [Paths](#paths)):
 

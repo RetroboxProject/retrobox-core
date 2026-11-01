@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-## INSTALADOR DE RETROARCH
-## FECHA DE CREACIÓN: 4 de agosto de 2026
+## RETROARCH INSTALLER
+## Created: 4 August 2026
 set -eo pipefail
 
 ## VARIABLES
@@ -16,42 +16,43 @@ MUPEN64_NEXT_UPSTREAM="https://github.com/libretro/mupen64plus-libretro-nx.git"
 FLYCAST_UPSTREAM="https://github.com/flyinghead/flycast.git"
 ARCH="$(uname -m)"
 
-# Flags de optimización para el propio frontend (Ryzen 7 7435HS). OJO: esto NO
-# optimiza los cores — son .so precompilados que se bajan de buildbot más abajo,
-# no se compilan aquí. Si algún core concreto (FBNeo, Mupen64Plus-Next...) va
-# con stuttering, la solución pasa por compilar ESE core en concreto, no el frontend.
+# Optimization flags for the frontend itself (Ryzen 7 7435HS). NOTE: this does
+# NOT optimize the cores: they are prebuilt .so files downloaded from the
+# buildbot further down, not built here. If a given core (FBNeo,
+# Mupen64Plus-Next...) stutters, the fix is to build THAT core, not the frontend.
 EXTRA_CFLAGS="-O3 -march=native -pipe"
 
-# Cores a descargar desde el buildbot oficial en la instalación por source.
-# Nombre exacto = el que aparece en
-# https://buildbot.libretro.com/nightly/linux/x86_64/latest/ sin el sufijo "_libretro.so.zip"
+# Cores to download from the official buildbot in the source install.
+# Exact name = the one shown in
+# https://buildbot.libretro.com/nightly/linux/x86_64/latest/ without the "_libretro.so.zip" suffix
 CORES=(
   fbneo
   mupen64plus_next
-  # añade aquí el resto de cores que uses
+  # add the rest of the cores you use here
 )
 
-# Cores que en no-x64 se compilan aparte (compile_<core>_from_source) en vez de
-# usar el .so precompilado del buildbot, por choque de contexto GL/GLES entre
-# cómo viene compilado ese core y cómo se configura el frontend en esta arquitectura.
-CORES_COMPILADOS_APARTE_NO_X64=(
+# Cores that are built separately on non-x64 (compile_<core>_from_source)
+# instead of using the buildbot's prebuilt .so, because of a GL/GLES context
+# clash between how that core is built and how the frontend is configured on
+# that architecture.
+CORES_BUILT_FROM_SOURCE_NON_X64=(
   mupen64plus_next
   flycast
 )
 
-## FUNCIONES
+## FUNCTIONS
 
 function error() {
   echo "[ERROR] $*." >&2
   exit 1
 }
 
-function desinstalar() {
+function uninstall() {
   rm -r "${INSTALL_DIR}/app"
 }
 
 function check_deps() {
-  echo "[INFO] Comprobando dependencias de compilación..."
+  echo "[INFO] Checking build dependencies..."
   if command -v dnf &> /dev/null; then
     sudo dnf install -y \
       gcc-c++ cmake make git pkgconf-pkg-config \
@@ -61,7 +62,7 @@ function check_deps() {
       ffmpeg-devel \
       openal-soft-devel libsndfile-devel libusb1-devel \
       systemd-devel alsa-lib-devel pipewire-devel \
-      || error "No se pudieron instalar las dependencias de compilación (dnf)"
+      || error "Could not install the build dependencies (dnf)"
   else
     sudo apt-get install -y \
       build-essential cmake make git unzip 7zip curl pkg-config \
@@ -71,86 +72,86 @@ function check_deps() {
       libavcodec-dev libavformat-dev libavutil-dev libswresample-dev libswscale-dev \
       libopenal-dev libsndfile1-dev libusb-1.0-0-dev \
       libudev-dev libasound2-dev libpipewire-0.3-dev \
-      || error "No se pudieron instalar las dependencias de compilación (apt)"
+      || error "Could not install the build dependencies (apt)"
   fi
 }
 
 function check_deps_appimage() {
-  echo "[INFO] Comprobando dependencias de la instalación por AppImage..."
-  local falta=()
-  command -v curl &> /dev/null || falta+=(curl)
-  command -v 7z &> /dev/null || falta+=(7z)
+  echo "[INFO] Checking the dependencies of the AppImage install..."
+  local missing=()
+  command -v curl &> /dev/null || missing+=(curl)
+  command -v 7z &> /dev/null || missing+=(7z)
 
-  if [[ ${#falta[@]} -eq 0 ]]; then
+  if [[ ${#missing[@]} -eq 0 ]]; then
     return
   fi
 
   if command -v dnf &> /dev/null; then
     sudo dnf install -y curl p7zip p7zip-plugins \
-      || error "No se pudieron instalar las dependencias de la instalación por AppImage (dnf)"
+      || error "Could not install the dependencies of the AppImage install (dnf)"
   else
     sudo apt-get install -y curl p7zip-full \
-      || error "No se pudieron instalar las dependencias de la instalación por AppImage (apt)"
+      || error "Could not install the dependencies of the AppImage install (apt)"
   fi
 }
 
-# Compila mupen64plus_next desde fuente en vez de usar el .so precompilado del
-# buildbot (choque de contexto GL/GLES en no-x64).
+# Builds mupen64plus_next from source instead of using the buildbot's prebuilt
+# .so (GL/GLES context clash on non-x64).
 function compile_mupen64_next_from_source() {
-  echo "[INFO] Compilando mupen64plus_next desde fuente (platform=unix, OpenGL de escritorio, RDP: GLideN64+angrylion+parallel, RSP: HLE+cxd4+parallel)..."
+  echo "[INFO] Building mupen64plus_next from source (platform=unix, desktop OpenGL, RDP: GLideN64+angrylion+parallel, RSP: HLE+cxd4+parallel)..."
   local core_src="${SRC_DIR}/mupen64plus-libretro-nx"
   [[ -d "${core_src}" ]] && rm -rf "${core_src}"
   git clone --depth 1 --shallow-submodules --recursive "${MUPEN64_NEXT_UPSTREAM}" "${core_src}"
 
-  local jobbs
-  jobbs="$(nproc)"
-  [[ "${ARCH}" != "x86_64" && "${ARCH}" != "amd64" ]] && jobbs=2
+  local jobs
+  jobs="$(nproc)"
+  [[ "${ARCH}" != "x86_64" && "${ARCH}" != "amd64" ]] && jobs=2
 
   local m64p_flags=(platform=unix CORE_NAME=mupen64plus_next HAVE_THR_AL=1 LLE=1 HAVE_PARALLEL_RSP=1 HAVE_PARALLEL_RDP=1)
 
   (
     cd "${core_src}" || exit 1
     make "${m64p_flags[@]}" clean
-    make "${m64p_flags[@]}" -j"${jobbs}"
-  ) || error "Fallo al compilar mupen64plus_next desde fuente"
+    make "${m64p_flags[@]}" -j"${jobs}"
+  ) || error "Failed to build mupen64plus_next from source"
 
   [[ -f "${core_src}/mupen64plus_next_libretro.so" ]] \
-    || error "El build de mupen64plus_next terminó pero no encuentro mupen64plus_next_libretro.so"
+    || error "The mupen64plus_next build finished but mupen64plus_next_libretro.so is missing"
 
   mkdir -p "${INSTALL_DIR}/app/share/retroarch/cores"
   cp "${core_src}/mupen64plus_next_libretro.so" "${INSTALL_DIR}/app/share/retroarch/cores/"
 }
 
-# Compila flycast desde fuente contra OpenGL de escritorio (-DUSE_GLES=OFF), por
-# si el .so del buildbot para esta arch viene compilado GLES-only y no casa con
-# el frontend (mismo patrón que mupen64plus_next, pero con CMake en vez de Makefile).
+# Builds flycast from source against desktop OpenGL (-DUSE_GLES=OFF), in case
+# the buildbot's .so for this arch is built GLES-only and does not match the
+# frontend (same pattern as mupen64plus_next, but with CMake instead of a Makefile).
 function compile_flycast_from_source() {
-  echo "[INFO] Compilando flycast desde fuente (CMake, OpenGL de escritorio, sin GLES)..."
+  echo "[INFO] Building flycast from source (CMake, desktop OpenGL, no GLES)..."
   local core_src="${SRC_DIR}/flycast"
   [[ -d "${core_src}" ]] && rm -rf "${core_src}"
   git clone --depth 1 --recursive "${FLYCAST_UPSTREAM}" "${core_src}"
 
-  local jobbs
-  jobbs="$(nproc)"
-  [[ "${ARCH}" != "x86_64" && "${ARCH}" != "amd64" ]] && jobbs=2
+  local jobs
+  jobs="$(nproc)"
+  [[ "${ARCH}" != "x86_64" && "${ARCH}" != "amd64" ]] && jobs=2
 
   (
     cd "${core_src}" || exit 1
     mkdir -p build && cd build || exit 1
     cmake .. -DCMAKE_BUILD_TYPE=Release -DLIBRETRO=ON -DUSE_GLES=OFF -DUSE_GLES2=OFF \
       || exit 1
-    cmake --build . -j"${jobbs}" || exit 1
-  ) || error "Fallo al compilar flycast desde fuente"
+    cmake --build . -j"${jobs}" || exit 1
+  ) || error "Failed to build flycast from source"
 
   [[ -f "${core_src}/build/flycast_libretro.so" ]] \
-    || error "El build de flycast terminó pero no encuentro flycast_libretro.so"
+    || error "The flycast build finished but flycast_libretro.so is missing"
 
   mkdir -p "${INSTALL_DIR}/app/share/retroarch/cores"
   cp "${core_src}/build/flycast_libretro.so" "${INSTALL_DIR}/app/share/retroarch/cores/"
 }
 
 function download_cores() {
-  # Mapeo de arquitectura detectada -> carpeta del buildbot
+  # Detected architecture -> buildbot folder
   local buildbot_arch=""
   case "${ARCH}" in
     x86_64|amd64)
@@ -166,7 +167,7 @@ function download_cores() {
       buildbot_arch="x86"
       ;;
     *)
-      echo "[AVISO] Arquitectura no soportada para descarga de cores (detectada: ${ARCH}); saltando."
+      echo "[WARN] Architecture not supported for downloading cores (detected: ${ARCH}); skipping."
       return
       ;;
   esac
@@ -175,34 +176,34 @@ function download_cores() {
 
   local base="https://buildbot.libretro.com/nightly/linux/${buildbot_arch}/latest"
 
-  echo "[INFO] Obteniendo lista de cores disponibles desde el buildbot (${buildbot_arch})..."
+  echo "[INFO] Getting the list of available cores from the buildbot (${buildbot_arch})..."
 
-  # Descargamos el índice HTML, filtramos los .so.zip, y limpiamos para quedarnos solo con el nombre del core
+  # Download the HTML index, keep the .so.zip files and strip them down to the core name
   local cores_list
   cores_list=$(curl -sfL "${base}/" | grep -oE '[a-zA-Z0-9_\-]+_libretro\.so\.zip' | sed -E 's/_libretro\.so\.zip//' | sort -u)
 
   if [[ -z "${cores_list}" ]]; then
-    echo "[AVISO] No se pudo obtener la lista de cores del buildbot."
+    echo "[WARN] Could not get the list of cores from the buildbot."
     return
   fi
 
   local core skip
   for core in ${cores_list}; do
-    # Estos cores en no-x64 se compilan aparte (ver CORES_COMPILADOS_APARTE_NO_X64)
-    # por el choque de contexto GL/GLES entre el .so precompilado y el frontend.
+    # On non-x64 these cores are built separately (see CORES_BUILT_FROM_SOURCE_NON_X64)
+    # because of the GL/GLES context clash between the prebuilt .so and the frontend.
     skip=0
     if [[ "${ARCH}" != "x86_64" && "${ARCH}" != "amd64" ]]; then
-      for c in "${CORES_COMPILADOS_APARTE_NO_X64[@]}"; do
+      for c in "${CORES_BUILT_FROM_SOURCE_NON_X64[@]}"; do
         [[ "${core}" == "${c}" ]] && skip=1 && break
       done
     fi
     if [[ "${skip}" -eq 1 ]]; then
-      echo "[INFO] Saltando ${core} precompilado (se compila desde fuente en esta arquitectura)."
+      echo "[INFO] Skipping the prebuilt ${core} (it is built from source on this architecture)."
       continue
     fi
-    echo "[INFO] Descargando core: ${core}..."
+    echo "[INFO] Downloading core: ${core}..."
     if ! curl -sfL "${base}/${core}_libretro.so.zip" -o "${TMP_DIR}/${core}.zip"; then
-      echo "[AVISO] No se pudo descargar el core '${core}', saltando"
+      echo "[WARN] Could not download the core '${core}', skipping"
       continue
     fi
     unzip -qo "${TMP_DIR}/${core}.zip" -d "${INSTALL_DIR}/app/share/retroarch/cores/"
@@ -212,7 +213,7 @@ function download_cores() {
 
 function download_selected_cores() {
   if [[ "${ARCH}" != "x86_64" && "${ARCH}" != "amd64" ]]; then
-    echo "[AVISO] Descarga de cores solo soportada para x86_64 por ahora (arquitectura detectada: ${ARCH}); saltando."
+    echo "[WARN] Downloading cores is only supported on x86_64 for now (detected architecture: ${ARCH}); skipping."
     return
   fi
 
@@ -220,9 +221,9 @@ function download_selected_cores() {
   local base="https://buildbot.libretro.com/nightly/linux/x86_64/latest"
 
   for core in "${CORES[@]}"; do
-    echo "[INFO] Descargando core: ${core}..."
+    echo "[INFO] Downloading core: ${core}..."
     if ! curl -sfL "${base}/${core}_libretro.so.zip" -o "${TMP_DIR}/${core}.zip"; then
-      echo "[AVISO] No se pudo descargar el core '${core}', saltando"
+      echo "[WARN] Could not download the core '${core}', skipping"
       continue
     fi
     unzip -qo "${TMP_DIR}/${core}.zip" -d "${INSTALL_DIR}/app/share/retroarch/cores/"
@@ -246,9 +247,9 @@ function download_frontend_assets() {
     zip="${entry%%:*}"
     dest="${entry#*:}"
     mkdir -p "${dest}"
-    echo "[INFO] Descargando ${zip}..."
+    echo "[INFO] Downloading ${zip}..."
     if ! curl -sfL "${base}/${zip}" -o "${TMP_DIR}/${zip}"; then
-      echo "[AVISO] No se pudo descargar ${zip}, saltando"
+      echo "[WARN] Could not download ${zip}, skipping"
       continue
     fi
     unzip -qo "${TMP_DIR}/${zip}" -d "${dest}/"
@@ -258,7 +259,7 @@ function download_frontend_assets() {
 
 function generate_config() {
   if [[ -f "${INSTALL_DIR}/config/retroarch.cfg" ]]; then
-    echo "[INFO] Ya existe ${INSTALL_DIR}/config/retroarch.cfg, no se sobreescribe (para no perder ajustes tocados a mano)."
+    echo "[INFO] ${INSTALL_DIR}/config/retroarch.cfg already exists; not overwriting it (so hand-made changes are kept)."
     return
   fi
 
@@ -269,12 +270,12 @@ function install_source() {
   mkdir -p "${SRC_DIR}"
   check_deps
 
-  echo "[INFO] Clonando RetroArch..."
+  echo "[INFO] Cloning RetroArch..."
   git clone --recursive "${SOURCE_UPSTREAM}" "${RETROARCH_SRC}"
 
-  echo "[INFO] Configurando con OpenGL de escritorio"
+  echo "[INFO] Configuring with desktop OpenGL"
   local gl_flags=(--enable-opengl)
-  echo "[INFO] Configurando y compilando (prefijo: ${INSTALL_DIR}/app)..."
+  echo "[INFO] Configuring and building (prefix: ${INSTALL_DIR}/app)..."
 
   (
     cd "${RETROARCH_SRC}" || exit 1
@@ -285,12 +286,12 @@ function install_source() {
       || exit 1
     make -j"$(nproc)" || exit 1
     make install || exit 1
-  ) || error "Fallo al compilar/instalar RetroArch. Revisa la salida de configure/make arriba"
+  ) || error "Failed to build/install RetroArch. Check the configure/make output above"
 
-  # "make install" con --prefix coloca bin/retroarch de forma autocontenida;
-  # el resultado en INSTALL_DIR/app no depende de que _src/ siga existiendo.
+  # "make install" with --prefix puts bin/retroarch in a self-contained tree;
+  # the result in INSTALL_DIR/app does not depend on _src/ still existing.
   [[ -x "${INSTALL_DIR}/app/bin/retroarch" ]] \
-    || error "El build terminó pero no encuentro el binario instalado en ${INSTALL_DIR}/app/bin/retroarch"
+    || error "The build finished but the installed binary is not in ${INSTALL_DIR}/app/bin/retroarch"
 
   download_cores
 
@@ -302,69 +303,69 @@ function install_source() {
   download_frontend_assets
   generate_config
 
-  echo "[INFO] Limpiando fuentes temporales..."
+  echo "[INFO] Cleaning up temporary sources..."
   rm -rf "${SRC_DIR}" "${TMP_DIR}"
-  echo "[INFO] Instalación desde source completada. Binario: ${INSTALL_DIR}/app/bin/retroarch"
-  echo "[INFO] Config: ${INSTALL_DIR}/config/retroarch.cfg — lánzalo con: ${INSTALL_DIR}/app/bin/retroarch -c ${INSTALL_DIR}/config/retroarch.cfg"
+  echo "[INFO] Installation from source completed. Binary: ${INSTALL_DIR}/app/bin/retroarch"
+  echo "[INFO] Config: ${INSTALL_DIR}/config/retroarch.cfg — run it with: ${INSTALL_DIR}/app/bin/retroarch -c ${INSTALL_DIR}/config/retroarch.cfg"
 }
 
 function install_appimage() {
   if [[ "${ARCH}" != "x86_64" && "${ARCH}" != "amd64" ]]; then
-    error "Instalación por AppImage solo soportada para x86_64 por ahora (arquitectura detectada: ${ARCH})"
+    error "The AppImage install is only supported on x86_64 for now (detected architecture: ${ARCH})"
   fi
 
-  desinstalar 2>/dev/null || true
+  uninstall 2>/dev/null || true
   check_deps_appimage
 
   local url="https://buildbot.libretro.com/nightly/linux/x86_64/RetroArch.7z"
   local archive="${TMP_DIR}/RetroArch.7z"
   local extract_dir="${TMP_DIR}/extracted"
 
-  echo "[INFO] Descargando RetroArch AppImage..."
-  curl -fSL -o "${archive}" "${url}" || error "No se pudo descargar el AppImage de RetroArch"
+  echo "[INFO] Downloading the RetroArch AppImage..."
+  curl -fSL -o "${archive}" "${url}" || error "Could not download the RetroArch AppImage"
 
-  echo "[INFO] Extrayendo ${archive}..."
+  echo "[INFO] Extracting ${archive}..."
   mkdir -p "${extract_dir}"
   7z x -y -o"${extract_dir}" "${archive}" >/dev/null \
-    || error "Fallo al extraer el .7z descargado"
+    || error "Failed to extract the downloaded .7z"
 
   local appimage="${extract_dir}/RetroArch-Linux-x86_64/RetroArch-Linux-x86_64.AppImage"
-  [[ -f "${appimage}" ]] || error "No se ha encontrado el AppImage tras la extracción"
+  [[ -f "${appimage}" ]] || error "The AppImage was not found after extracting"
   chmod +x "${appimage}"
 
-  echo "[INFO] Descomprimiendo el AppImage (--appimage-extract)..."
+  echo "[INFO] Unpacking the AppImage (--appimage-extract)..."
   (
     cd "${extract_dir}" || exit 1
     "${appimage}" --appimage-extract >/dev/null 2>&1 || exit 1
-  ) || error "Fallo al descomprimir el AppImage"
+  ) || error "Failed to unpack the AppImage"
 
-  # El binario y compañía viven dentro de squashfs-root/usr (bin/, lib/, share/),
-  # no en la raíz de squashfs-root (que solo trae el AppRun, el .desktop y el icono).
+  # The binary and friends live in squashfs-root/usr (bin/, lib/, share/), not
+  # at the root of squashfs-root (which only holds the AppRun, the .desktop and the icon).
   [[ -d "${extract_dir}/squashfs-root/usr" ]] \
-    || error "Estructura de squashfs-root inesperada: no existe usr/ dentro"
+    || error "Unexpected squashfs-root layout: there is no usr/ inside"
 
   mkdir -p "${INSTALL_DIR}/app"
   cp -r "${extract_dir}/squashfs-root/usr"/* "${INSTALL_DIR}/app"
   cp -r "${extract_dir}/squashfs-root/AppRun" "${INSTALL_DIR}/app"
 
   [[ -x "${INSTALL_DIR}/app/bin/retroarch" ]] \
-    || error "El AppImage se descomprimió pero no encuentro el binario en ${INSTALL_DIR}/app/bin/retroarch"
+    || error "The AppImage was unpacked but the binary is not in ${INSTALL_DIR}/app/bin/retroarch"
 
-  # El AppImage trae su propia config "portable" en .home/.config/retroarch
+  # The AppImage brings its own "portable" config in .home/.config/retroarch
   # (cores, assets, autoconfig, cheats, database, shaders, overlays, retroarch.cfg...).
-  # La asimilamos a la misma estructura que usa la instalación por source
-  # (INSTALL_DIR/app/share/retroarch) en lugar de dejarla en un directorio aparte.
+  # It is merged into the same layout the source install uses
+  # (INSTALL_DIR/app/share/retroarch) instead of being left in a separate directory.
   local home_cfg="${extract_dir}/RetroArch-Linux-x86_64/RetroArch-Linux-x86_64.AppImage.home/.config/retroarch"
   if [[ -d "${home_cfg}" ]]; then
-    echo "[INFO] Asimilando la configuración embebida del AppImage a ${INSTALL_DIR}/app/share/retroarch..."
+    echo "[INFO] Merging the AppImage's embedded configuration into ${INSTALL_DIR}/app/share/retroarch..."
     mkdir -p "${INSTALL_DIR}/app/share/retroarch"
     cp -r "${home_cfg}"/* "${INSTALL_DIR}/app/share/retroarch/"
   fi
 
-  # Igual que en la instalación por source, el retroarch.cfg definitivo vive en
-  # INSTALL_DIR/config/retroarch.cfg. Si el AppImage trajo uno y todavía no
-  # existe ninguno ahí, lo promovemos; si ya existe uno (instalación previa
-  # tocada a mano), lo respetamos.
+  # As in the source install, the final retroarch.cfg lives in
+  # INSTALL_DIR/config/retroarch.cfg. If the AppImage brought one and there is
+  # none there yet, it is promoted; if one already exists (a previous install
+  # edited by hand), it is kept.
   mkdir -p "${INSTALL_DIR}/config"
   if [[ -f "${INSTALL_DIR}/app/share/retroarch/retroarch.cfg" ]]; then
     if [[ ! -f "${INSTALL_DIR}/config/retroarch.cfg" ]]; then
@@ -375,23 +376,23 @@ function install_appimage() {
   fi
   generate_config
 
-  echo "[INFO] Limpiando temporales..."
+  echo "[INFO] Cleaning up temporary files..."
   rm -rf "${extract_dir}" "${archive}"
 
-  # Igual que en la instalación por source: bajamos los cores desde el
-  # buildbot de libretro en vez de usar el RetroArch_cores.7z del AppImage.
+  # As in the source install: the cores are downloaded from the libretro
+  # buildbot instead of using the AppImage's RetroArch_cores.7z.
   download_cores
 
   rm -rf "${TMP_DIR}"
-  echo "[INFO] Instalación por AppImage completada. Binario: ${INSTALL_DIR}/app/bin/retroarch"
-  echo "[INFO] Config: ${INSTALL_DIR}/config/retroarch.cfg — lánzalo con: ${INSTALL_DIR}/app/bin/retroarch -c ${INSTALL_DIR}/config/retroarch.cfg"
+  echo "[INFO] AppImage installation completed. Binary: ${INSTALL_DIR}/app/bin/retroarch"
+  echo "[INFO] Config: ${INSTALL_DIR}/config/retroarch.cfg — run it with: ${INSTALL_DIR}/app/bin/retroarch -c ${INSTALL_DIR}/config/retroarch.cfg"
 }
 
-## LLAMADAS
+## ENTRY POINT
 case "$1" in
 "-s") install_source;;
 "-a") install_appimage;;
-"-u"|"-d") desinstalar;;
+"-u"|"-d") uninstall;;
 *)  exit 1;;
 esac
 

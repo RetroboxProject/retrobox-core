@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-## INSTALADOR DE PCSX2
-## FECHA DE CREACIÓN: 1 de noviembre de 2025
+## PCSX2 INSTALLER
+## Created: 1 November 2025
 set -eo pipefail
 
 ## VARIABLES
@@ -12,46 +12,46 @@ TMP_DIR="$(mktemp -d)"
 REPO="PCSX2/pcsx2"
 API_URL="https://api.github.com/repos/$REPO/releases"
 
-## FUNCIONES
+## FUNCTIONS
 
 function error() {
-    echo "[ERROR] $*. F"
+    echo "[ERROR] $*."
     exit 1
 }
 
-function desinstalar() {
+function uninstall() {
     rm -r "${INSTALL_DIR}/app"
 }
 
 function appimage_install(){
-  # 3. Comprobar curl
+  # 3. Check curl
   for i in curl jq; do
     if ! command -v $i &> /dev/null; then
       sudo dnf install -y $i || sudo apt-get install -y $i
     fi
-  done 
+  done
 
   releases=$(curl -sL "${API_URL}?per_page=10")
-  
-  # 6. Extraer URL del AppImage del primer elemento del array (la última release)
+
+  # 6. Extract the AppImage URL from the first element of the array (the latest release)
   APPIMAGE_URL=$(echo "$releases" | jq -r '
     .[0].assets[] | select(.name | contains(".AppImage") and (contains("arm") | not)) | .browser_download_url
   ' | head -n1)
 
   if [[ -z "${APPIMAGE_URL}" ]]; then
-    error "No se encontró ningún AppImage en la última release disponible."
+    error "No AppImage found in the latest available release."
   fi
-  
-  # 7. Preparar directorio de instalación
+
+  # 7. Prepare the installation directory
   mkdir -p "${INSTALL_DIR}"
 
-  # 8. Descargar y mover
+  # 8. Download and move
   curl -L "${APPIMAGE_URL}" -o "${TMP_DIR}/pcsx2.AppImage"
 
   mv "${TMP_DIR}/pcsx2.AppImage" "${INSTALL_DIR}/pcsx2.AppImage"
   chmod +x "${INSTALL_DIR}/pcsx2.AppImage"
   mkdir -p "${INSTALL_DIR}/config"
-  echo "[INFO] Extrayendo AppImage..."
+  echo "[INFO] Extracting the AppImage..."
   (
       cd "${INSTALL_DIR}" || exit 1
       "${INSTALL_DIR}/pcsx2.AppImage" --appimage-extract >/dev/null 2>&1
@@ -59,16 +59,16 @@ function appimage_install(){
       rm "${INSTALL_DIR}/pcsx2.AppImage"
   )
 
-  # 9. Limpiar
+  # 9. Clean up
   rm -rf "${TMP_DIR}"
-  echo "[INFO] Instalación completada."
+  echo "[INFO] Installation completed."
 
 }
 
-## LLAMADAS
+## ENTRY POINT
 case "$1" in
    "-i") appimage_install;;
-   "-u"|"-d") desinstalar;;
+   "-u"|"-d") uninstall;;
     *)  exit 1;;
 esac
 

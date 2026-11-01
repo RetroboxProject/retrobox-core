@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-## INSTALADOR DE REDREAM
-## FECHA DE CREACIÓN: 4 de agosto de 2026
+## REDREAM INSTALLER
+## Created: 4 August 2026
 set -eo pipefail
 
 ## VARIABLES
@@ -11,50 +11,49 @@ INSTALL_DIR="${RETROBOX_EMULATORS_DIR}/redream"
 TMP_DIR="$(mktemp -d)"
 DOWNLOAD_PAGE="https://redream.io/download"
 
-## FUNCIONES
+## FUNCTIONS
 
 function error() {
   echo "[ERROR] $*." >&2
   exit 1
 }
 
-function desinstalar() {
+function uninstall() {
   rm -r "${INSTALL_DIR}/redream"
 }
 
 function tarball_install(){
-  # Comprobar curl
+  # Check curl
   if ! command -v curl &> /dev/null; then
     sudo dnf install -y curl || sudo apt-get install -y curl
   fi
 
-  # redream no tiene API tipo GitHub: hay que parsear la página de descargas.
-  # El primer enlace .tar.gz para x86_64-linux que aparece en la página
-  # corresponde a la última "Stable Release" (aparece antes que las
-  # "Development Releases" en el HTML).
-  echo "[INFO] Buscando la última versión de development en ${DOWNLOAD_PAGE}..."
-  pagina="$(curl -sL "${DOWNLOAD_PAGE}")"
+  # redream has no GitHub-style API: the downloads page has to be parsed.
+  # The first x86_64-linux .tar.gz link on the page is the latest "Stable
+  # Release" (it comes before the "Development Releases" in the HTML).
+  echo "[INFO] Looking for the latest development version in ${DOWNLOAD_PAGE}..."
+  page="$(curl -sL "${DOWNLOAD_PAGE}")"
 
-  # Recortar todo lo anterior a "Development Releases" para no coger
-  # por error un tarball de la sección "Stable Releases"
-  pagina_dev="$(echo "${pagina}" | sed -n '/Development Releases/,$p')"
+  # Cut everything before "Development Releases" so that a tarball from the
+  # "Stable Releases" section is not picked by mistake
+  page_dev="$(echo "${page}" | sed -n '/Development Releases/,$p')"
 
-  TARBALL_PATH=$(echo "${pagina_dev}" | grep -oP '(?<=href=")/download/redream\.x86_64-linux-v[0-9][^"]*\.tar\.gz(?=")' | head -n1)
+  TARBALL_PATH=$(echo "${page_dev}" | grep -oP '(?<=href=")/download/redream\.x86_64-linux-v[0-9][^"]*\.tar\.gz(?=")' | head -n1)
 if [[ -z "${TARBALL_PATH}" ]]; then
-    error "No se encontró ningún tarball de Linux x86_64 en la sección Development Releases"
+    error "No Linux x86_64 tarball found in the Development Releases section"
   fi
 
   TARBALL_URL="https://redream.io${TARBALL_PATH}"
 
-  # Preparar directorio de instalación
+  # Prepare the installation directory
   mkdir -p "${INSTALL_DIR}"
 
-  # Descargar
-  echo "[INFO] Descargando ${TARBALL_URL}..."
+  # Download
+  echo "[INFO] Downloading ${TARBALL_URL}..."
   curl -L "${TARBALL_URL}" -o "${TMP_DIR}/redream.tar.gz"
 
-  # Extraer
-  echo "[INFO] Extrayendo tarball..."
+  # Extract
+  echo "[INFO] Extracting the tarball..."
   mkdir -p "${TMP_DIR}/extract"
   tar -xzf "${TMP_DIR}/redream.tar.gz" -C "${TMP_DIR}/extract"
 
@@ -62,15 +61,15 @@ if [[ -z "${TARBALL_PATH}" ]]; then
   mv "${TMP_DIR}/extract"/* "${INSTALL_DIR}/"
   chmod +x "${INSTALL_DIR}/redream"
 
-  # Limpiar
+  # Clean up
   rm -rf "${TMP_DIR}"
-  echo "[INFO] Instalación completada."
+  echo "[INFO] Installation completed."
 }
 
-## LLAMADAS
+## ENTRY POINT
 case "$1" in
 "-i") tarball_install;;
-"-u"|"-d") desinstalar;;
+"-u"|"-d") uninstall;;
 *)  exit 1;;
 esac
 

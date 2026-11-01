@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-## INSTALADOR DE MODEL2EMU (SEGA MODEL 2)
-## FECHA DE CREACIÓN: 23 de mayo de 2026
-## FECHAS DE MODIFICACIÓN: Configurado para entorno Wine personalizado
+## MODEL2EMU (SEGA MODEL 2) INSTALLER
+## Created: 23 May 2026
+## Changes: set up for a custom Wine environment
 
 ## VARIABLES
 RETROBOX_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/../.. >/dev/null 2>&1 && pwd -P)"
@@ -11,84 +11,82 @@ DOWNLOAD_URL="https://github.com/batocera-linux/model2emu/raw/refs/heads/main/m2
 INSTALL_DIR="${RETROBOX_EMULATORS_DIR}/model2emu"
 EMU_DIR="$INSTALL_DIR/drive_c/model2emu"
 
-## FUNCIONES
+## FUNCTIONS
 
 function error(){
-    echo "[ERROR] $*. F"
+    echo "[ERROR] $*."
     exit 1
 }
 
 function check_dependencies(){
     if ! command -v wine >/dev/null 2>&1; then
-        error "Wine no está instalado en el sistema. Instálalo antes de continuar"
+        error "Wine is not installed on the system. Install it before continuing"
     fi
     if ! command -v unzip >/dev/null 2>&1; then
-        error "La herramienta 'unzip' no está instalada. Instálala antes de continuar"
+        error "The 'unzip' tool is not installed. Install it before continuing"
     fi
 }
 
 function m2emu_wine_install(){
-    echo "[INFO] Verificando dependencias del sistema..."
+    echo "[INFO] Checking the system dependencies..."
     check_dependencies
 
-    echo "[INFO] Creando directorio e inicializando WINEPREFIX..."
+    echo "[INFO] Creating the directory and initializing the WINEPREFIX..."
     mkdir -p "$INSTALL_DIR"
 
-    echo "[INFO] Creando el directorio del emulador..."
+    echo "[INFO] Creating the emulator directory..."
     mkdir -p "$EMU_DIR"
 
-    echo "[INFO] Descargando m2emulator.zip desde el repositorio de Batocera..."
+    echo "[INFO] Downloading m2emulator.zip from the Batocera repository..."
     TMP_ZIP=$(mktemp /tmp/m2emu_XXXXXX.zip)
     curl -L "$DOWNLOAD_URL" -o "$TMP_ZIP"
 
     if [ $? -ne 0 ]; then
         rm -f "$TMP_ZIP"
-        error "Error durante la descarga del archivo zip"
+        error "Error while downloading the zip file"
     fi
 
-    echo "[INFO] Extrayendo archivos en la ruta de destino..."
+    echo "[INFO] Extracting the files into the destination path..."
     unzip -o "$TMP_ZIP" -d "$EMU_DIR" >/dev/null
     rm -f "$TMP_ZIP"
 
-    echo "[INFO] Instalación de Model2Emu completada con éxito."
+    echo "[INFO] Model2Emu installed successfully."
 }
 
 function m2emu_uninstall(){
-    echo "[INFO] Buscando instalaciones de Model2Emu..."
+    echo "[INFO] Looking for Model2Emu installations..."
     local found=0
 
-    # Comprobar y eliminar estructura Wine/Archivos
-    if [ -d "$INSTALL_DIR" ] || [ -f "$BIN_LINK" ]; then
-        echo "[INFO] Eliminando WINEPREFIX y archivos de /opt..."
+    # Check for and remove the Wine/files tree
+    if [ -d "$INSTALL_DIR" ]; then
+        echo "[INFO] Removing the WINEPREFIX and the emulator files in ${INSTALL_DIR}..."
         rm -rf "$INSTALL_DIR"
         found=1
     fi
 
     if [ $found -eq 0 ]; then
-        echo "[INFO] No se encontró ninguna instalación de Model2Emu."
+        echo "[INFO] No Model2Emu installation found."
     else
-        echo "[INFO] Desinstalación completada."
+        echo "[INFO] Uninstallation completed."
     fi
 }
 
-## LLAMADAS
-
-check_root
+## ENTRY POINT
 
 if [ -z "$1" ]; then
-    echo "Uso: $0 [-i | -u]"
-    echo "  -i : Instalar configurando WINEPREFIX propio en /opt y descargando archivos"
-    echo "  -u : Desinstalar por completo (elimina archivos, WINEPREFIX, binario y acceso directo)"
+    echo "Usage: $0 [-i | -u]"
+    echo "  -i : Install, setting up its own WINEPREFIX in ${INSTALL_DIR} and downloading the files"
+    echo "  -u : Uninstall completely (removes the files and the WINEPREFIX)"
     exit 1
 fi
 
-echo "[INFO] Ejecutando acción para el parámetro: $1"
+echo "[INFO] Running the action for option: $1"
 
 case $1 in
     "-i") m2emu_wine_install;;
     "-u") m2emu_uninstall;;
     *)
-        echo "[ERROR] Parámetro no reconocido."
+        echo "[ERROR] Unknown option."
         exit 1
         ;;
 esac

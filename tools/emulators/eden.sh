@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-## INSTALADOR DE EMULADOR DE SWITCH - EDEN (FORGEJO API VERSION)
-## FECHA DE MODIFICACIÓN: 2026 (Adaptado para git.eden-emu.dev)
+## SWITCH EMULATOR INSTALLER - EDEN (FORGEJO API VERSION)
+## Changed: 2026 (adapted to git.eden-emu.dev)
 set -o pipefail
 
 ## VARIABLES
@@ -12,74 +12,74 @@ REPO_OWNER="eden-emu"
 REPO_NAME="eden"
 API_URL="https://git.eden-emu.dev/api/v1/repos/${REPO_OWNER}/${REPO_NAME}/releases/latest"
 
-## FUNCIONES
+## FUNCTIONS
 function error() {
     echo "[ERROR] $*"
     exit 1
 }
 
 function appimage_install(){
-    # 3. Comprobar dependencias críticas (curl y jq)
+    # 3. Check the critical dependencies (curl and jq)
     if ! command -v curl &> /dev/null; then
-        echo "Instalando curl..."
+        echo "Installing curl..."
         if command -v dnf &> /dev/null; then dnf install -y curl; else apt-get update && apt-get install -y curl; fi
     fi
-    
+
     if ! command -v jq &> /dev/null; then
-        echo "Instalando jq..."
+        echo "Installing jq..."
         if command -v dnf &> /dev/null; then dnf install -y jq; else apt-get update && apt-get install -y jq; fi
     fi
 
-    # 4. Obtener JSON desde la API de Forgejo
-    echo "Conectando con la API de git.eden-emu.dev..."
+    # 4. Get the JSON from the Forgejo API
+    echo "Connecting to the git.eden-emu.dev API..."
     json=$(curl -sL -H "Accept: application/json" "$API_URL")
 
     if [[ -z "$json" || "$json" == *"404 Not Found"* ]]; then
-        error "No se pudo conectar a la API o el repositorio no existe."
+        error "Could not connect to the API, or the repository does not exist."
     fi
 
-    # 5. Extraer tag_name
+    # 5. Extract tag_name
     TAG_NAME=$(echo "$json" | jq -r '.tag_name')
-    echo "Última versión detectada: $TAG_NAME"
+    echo "Latest version found: $TAG_NAME"
 
-    # 6. Extraer URL del AppImage desde los assets de Forgejo
-    # Filtramos por .AppImage, que no sea zsync y que sea para x86_64
-    APPIMAGE_URL=$(echo "$json" | jq -r '.assets[] | 
-        select(.name | endswith(".AppImage") 
-        and (contains("arm") or contains("aarch") or contains("AppImage.zsync") | not)) 
+    # 6. Extract the AppImage URL from the Forgejo assets
+    # Keep .AppImage files that are not zsync and are for x86_64
+    APPIMAGE_URL=$(echo "$json" | jq -r '.assets[] |
+        select(.name | endswith(".AppImage")
+        and (contains("arm") or contains("aarch") or contains("AppImage.zsync") | not))
         | .browser_download_url' | head -n 1)
 
     if [[ -z "$APPIMAGE_URL" || "$APPIMAGE_URL" == "null" ]]; then
-        error "No se encontró ningún AppImage válido en la última release de Forgejo."
+        error "No valid AppImage found in the latest Forgejo release."
     fi
 
-    echo "Descargando desde: $APPIMAGE_URL"
+    echo "Downloading from: $APPIMAGE_URL"
 
-    # 7. Preparar directorio de instalación
+    # 7. Prepare the installation directory
     mkdir -p "${INSTALL_DIR}/config"
 
-    # 8. Descargar y mover
-    curl -L "${APPIMAGE_URL}" -o "${TMP_DIR}/eden-emu.AppImage" || error "Error al descargar el archivo."
+    # 8. Download and move
+    curl -L "${APPIMAGE_URL}" -o "${TMP_DIR}/eden-emu.AppImage" || error "Error while downloading the file."
 
     mv "$TMP_DIR/eden-emu.AppImage" "${INSTALL_DIR}/eden-emu.AppImage"
     chmod +x "${INSTALL_DIR}/eden-emu.AppImage"
 
-    # 9. Limpiar temporal inicial
+    # 9. Clean up the temporary directory
     rm -rf "${TMP_DIR}"
 
-    echo "¡Eden Emulator ($TAG_NAME) instalado con éxito!"
+    echo "Eden Emulator ($TAG_NAME) installed successfully!"
 }
 
-function desinstalar() {
-    echo "Desinstalando Eden Emulator..."
+function uninstall() {
+    echo "Uninstalling Eden Emulator..."
     rm -rf "${INSTALL_DIR}"
-    echo "Desinstalación completa."
+    echo "Uninstallation completed."
 }
 
 case "$1" in
     -i) appimage_install ;;
-    -u) desinstalar ;;
-    *) echo "Uso: $0 {-i (instalar) | -u (desinstalar)}" ; exit 1 ;;
+    -u) uninstall ;;
+    *) echo "Usage: $0 {-i (install) | -u (uninstall)}" ; exit 1 ;;
 esac
 
 exit 0

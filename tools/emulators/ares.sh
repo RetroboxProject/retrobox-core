@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-## INSTALADOR DE ARES (+ librashader)
-## FECHA DE CREACIÓN: 3 de agosto de 2026
+## ARES INSTALLER (+ librashader)
+## Created: 3 August 2026
 set -eo pipefail
 
 ## VARIABLES
@@ -14,7 +14,7 @@ LIBRASHADER_SRC="${SRC_DIR}/librashader"
 ARES_REPO="https://github.com/ares-emulator/ares.git"
 LIBRASHADER_REPO="https://github.com/SnowflakePowered/librashader.git"
 
-## FUNCIONES
+## FUNCTIONS
 
 function error() {
   echo "[ERROR] $*."
@@ -31,30 +31,30 @@ function check_deps() {
     libsdl3-dev libgtk-3-dev libx11-dev libxext-dev libice-dev
     libgl-dev libglu1-mesa-dev
   )
-  echo "[INFO] Comprobando dependencias de compilación..."
+  echo "[INFO] Checking build dependencies..."
   sudo apt-get install -y "${pkgs[@]}"
 
   if ! command -v rustup &> /dev/null; then
-    error "rustup no está instalado. librashader necesita un toolchain nightly de Rust. Instálalo desde https://rustup.rs y vuelve a lanzar el script"
+    error "rustup is not installed. librashader needs a nightly Rust toolchain. Install it from https://rustup.rs and run the script again"
   fi
   rustup toolchain list | grep -q '^nightly' || rustup toolchain install nightly
 }
 
 function build_ares() {
-  echo "[INFO] Clonando ares..."
+  echo "[INFO] Cloning ares..."
   git clone --depth 1 "${ARES_REPO}" "${ARES_SRC}"
 
-  echo "[INFO] Compilando ares..."
+  echo "[INFO] Building ares..."
   cmake -S "${ARES_SRC}" -B "${ARES_SRC}/build" -G Ninja \
     -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}" \
     -DCMAKE_BUILD_TYPE=Release
   ninja -C "${ARES_SRC}/build"
 
-  echo "[INFO] Instalando ares en ${INSTALL_DIR}..."
+  echo "[INFO] Installing ares into ${INSTALL_DIR}..."
   ninja -C "${ARES_SRC}/build" install
 
-  # Red de seguridad: si el install() de CMake no coloca sourcery/ares en bin/,
-  # los buscamos en el árbol de build y los copiamos a mano.
+  # Safety net: if CMake's install() does not put sourcery/ares in bin/,
+  # look for them in the build tree and copy them by hand.
   mkdir -p "${INSTALL_DIR}/bin"
   for bin in ares sourcery; do
     if [[ ! -x "${INSTALL_DIR}/bin/${bin}" ]]; then
@@ -66,10 +66,10 @@ function build_ares() {
 }
 
 function build_librashader() {
-  echo "[INFO] Clonando librashader..."
+  echo "[INFO] Cloning librashader..."
   git clone --depth 1 "${LIBRASHADER_REPO}" "${LIBRASHADER_SRC}"
 
-  echo "[INFO] Compilando librashader (nightly, perfil optimized)..."
+  echo "[INFO] Building librashader (nightly, optimized profile)..."
   (
     cd "${LIBRASHADER_SRC}"
     rustup run nightly cargo run -p librashader-build-script -- --profile optimized
@@ -77,7 +77,7 @@ function build_librashader() {
 
   local so_file
   so_file="$(find "${LIBRASHADER_SRC}/target" -maxdepth 2 -type f -name 'librashader.so' | head -n1)"
-  [[ -n "${so_file}" ]] || error "No se ha generado librashader.so tras la compilación"
+  [[ -n "${so_file}" ]] || error "librashader.so was not produced by the build"
 
   mkdir -p "${INSTALL_DIR}/lib"
   cp "${so_file}" "${INSTALL_DIR}/lib/librashader.so"
@@ -89,13 +89,13 @@ function ares_source_inst() {
   build_ares
   build_librashader
 
-  echo "[INFO] Limpiando fuentes temporales..."
+  echo "[INFO] Cleaning up temporary sources..."
   rm -rf "${SRC_DIR}"
 
-  echo "[INFO] Instalación completada."
+  echo "[INFO] Installation completed."
 }
 
-## LLAMADAS
+## ENTRY POINT
 case "$1" in
   "-s") ares_source_inst;;
   "-u") ares_uninstall;;

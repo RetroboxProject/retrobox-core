@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-## INSTALADOR DE PPSSPP
-## FECHA DE CREACIÓN: 1 de noviembre de 2025
-## Adaptado para soportar AppImage (multi-arquitectura) y Flatpak
+## PPSSPP INSTALLER
+## Created: 1 November 2025
+## Installs the official AppImage (x86_64 and aarch64), extracted
 set -eo pipefail
 
 ## VARIABLES
@@ -12,37 +12,37 @@ GITHUB_REPO="hrydgard/ppsspp"
 INSTALL_DIR="${RETROBOX_EMULATORS_DIR}/ppsspp"
 TMP_DIR="$(mktemp -d)"
 
-## FUNCIONES
+## FUNCTIONS
 
 function error() {
-    echo "[ERROR] $*. F"
+    echo "[ERROR] $*."
     exit 1
 }
 
 function install_appimage(){
-    # 1. Detectar Arquitectura
+    # 1. Detect the architecture
     ARCH=$(uname -m)
     if [[ "$ARCH" == "x86_64" ]]; then
         SEARCH_ARCH="x86_64"
     elif [[ "$ARCH" == "aarch64" || "$ARCH" == "arm64" ]]; then
         SEARCH_ARCH="aarch64"
     else
-        error "Arquitectura no soportada para este script: $ARCH"
+        error "Architecture not supported by this script: $ARCH"
     fi
 
-    echo "[INFO] Arquitectura detectada: $SEARCH_ARCH"
-    echo "[INFO] Buscando la última versión de PPSSPP AppImage en GitHub..."
+    echo "[INFO] Detected architecture: $SEARCH_ARCH"
+    echo "[INFO] Looking for the latest PPSSPP AppImage on GitHub..."
 
-    # 2. Comprobar curl
+    # 2. Check curl
     #if ! command -v curl &> /dev/null; then
-    #    echo "[INFO] Instalando dependencias (curl)..."
+    #    echo "[INFO] Installing dependencies (curl)..."
     #    apt-get update && apt-get install -y curl || dnf install -y curl
     #fi
 
-    # 3. Obtener JSON de la última release
+    # 3. Get the JSON of the latest release
     json=$(curl -sL "https://api.github.com/repos/$GITHUB_REPO/releases/latest")
 
-    # 4. Extraer URL del AppImage compatible con la arquitectura
+    # 4. Extract the URL of the AppImage for this architecture
     APPIMAGE_URL=$(printf '%s\n' "$json" \
         | grep '"browser_download_url":' \
         | grep -i "\.AppImage" \
@@ -52,21 +52,21 @@ function install_appimage(){
 
     if [[ -z "$APPIMAGE_URL" ]]; then
         rm -rf "$TMP_DIR"
-        error "No se encontró ningún AppImage para $SEARCH_ARCH en la última release de $GITHUB_REPO."
+        error "No AppImage for $SEARCH_ARCH found in the latest release of $GITHUB_REPO."
     fi
 
-    echo "[INFO] Descargando: $APPIMAGE_URL"
+    echo "[INFO] Downloading: $APPIMAGE_URL"
 
-    # 5. Preparar directorio y descargar
+    # 5. Prepare the directory and download
     mkdir -p "$INSTALL_DIR"
     curl -L "$APPIMAGE_URL" -o "$TMP_DIR/ppsspp.AppImage"
 
-    # 6. Mover e instalar
+    # 6. Move and install
     mv "$TMP_DIR/ppsspp.AppImage" "$INSTALL_DIR/ppsspp.AppImage"
     chmod +x "$INSTALL_DIR/ppsspp.AppImage"
     mkdir -p "${INSTALL_DIR}/config"
 
-    echo "[INFO] Extrayendo AppImage..."
+    echo "[INFO] Extracting the AppImage..."
     (
         cd "${INSTALL_DIR}" || exit 1
         "${INSTALL_DIR}/ppsspp.AppImage" --appimage-extract >/dev/null 2>&1
@@ -75,31 +75,31 @@ function install_appimage(){
         rm "${INSTALL_DIR}/ppsspp.AppImage"
     )
 
-    # 8. Limpiar
+    # 8. Clean up
     rm -rf "$TMP_DIR"
-    echo "[INFO] Instalación de AppImage completada."
+    echo "[INFO] AppImage installation completed."
 }
 
 function uninstall_app() {
-    echo "[INFO] Buscando instalaciones de PPSSPP..."
+    echo "[INFO] Looking for PPSSPP installations..."
 
 
-    # Comprobar AppImage
-    if [[ -d "$INSTALL_DIR/app" || -f "$BIN_LINK" ]]; then
-        echo "[INFO] Desinstalando versión AppImage..."
+    # Check for the AppImage
+    if [[ -d "$INSTALL_DIR/app" ]]; then
+        echo "[INFO] Uninstalling the AppImage version..."
         rm -rf "${INSTALL_DIR}/app"
     fi
 }
 
-## LLAMADAS
+## ENTRY POINT
 
-echo "[INFO] Ejecutando acción para el parámetro: $1"
+echo "[INFO] Running the action for option: $1"
 
 case "$1" in
     "-i") install_appimage;;
     "-u") uninstall_app;;
     *)
-        echo "[ERROR] Parámetro no reconocido."
+        echo "[ERROR] Unknown option."
         exit 1
         ;;
 esac

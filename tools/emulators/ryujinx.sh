@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-## MULTI-INSTALADOR DE EMULADOR DE SWITCH - RYUJINX / RYUBING
-## FECHA DE MODIFICACIÓN: Mayo de 2026
+## SWITCH EMULATOR INSTALLER - RYUJINX / RYUBING
+## Changed: May 2026
 set -o pipefail
 
 ## VARIABLES
@@ -14,17 +14,17 @@ API_URL="https://git.ryujinx.app/api/v1/repos/${REPO_OWNER}/${REPO_NAME}/release
 INSTALL_DIR="${RETROBOX_EMULATORS_DIR}/ryujinx"
 TMP_DIR="$(mktemp -d)"
 
-## FUNCIONES DE CONTROL
+## CONTROL FUNCTIONS
 
 function error(){
-    echo "[ERROR] $*. F"
+    echo "[ERROR] $*."
     rm -rf "$TMP_DIR" 2>/dev/null
     exit 1
 }
 
 function install_dependencies() {
     if ! command -v curl &> /dev/null || ! command -v jq &> /dev/null; then
-        echo "[INFO] Instalando dependencias críticas (curl y jq)..."
+        echo "[INFO] Installing the critical dependencies (curl and jq)..."
         if command -v dnf &> /dev/null; then
             dnf install -y curl jq
         elif command -v apt-get &> /dev/null; then
@@ -37,103 +37,63 @@ function install_dependencies() {
 
 function get_api_json() {
     install_dependencies
-    echo "[INFO] Conectando con la API de git.ryujinx.app..."
+    echo "[INFO] Connecting to the git.ryujinx.app API..."
     JSON_DATA=$(curl -sL -H "Accept: application/json" "$API_URL")
     if [[ -z "$JSON_DATA" || "$JSON_DATA" == *"404 Not Found"* ]]; then
-        error "No se pudo obtener respuesta de la API de Ryujinx."
+        error "No response from the Ryujinx API."
     fi
     TAG_NAME=$(echo "$JSON_DATA" | jq -r '.tag_name')
 }
 
-## MÉTODOS DE INSTALACIÓN
+## INSTALLATION METHODS
 
 function install_appimage(){
     get_api_json
-    echo "[INFO] Filtrando AppImage x64 para la versión: $TAG_NAME"
+    echo "[INFO] Picking the x64 AppImage for version: $TAG_NAME"
 
     DOWNLOAD_URL=$(echo "$JSON_DATA" | jq -r '.assets[] |
         select(.name | endswith(".AppImage") and (contains("arm") or contains("aarch") or contains("zsync") | not))
         | .browser_download_url' | head -n 1)
 
     if [[ -z "$DOWNLOAD_URL" || "$DOWNLOAD_URL" == "null" ]]; then
-        error "No se encontró un AppImage x64 válido en los assets."
+        error "No valid x64 AppImage found in the assets."
     fi
 
-    echo "[INFO] Descargando AppImage..."
-    curl -L "$DOWNLOAD_URL" -o "$TMP_DIR/ryujinx.AppImage" || error "Fallo al descargar la AppImage."
+    echo "[INFO] Downloading the AppImage..."
+    curl -L "$DOWNLOAD_URL" -o "$TMP_DIR/ryujinx.AppImage" || error "Failed to download the AppImage."
     chmod +x "$TMP_DIR/ryujinx.AppImage"
 
-    # Preparar directorio destino limpio
+    # Prepare a clean destination directory
     rm -rf "$INSTALL_DIR" && mkdir -p "${INSTALL_DIR}/config"
 
-    # Reubicar estructura interna
+    # Move the files into place
     mv "${TMP_DIR}/ryujinx.AppImage" "${INSTALL_DIR}"
     rm -rf "$TMP_DIR"
 
-    echo "[INFO] Instalación mediante AppImage completada con éxito."
-}
-
-function install_tar_gz(){
-    get_api_json
-    echo "[INFO] Filtrando Tarball (.tar.gz) de Linux x64 para la versión: $TAG_NAME"
-
-    DOWNLOAD_URL=$(echo "$JSON_DATA" | jq -r '.assets[] |
-        select(.name | (contains("linux") or contains("Linux")) and endswith(".tar.gz") and (contains("arm") or contains("aarch") | not))
-        | .browser_download_url' | head -n 1)
-
-    if [[ -z "$DOWNLOAD_URL" || "$DOWNLOAD_URL" == "null" ]]; then
-        error "No se encontró un archivo .tar.gz compatible con Linux x64."
-    fi
-
-    echo "[INFO] Descargando binarios compactados..."
-    curl -L "$DOWNLOAD_URL" -o "$TMP_DIR/ryujinx.tar.gz" || error "Fallo al descargar el archivo comprimido."
-
-    rm -rf "$INSTALL_DIR" && mkdir -p "$INSTALL_DIR"
-
-    echo "[INFO] Desempaquetando archivos..."
-    tar -xzf "$TMP_DIR/ryujinx.tar.gz" -C "$TMP_DIR"
-
-    # Manejo flexible de la raíz interna del archivo comprimido
-    if [ -d "$TMP_DIR/publish" ]; then
-        mv "$TMP_DIR/publish"/* "$INSTALL_DIR/"
-    elif ls "$TMP_DIR"/*/Ryujinx &>/dev/null || ls "$TMP_DIR"/*/Ryubing &>/dev/null; then
-        mv "$TMP_DIR"/*/* "$INSTALL_DIR/"
-    else
-        rm -f "$TMP_DIR/ryujinx.tar.gz"
-        mv "$TMP_DIR"/* "$INSTALL_DIR/" 2>/dev/null || true
-    fi
-
-    rm -rf "$TMP_DIR"
-
-    # Forzar ejecución en binarios crudos
-    find "$INSTALL_DIR" -type f -name "Ryujinx*" -exec chmod +x {} \;
-    find "$INSTALL_DIR" -type f -name "Ryubing*" -exec chmod +x {} \;
-
-    create_shortcuts
-    echo "[INFO] Instalación mediante tar.gz completada con éxito."
+    echo "[INFO] AppImage installation completed successfully."
 }
 
 function uninstall_all(){
-    echo "[INFO] Buscando restos e instalaciones activas..."
+    echo "[INFO] Looking for leftovers and active installations..."
     local found=0
 
-    if [ -d "$INSTALL_DIR" ] || [ -f "$BIN_LINK" ]; then
-        echo "[INFO] Eliminando instalación local (/var/opt)..."
+    if [ -d "$INSTALL_DIR" ]; then
+        echo "[INFO] Removing the installation in ${INSTALL_DIR}..."
         rm -rf "$INSTALL_DIR"
         found=1
     fi
 
     if [ $found -eq 0 ]; then
-        echo "[INFO] No se localizó ninguna instalación previa en el sistema."
+        echo "[INFO] No previous installation found on the system."
     fi
 }
 
-## CONTROL DE EJECUCIÓN
+## ENTRY POINT
 
 if [ -z "$1" ]; then
-    echo "Uso: $0 [-f | -i | -t | -u]"
-    echo "  -i : Instalar vía AppImage extraído (API Forgejo)"
-    echo "  -u : Desinstalar limpiamente cualquier método detectado"
+    echo "Usage: $0 [-i | -u]"
+    echo "  -i : Install the AppImage (Forgejo API)"
+    echo "  -u : Uninstall"
     exit 1
 fi
 
@@ -141,7 +101,7 @@ case $1 in
     "-i") install_appimage ;;
     "-u") uninstall_all ;;
     *)
-        echo "[ERROR] Opción no válida."
+        echo "[ERROR] Invalid option."
         exit 1
         ;;
 esac
