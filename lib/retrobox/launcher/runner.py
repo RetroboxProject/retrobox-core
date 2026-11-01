@@ -33,6 +33,7 @@ from .hud import setup_hud
 from .power import apply_power_profile, restore_power_profile
 from .process import run_command
 from .session import GameInputs, GameSession, effective_core
+from .shift_key import shift_held
 
 if TYPE_CHECKING:
     import argparse
@@ -56,6 +57,10 @@ def run_rom(args: argparse.Namespace, max_players: int) -> int:
         The exit code of the launched emulator command.
     """
     original_rom = args.rom
+
+    # read first, while the key that launched the game is likely still down:
+    # Shift held asks for the emulator to be installed again (see start_rom)
+    args.reinstall_emulator = shift_held()
 
     # squashfs roms if squashed
     if original_rom.suffix == ".squashfs":
@@ -115,8 +120,13 @@ def start_rom(args: argparse.Namespace, max_players: int, rom: Path, original_ro
     # find the generator
     generator = get_generator(system.config.emulator, system.config.core)
 
-    # a missing emulator: offer to install it, or go back to the frontend
-    if not ensure_emulator(system.config.emulator, player_controllers):
+    # a missing emulator: offer to install it, or go back to the frontend;
+    # Shift held: offer to install it again (to update it)
+    if not ensure_emulator(
+        system.config.emulator,
+        player_controllers,
+        reinstall=getattr(args, "reinstall_emulator", False),
+    ):
         return 0
 
     # power profiles

@@ -14,6 +14,9 @@ language of ``i18n``.
 
 With ``download`` (Options) there is no question: the command starts right
 away, B / Esc cancels it, and the screen closes by itself when it succeeds.
+With ``reinstall`` the emulator is already there and the texts say so: the
+question offers to install it again (to update it), and a failure says the
+installed version was kept.
 """
 
 from __future__ import annotations
@@ -126,6 +129,7 @@ class Options:  # pylint: disable=too-many-instance-attributes
     icon: Path | None = None
     wm_class: str | None = None
     download: bool = False
+    reinstall: bool = False
 
 
 # ---------------------------------------------------------------------- fonts
@@ -449,13 +453,16 @@ class SetupScreen:  # pylint: disable=too-many-instance-attributes,too-few-publi
 
     def _layout_message(self) -> None:
         texts = self._texts
-        download = self._options.download
-        message = {
-            State.ASK: texts.ask,
-            State.INSTALLING: texts.downloading if download else texts.installing,
-            State.FAILED: texts.download_failed if download else texts.failed,
-            State.DONE: texts.done,
-        }[self._state].format(label=self._options.label)
+        if self._options.download:
+            messages = (texts.ask, texts.downloading, texts.download_failed, texts.done)
+        elif self._options.reinstall:
+            messages = (texts.reinstall_ask, texts.reinstalling, texts.reinstall_failed,
+                        texts.reinstalled)
+        else:
+            messages = (texts.ask, texts.installing, texts.failed, texts.done)
+        message = dict(zip((State.ASK, State.INSTALLING, State.FAILED, State.DONE), messages))[
+            self._state
+        ].format(label=self._options.label)
         font = self._fonts.title
         max_width = self._width * 92 // 100
         width = font.getlength(message)

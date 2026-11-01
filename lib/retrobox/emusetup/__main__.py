@@ -41,6 +41,10 @@ def main(argv: list[str] | None = None) -> int:
         "--download", action="store_true",
         help="the command downloads LABEL: run it right away, close when it succeeds",
     )
+    parser.add_argument(
+        "--reinstall", action="store_true",
+        help="LABEL is installed: offer to install it again (to update it)",
+    )
     parser.add_argument("command", nargs=argparse.REMAINDER, help="installer command, after --")
     args = parser.parse_args(argv)
     command = args.command[1:] if args.command[:1] == ["--"] else args.command
@@ -62,6 +66,7 @@ def main(argv: list[str] | None = None) -> int:
             icon=args.icon,
             wm_class=args.wm_class,
             download=args.download,
+            reinstall=args.reinstall,
         )
     ).run()
 
