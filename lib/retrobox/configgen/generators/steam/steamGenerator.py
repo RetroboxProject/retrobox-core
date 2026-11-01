@@ -91,8 +91,6 @@ class SteamGenerator(Generator):
                 raise ValueError(f"{rom} is not a {RUNGAMEID_PREFIX}<AppId> launcher")
             command += [
                 "--appid", appid,
-                "--launch-quiet-timeout", str(config.get_int(
-                    "steam_launch_timeout", steam_monitor.DEFAULT_LAUNCH_QUIET_TIMEOUT)),
                 "--exit-grace", str(config.get_int(
                     "steam_exit_grace", steam_monitor.DEFAULT_EXIT_GRACE)),
                 "--relaunch-grace", str(config.get_int(
