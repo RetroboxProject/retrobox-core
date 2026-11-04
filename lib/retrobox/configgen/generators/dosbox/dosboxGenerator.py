@@ -11,8 +11,6 @@ from ... import Command
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from ...typedefs import HotkeysContext
-
 
 class DosBoxGenerator(Generator):
 
@@ -67,9 +65,3 @@ class DosBoxGenerator(Generator):
         ])
 
         return Command.Command(array=commandArray)
-
-    def getHotkeysContext(self) -> HotkeysContext:
-        return {
-            "name": "dosbox",
-            "keys": { "exit": ["KEY_LEFTCTRL", "KEY_F9"] }
-        }

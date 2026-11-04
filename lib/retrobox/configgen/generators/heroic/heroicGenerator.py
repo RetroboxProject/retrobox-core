@@ -10,7 +10,6 @@ A Heroic "rom" holds the launch link the PC games sync writes:
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING
 from urllib.parse import parse_qs, urlsplit
 
 from retrobox.configgen.utils.pc_launchers import launcher_environment
@@ -19,8 +18,6 @@ from ... import Command
 from ...exceptions import RetroboxException
 from ..Generator import Generator
 
-if TYPE_CHECKING:
-    from ...typedefs import HotkeysContext
 
 EXIT_TIMEOUT = 10.0
 """Seconds a Heroic game (often Wine) has to quit after SIGTERM."""
@@ -52,13 +49,6 @@ def app_name_of(link: str) -> str | None:
 
 class HeroicGenerator(Generator):
     """Hands the launch link to Heroic, which starts the game."""
-
-    def getHotkeysContext(self) -> HotkeysContext:
-        """Alt+F4 closes the game."""
-        return {
-            "name": "heroic",
-            "keys": {"exit": ["KEY_LEFTALT", "KEY_F4"]},
-        }
 
     # the signature is fixed by the Generator interface
     # pylint: disable-next=too-many-arguments,too-many-positional-arguments

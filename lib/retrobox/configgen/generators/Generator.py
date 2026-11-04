@@ -21,6 +21,7 @@ if TYPE_CHECKING:
     from ..controller import Controllers
     from ..Emulator import Emulator
     from ..gun import Guns
+    from ..hotkeys import Bindings
 
 # pylint: disable=unused-argument  # the defaults ignore what the overrides use
 
@@ -106,3 +107,14 @@ class Generator(metaclass=ABCMeta):
     def exit_timeout(self, config: SystemConfig) -> float:
         """Seconds the game has to quit after SIGTERM before it is killed."""
         return DEFAULT_EXIT_TIMEOUT
+
+    def hotkey_bindings(self, system: Emulator) -> Bindings:
+        """How the emulator performs the standard hotkey actions.
+
+        Added to (or replacing) ``hotkeys.common_bindings()``: leaving the
+        game, screenshots and the overlay work everywhere without this. Map
+        an action to ``None`` to leave its combination free, to ``Native``
+        when the generator writes the combination into the emulator's own
+        configuration.
+        """
+        return {}

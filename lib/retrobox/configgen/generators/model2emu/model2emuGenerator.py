@@ -6,7 +6,6 @@ import os
 import shutil
 import stat
 from pathlib import Path, PureWindowsPath
-from typing import TYPE_CHECKING
 
 from .model2emuPaths import M2EMU_EMUDIR, M2EMU_RESOURCES, M2EMU_WINEPREFIX, MODEL2_ROMS
 
@@ -17,18 +16,10 @@ from ...controller import generate_sdl_game_controller_config
 from ...utils.configparser import CaseSensitiveConfigParser
 from ..Generator import Generator
 
-if TYPE_CHECKING:
-    from ...typedefs import HotkeysContext
 
 _logger = logging.getLogger(__name__)
 
 class Model2EmuGenerator(Generator):
-
-    def getHotkeysContext(self) -> HotkeysContext:
-        return {
-            "name": "model2emu",
-            "keys": { "exit": ["KEY_LEFTALT", "KEY_F4"] }
-        }
 
     def generate(self, system, rom, playersControllers, metadata, guns, wheels, gameResolution):
         import subprocess

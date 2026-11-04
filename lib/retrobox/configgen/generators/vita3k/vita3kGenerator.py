@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import shutil
-from typing import TYPE_CHECKING, Any, Generator, cast
+from typing import Any, Generator, cast
 
 import ruamel.yaml
 import ruamel.yaml.util
@@ -10,19 +10,14 @@ from ... import Command
 from ...controller import generate_sdl_game_controller_config
 from .vita3k_paths import _VITA3K_CFGDIR, _VITA3K_SAVES, _VITA3K_XDG, VITA3K_BIN, VITA3K_CFG
 from retrobox.paths import CACHE, SAVES, mkdir_if_not_exists
-
-
-if TYPE_CHECKING:
-    from retrobox.configgen.typedefs import HotkeysContext
+from retrobox.configgen.hotkeys import CLOSE_WINDOW, HotkeyAction
 
 
 class Vita3kGenerator(Generator):
 
-    def getHotkeysContext(self) -> HotkeysContext:
-        return {
-            "name": "vita3k",
-            "keys": { "exit": ["KEY_LEFTCTRL", "KEY_F12"], "menu": "KEY_ENTER", "pause": "KEY_ENTER" }
-        }
+    def hotkey_bindings(self, system):
+        """Hotkey+Start closes the window (Alt+F4), so Vita3K quits cleanly."""
+        return {HotkeyAction.EXIT: CLOSE_WINDOW}
 
     def generate(self, system, rom, playersControllers, metadata, guns, wheels, gameResolution):
 

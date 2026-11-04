@@ -98,7 +98,28 @@ The Eden and Ryujinx generators were adapted from a third-party batocera package
 
 ### Gamepadly
 
-A replacement for evmapy, now a standalone project ([`gamepadly`](https://github.com/RetroboxProject/gamepadly), package `python3-gamepadly`, recommended by the core packages; install it separately). The launcher starts it with every game: it reads evmapy-style JSON profiles (`share/pad2key/profiles/*.keys`, overridable in `~/.config/retrobox/pad2key/profiles`) and maps gamepad buttons to keys, shortcuts and mouse events, e.g. Hotkey+Start to Alt+F4. Without it the game still runs, but with no gamepad hotkeys.
+A replacement for evmapy, now a standalone project ([`gamepadly`](https://github.com/RetroboxProject/gamepadly), package `python3-gamepadly`, recommended by the core packages; install it separately). The launcher starts it with every game: it reads evmapy-style JSON profiles (`share/pad2key/profiles/*.keys`, overridable in `~/.config/retrobox/pad2key/profiles`) and maps gamepad buttons to keys, shortcuts and mouse events. Without it (or with a version older than 0.1.4) the game still runs, but with no gamepad hotkeys.
+
+**Standard hotkeys.** Every emulator gets the same combinations for player 1, from `share/pad2key/hotkeys.yaml` (copy it to `~/.config/retrobox/pad2key/hotkeys.yaml` to change them; the copy replaces the whole table):
+
+| Combination | Action |
+|---|---|
+| Hotkey (pressed alone) | In-game overlay (`retrobox-overlay`, when installed; not when the hotkey is Select) |
+| Hotkey+A | In-game overlay |
+| Hotkey+Start | Leave the game (`retrobox-emukill`) |
+| Hotkey+B | Emulator menu |
+| Hotkey+Y / Hotkey+X | Save / load state |
+| Hotkey+Up / Hotkey+Down | Previous / next state slot |
+| Hotkey+Left / Hotkey+Right | Rewind / fast forward |
+| Hotkey+L1 | Screenshot (`retrobox-screenshot`) |
+| Hotkey+R1 | Translate (AI service) |
+| Hotkey+L2 / Hotkey+R2 | Swap screens / next screen layout |
+| Hotkey+L3 | Next disc |
+| Hotkey+R3 | Show or hide the bezel |
+
+Each generator says how its emulator performs these actions (`hotkey_bindings()`, see `lib/retrobox/configgen/hotkeys.py`): a key chord gamepadly presses, a command, or `Native` when the emulator reads the combination itself (RetroArch does, from its own configuration). An action the emulator cannot perform leaves its combination free. Leaving the game, screenshots and the overlay work in every emulator. For each game the launcher writes `<runtime dir>/pad2key/session.keys`: the profile gamepadly would pick for the game (`share/pad2key/profiles`, the user's, `<rom>.keys`) plus these hotkeys; a combination the game's profile already maps keeps the profile's meaning.
+
+**Leaving a game.** `retrobox-emukill` ends the game being played (Retrobox's `batocera-es-swissknife --emukill`): SIGTERM to the emulator's process group and to the processes of a Steam, Heroic or Lutris game, which a running client starts outside it, then SIGKILL to whatever is left after a few seconds. The launcher publishes the running game in `<runtime dir>/session.json` for it (and for the overlay).
 
 ### Bezels and aspect ratios
 

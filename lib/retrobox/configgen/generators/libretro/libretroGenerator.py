@@ -13,7 +13,11 @@ from retrobox.configgen import Command
 from retrobox.configgen.Emulator import generate_bash_wrapper
 from retrobox.configgen.exceptions import MissingCore
 from retrobox.configgen.generators.Generator import Generator
-from retrobox.configgen.generators.libretro import libretroConfig, libretroControllers
+from retrobox.configgen.generators.libretro import (
+    libretro_hotkeys,
+    libretroConfig,
+    libretroControllers,
+)
 from retrobox.configgen.generators.libretro.libretroPaths import (
     _RETROARCH_BIN,
     _RETROARCH_CFGDIR,
@@ -24,11 +28,11 @@ from retrobox.configgen.generators.libretro.libretroPaths import (
     RETROARCH_SHARE,
 )
 from retrobox.configgen.utils import videoMode, vulkan
+from retrobox.configgen.hotkeys import load_table
 from retrobox.configgen.utils.bezel_policy import configured_bezel
 from retrobox.paths import OVERLAYS, _SHADERS_DIR, configure_emulator, mkdir_if_not_exists
 
 if TYPE_CHECKING:
-    from retrobox.configgen.typedefs import HotkeysContext
     from retrobox.configgen.Emulator import Emulator
 
 _logger = logging.getLogger(__name__)
@@ -175,25 +179,9 @@ class LibretroGenerator(Generator):
         """Tell whether the emulator needs the OpenGL preload for MangoHud."""
         return config.get("gfxbackend") in _GL_BACKENDS
 
-    def getHotkeysContext(self) -> HotkeysContext:
-        """Return the RetroArch hotkeys."""
-        return {
-            "name": "retroarch",
-            "keys": {
-                "exit": ["KEY_LEFTSHIFT", "KEY_ESC"],
-                "menu": ["KEY_LEFTSHIFT", "KEY_F1"],
-                "pause": ["KEY_LEFTSHIFT", "KEY_P"],
-                "coin": "KEY_F12",
-                "save_state": ["KEY_LEFTSHIFT", "KEY_F3"],
-                "restore_state": ["KEY_LEFTSHIFT", "KEY_F4"],
-                "previous_slot": ["KEY_LEFTSHIFT", "KEY_F6"],
-                "next_slot": ["KEY_LEFTSHIFT", "KEY_F5"],
-                "rewind": ["KEY_LEFTSHIFT", "KEY_F11"],
-                "fastforward": ["KEY_LEFTSHIFT", "KEY_F12"],
-                "reset": ["KEY_LEFTSHIFT", "KEY_F10"],
-                "translation": ["KEY_LEFTSHIFT", "KEY_F9"],
-            },
-        }
+    def hotkey_bindings(self, system):
+        """RetroArch reads most hotkeys itself (see libretro_hotkeys)."""
+        return libretro_hotkeys.bindings(load_table())
 
     # the signature is fixed by the Generator interface
     # pylint: disable-next=too-many-locals,too-many-arguments,too-many-positional-arguments

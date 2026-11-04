@@ -1,0 +1,35 @@
+# Standard hotkeys of Retrobox: which controller combination does what.
+#
+# Input names are EmulationStation's (es_input.cfg): hotkey, start, select,
+# a, b, x, y, up, down, left, right, pageup (L1), pagedown (R1), l2, r2, l3,
+# r3... "hotkey" is the controller's hotkey button; without a dedicated one
+# EmulationStation maps it to select.
+#
+# Each emulator says how it performs every action (its generator's
+# hotkey_bindings()); an action an emulator cannot perform gets no
+# combination. Only player 1 gets these hotkeys, as in Batocera.
+#
+# "tap: true" fires when the button is released alone (see gamepadly); a tap
+# on the hotkey is ignored when the hotkey is select, so it never takes a
+# button the game needs.
+#
+# To change them, copy this file to ~/.config/retrobox/pad2key/hotkeys.yaml
+# and edit the copy: it replaces this table as a whole.
+
+pad:
+  - {action: overlay, trigger: [hotkey], tap: true}
+  - {action: overlay, trigger: [hotkey, a]}
+  - {action: exit, trigger: [hotkey, start]}
+  - {action: menu, trigger: [hotkey, b]}
+  - {action: save_state, trigger: [hotkey, y]}
+  - {action: load_state, trigger: [hotkey, x]}
+  - {action: slot_prev, trigger: [hotkey, up]}
+  - {action: slot_next, trigger: [hotkey, down]}
+  - {action: rewind, trigger: [hotkey, left]}
+  - {action: fast_forward, trigger: [hotkey, right]}
+  - {action: screenshot, trigger: [hotkey, pageup]}
+  - {action: translate, trigger: [hotkey, pagedown]}
+  - {action: swap_screens, trigger: [hotkey, l2]}
+  - {action: next_layout, trigger: [hotkey, r2]}
+  - {action: disk_next, trigger: [hotkey, l3]}
+  - {action: toggle_bezel, trigger: [hotkey, r3]}

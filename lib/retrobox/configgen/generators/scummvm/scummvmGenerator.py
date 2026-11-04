@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import os
 import re
-from typing import TYPE_CHECKING
 
 from retrobox.configgen import Command
 from retrobox.configgen.controller import Controller, generate_sdl_game_controller_config
@@ -11,17 +10,8 @@ from retrobox.configgen.generators.scummvm.scummvm_paths import _SCUMMVM_EXTRA, 
 from retrobox.paths import CACHE, LOGS, SCREENSHOTS, ensure_parents_and_open, mkdir_if_not_exists
 from retrobox.configgen.utils.configparser import CaseSensitiveConfigParser
 
-if TYPE_CHECKING:
-    from retrobox.configgen.typedefs import HotkeysContext
-
 
 class ScummVMGenerator(Generator):
-
-    def getHotkeysContext(self) -> HotkeysContext:
-        return {
-            "name": "scummvm",
-            "keys": { "exit": ["KEY_LEFTALT", "KEY_F4"], "menu": ["KEY_LEFTCTRL", "KEY_F5"] }
-        }
 
     def generate(self, system, rom, playersControllers, metadata, guns, wheels, gameResolution):
         # create <bios dir>/scummvm/extra folder if it doesn't exist

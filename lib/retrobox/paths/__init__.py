@@ -4,9 +4,9 @@ Internally split by subsystem:
     _base.py       -> generic (XDG, ROOTDIR, retrobox.ini bootstrap, FS helpers)
     _configgen.py  -> configgen / emulatorlauncher / launcher
     _frontend.py   -> EmulationStation (lib/retrobox/startup/frontend_conf)
-    _gamepadly.py  -> the 4 constants emulatorlauncher.py needs to
-                      instantiate GamepadManager (gamepadly itself no
-                      longer imports anything from here directly)
+    _gamepadly.py  -> the profile directories, hotkey tables and session
+                      profile the launcher hands to GamepadManager
+                      (gamepadly itself imports nothing from here)
 
 Nothing changes from the outside, though: everything is still imported
 the same way as before, `from retrobox.paths import X`. None of the
@@ -117,6 +117,9 @@ from ._frontend import (
 from ._gamepadly import (
     _GAMEPADLY_PROFILES,
     _GAMEPADLY_USER_PROFILES,
+    HOTKEYS_TABLE,
+    SESSION_PAD_PROFILE,
+    USER_HOTKEYS_TABLE,
 )
 from ._env import exported_environment, fresh_environment
 
@@ -206,6 +209,10 @@ __all__ = [
     "FRONTEND_HOME",
     "MUSIC_DIR",
     "THEMES_DIR",
+    # _gamepadly
+    "HOTKEYS_TABLE",
+    "SESSION_PAD_PROFILE",
+    "USER_HOTKEYS_TABLE",
     # _env
     "exported_environment",
     "fresh_environment",

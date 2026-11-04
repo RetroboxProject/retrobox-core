@@ -10,6 +10,7 @@ import re
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from retrobox.configgen.hotkeys import CLOSE_WINDOW, HotkeyAction
 from retrobox.paths import configure_emulator, mkdir_if_not_exists
 
 from ... import Command
@@ -27,7 +28,6 @@ from .pcsx2_controllers import (
 from .pcsx2_paths import PCSX2_BIN, PCSX2_DBFILE, _PCSX2_CFGDIR, PCSX2_PATCHES, _PCSX2_XDG
 
 if TYPE_CHECKING:
-    from ...typedefs import HotkeysContext
     from ...config import SystemConfig
 
 _logger = logging.getLogger(__name__)
@@ -58,19 +58,9 @@ class Pcsx2Generator(Generator):
     # the method names are fixed by the Generator interface
     # pylint: disable=invalid-name
 
-    def getHotkeysContext(self) -> HotkeysContext:
-        """Return the PCSX2 hotkeys."""
-        return {
-            "name": "pcsx2",
-            "keys": {
-                "exit": ["KEY_LEFTALT", "KEY_F4"],
-                "menu": "KEY_ESC",
-                "save_state": "KEY_F1",
-                "restore_state": "KEY_F3",
-                "previous_slot": ["KEY_LEFTSHIFT", "KEY_F2"],
-                "next_slot": "KEY_F2",
-            },
-        }
+    def hotkey_bindings(self, system):
+        """Hotkey+Start closes the window (Alt+F4), so PCSX2 quits cleanly."""
+        return {HotkeyAction.EXIT: CLOSE_WINDOW}
 
     def usesOpenGLDirectPreload(self, config) -> bool:
         """MangoHud is preloaded when the renderer that ends up used is OpenGL."""

@@ -24,7 +24,6 @@ from .mame_media import game_arguments
 from .mamePaths import _MAME_XDG
 
 if TYPE_CHECKING:
-    from ...typedefs import HotkeysContext
     from ...config import Config
     from ...Emulator import Emulator
     from .mame_command import CommandLine
@@ -106,22 +105,6 @@ class MameGenerator(Generator):
     def supportsInternalBezels(self) -> bool:
         """MAME draws its own artwork, so MangoHud must not draw a bezel."""
         return True
-
-    def getHotkeysContext(self) -> HotkeysContext:
-        """Return the MAME hotkeys."""
-        return {
-            "name": "mame",
-            "keys": {
-                "exit": "KEY_ESC",
-                "menu": "KEY_TAB",
-                "pause": "KEY_F5",
-                "reset": "KEY_F3",
-                "coin": "KEY_5",
-                "fastforward": "KEY_PAGEDOWN",
-                "save_state": ["KEY_LEFTSHIFT", "KEY_F6"],
-                "restore_state": ["KEY_LEFTSHIFT", "KEY_F7"],
-            },
-        }
 
     # the signature is fixed by the Generator interface
     # pylint: disable-next=too-many-arguments,too-many-positional-arguments

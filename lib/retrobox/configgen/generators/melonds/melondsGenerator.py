@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from typing import TYPE_CHECKING, Any, Final
+from typing import Any, Final
 
 import tomlkit
 
@@ -11,16 +11,8 @@ from retrobox.configgen.generators.Generator import Generator
 from retrobox.configgen.generators.melonds.melonds_paths import _MELONDS_CHEATS, _MELONDS_CFGDIR, _MELONDS_ROMS, _MELONDS_SAVES, _MELONDS_XDG, DSI_ARM7_BIOS, DSI_ARM9_BIOS, DSI_FIRMWARE, DSI_NAND, MELONDS_CFG, NDS_ARM7_BIOS, NDS_ARM9_BIOS, NDS_FIRMWARE
 from retrobox.paths import BIOS, mkdir_if_not_exists
 
-if TYPE_CHECKING:
-    from retrobox.configgen.typedefs import HotkeysContext
 
 class MelonDSGenerator(Generator):
-
-    def getHotkeysContext(self) -> HotkeysContext:
-        return {
-            "name": "melonds",
-            "keys": {"exit": ["KEY_LEFTALT", "KEY_F4"]}
-        }
 
     @abstractmethod
     def generate(self, system, rom, playersControllers, metadata, guns, wheels, gameResolution):

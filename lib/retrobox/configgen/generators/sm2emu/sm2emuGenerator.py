@@ -30,7 +30,6 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from ...config import SystemConfig
-    from ...typedefs import HotkeysContext
 
 
 class Sm2EmuGenerator(Generator):
@@ -38,23 +37,6 @@ class Sm2EmuGenerator(Generator):
 
     # the method names are fixed by the Generator interface
     # pylint: disable=invalid-name
-
-    def getHotkeysContext(self) -> HotkeysContext:
-        """Return the sm2-emu hotkeys (its default keys, which the generator enforces)."""
-        return {
-            "name": "sm2-emu",
-            "keys": {
-                "exit": "KEY_F9",
-                "menu": "KEY_F10",
-                "pause": "KEY_P",
-                "screenshot": "KEY_F12",
-                "save_state": "KEY_F6",
-                "restore_state": "KEY_F7",
-                "rewind": "KEY_BACKSPACE",
-                "fastforward": "KEY_TAB",
-                "coin": "KEY_5",
-            },
-        }
 
     def usesOpenGLDirectPreload(self, config) -> bool:
         """MangoHud is preloaded unless the picture is drawn with Vulkan."""

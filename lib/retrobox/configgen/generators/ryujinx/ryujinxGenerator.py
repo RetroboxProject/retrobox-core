@@ -7,7 +7,6 @@ import stat
 import hashlib
 from shutil import copyfile
 from pathlib import Path
-from typing import TYPE_CHECKING
 from retrobox.configgen.generators.ryujinx.ryujinx_config import writeRyujinxConfig
 from retrobox.paths import (
     DEFAULTS_DIR,
@@ -16,6 +15,7 @@ from retrobox.paths import (
     ensure_symlink,
     mkdir_if_not_exists
 )
+from retrobox.configgen.hotkeys import CLOSE_WINDOW, HotkeyAction
 
 from ...controller import generate_sdl_game_controller_config
 
@@ -43,10 +43,6 @@ from ...input import Input
 
 _logger = logging.getLogger(__name__)
 
-
-
-if TYPE_CHECKING:
-    from retrobox.configgen.typedefs import HotkeysContext
 
 # copiar todo lo de una carpeta a otra (sincronizar .keys)
 def sync_keys(src_dir: Path, dst_dir: Path):
@@ -106,11 +102,9 @@ def getCurrentCard() -> str | None:
 
 class RyujinxGenerator(Generator):
 
-    def getHotkeysContext(self) -> HotkeysContext:
-        return {
-            "name": "ryujinx-emu",
-            "keys": { "menu": "KEY_F4"}
-        }
+    def hotkey_bindings(self, system):
+        """Hotkey+Start closes the window (Alt+F4), so Ryujinx quits cleanly."""
+        return {HotkeyAction.EXIT: CLOSE_WINDOW}
 
     def generate(self, system, rom, playersControllers, metadata, guns, wheels, gameResolution):
         _logger.warning("DEBUG: generate() llamado, emulator=%s", system.config['emulator'])
@@ -178,4 +172,3 @@ class RyujinxGenerator(Generator):
         return Command.Command(array=commandArray, env=environment)
     
     
-

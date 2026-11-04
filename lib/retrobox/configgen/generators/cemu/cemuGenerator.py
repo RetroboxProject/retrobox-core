@@ -5,9 +5,9 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
 
 from retrobox.configgen.utils.bios_files import check_biosfile
+from retrobox.configgen.hotkeys import CLOSE_WINDOW, HotkeyAction
 from retrobox.paths import BIOS, configure_emulator, mkdir_if_not_exists
 
 from ... import Command
@@ -23,8 +23,6 @@ from .cemuPaths import (
     CEMU_SAVES,
 )
 
-if TYPE_CHECKING:
-    from ...typedefs import HotkeysContext
 
 _MIN_KEYS_FILE_SIZE = 1024  # a smaller keys.txt cannot be right
 
@@ -35,12 +33,9 @@ class CemuGenerator(Generator):
     # the method names are fixed by the Generator interface
     # pylint: disable=invalid-name
 
-    def getHotkeysContext(self) -> HotkeysContext:
-        """Return the Cemu hotkeys."""
-        return {
-            "name": "cemu",
-            "keys": {"exit": ["KEY_LEFTALT", "KEY_F4"], "swap_screen": ["KEY_LEFTCTRL", "KEY_TAB"]},
-        }
+    def hotkey_bindings(self, system):
+        """Hotkey+Start closes the window (Alt+F4), so Cemu quits cleanly."""
+        return {HotkeyAction.EXIT: CLOSE_WINDOW}
 
     def hasInternalMangoHUDCall(self) -> bool:
         """Cemu gets neither the MangoHud HUD nor the bezels: they cause game issues."""

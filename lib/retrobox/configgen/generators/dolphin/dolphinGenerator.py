@@ -9,6 +9,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from retrobox.configgen.Emulator import generate_bash_wrapper
+from retrobox.configgen.hotkeys import CLOSE_WINDOW, HotkeyAction
 from retrobox.paths import configure_emulator, mkdir_if_not_exists
 
 from ... import Command
@@ -25,7 +26,6 @@ from .dolphin_paths import (
 )
 
 if TYPE_CHECKING:
-    from ...typedefs import HotkeysContext
     from ...config import SystemConfig
 
 _logger = logging.getLogger(__name__)
@@ -36,6 +36,10 @@ class DolphinGenerator(Generator):
 
     # the method names are fixed by the Generator interface
     # pylint: disable=invalid-name
+
+    def hotkey_bindings(self, system):
+        """Hotkey+Start closes the window (Alt+F4), so Dolphin quits cleanly."""
+        return {HotkeyAction.EXIT: CLOSE_WINDOW}
 
     def usesOpenGLDirectPreload(self, config) -> bool:
         """MangoHud is preloaded when the graphics API that ends up used is OpenGL."""
@@ -109,16 +113,3 @@ class DolphinGenerator(Generator):
     def getInGameRatio(self, config, gameResolution, rom):
         """Return the aspect ratio of the picture Dolphin shows."""
         return dolphin_config.get_in_game_ratio(config, gameResolution)
-
-    def getHotkeysContext(self) -> HotkeysContext:
-        """Return the Dolphin hotkeys."""
-        return {
-            "name": "dolphin",
-            "keys": {
-                "exit": ["KEY_LEFTALT", "KEY_F4"],
-                "previous_slot": ["KEY_LEFTSHIFT", "KEY_F2"],
-                "next_slot": ["KEY_LEFTSHIFT", "KEY_F1"],
-                "save_state": "KEY_F5",
-                "restore_state": "KEY_F8",
-            },
-        }

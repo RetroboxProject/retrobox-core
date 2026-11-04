@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 from retrobox.configgen.exceptions import RetroboxException
 
@@ -10,8 +9,6 @@ from ... import Command
 from ..Generator import Generator
 from . import kodiConfig
 
-if TYPE_CHECKING:
-    from ...typedefs import HotkeysContext
 
 def _find_kodi_binary() -> str:
     candidates = [
@@ -40,9 +37,3 @@ class KodiGenerator(Generator):
         kodiConfig.writeKodiConfig(playersControllers)
         commandArray = [f"{_find_kodi_binary()}"]
         return Command.Command(array=commandArray)
-
-    def getHotkeysContext(self) -> HotkeysContext:
-        return {
-            "name": "kodi",
-            "keys": { "exit": ["KEY_LEFTALT", "KEY_F4"] }
-        }

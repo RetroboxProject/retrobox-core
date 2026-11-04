@@ -18,7 +18,7 @@ import logging
 import os
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING, Final
+from typing import Final
 
 import tomlkit
 
@@ -30,18 +30,10 @@ from ...controller import generate_sdl_game_controller_config
 from ...utils import vulkan
 from ..Generator import Generator
 
-if TYPE_CHECKING:
-    from retrobox.configgen.typedefs import HotkeysContext
 
 _logger = logging.getLogger(__name__)
 
 class shadPS4Generator(Generator):
-
-    def getHotkeysContext(self) -> HotkeysContext:
-        return {
-            "name": "shadps4",
-            "keys": {"exit": ["KEY_LEFTALT", "KEY_F4"]}
-        }
 
     def generate(self, system, rom, playersControllers, metadata, guns, wheels, gameResolution):
         mkdir_if_not_exists(_SHADPS4_USER_CFGDIR)

@@ -9,7 +9,6 @@ import glob
 import os
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 from retrobox.paths import RUNTIME_DIR
 
@@ -17,8 +16,6 @@ from ... import Command
 from ..Generator import Generator
 from . import steam_monitor
 
-if TYPE_CHECKING:
-    from ...typedefs import HotkeysContext
 
 BIGPICTURE_ROM_NAME = "steam.steam"
 BIGPICTURE_ROM_CONTENT = "steam"
@@ -125,10 +122,3 @@ class SteamGenerator(Generator):
     def exit_timeout(self, config):
         """Proton games take a while to close; the monitor needs time to notice."""
         return EXIT_TIMEOUT
-
-    def getHotkeysContext(self) -> HotkeysContext:
-        """Alt+F4 closes the game."""
-        return {
-            "name": "steam",
-            "keys": {"exit": ["KEY_LEFTALT", "KEY_F4"]},
-        }

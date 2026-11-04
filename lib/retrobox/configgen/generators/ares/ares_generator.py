@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from retrobox.configgen import Command
+from retrobox.configgen.hotkeys import CLOSE_WINDOW, HotkeyAction
 from retrobox.paths import SCREENSHOTS, configure_emulator, mkdir_if_not_exists
 
 from ..Generator import Generator
@@ -29,6 +30,10 @@ class AresGenerator(Generator):
 
     # the method names are fixed by the Generator interface
     # pylint: disable=invalid-name
+
+    def hotkey_bindings(self, system):
+        """Hotkey+Start closes the window (Alt+F4), so ares quits cleanly."""
+        return {HotkeyAction.EXIT: CLOSE_WINDOW}
 
     def usesOpenGLDirectPreload(self, config) -> bool:
         """MangoHud is preloaded when Ares draws with OpenGL (its only driver on Linux)."""

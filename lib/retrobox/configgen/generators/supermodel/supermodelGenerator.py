@@ -19,7 +19,6 @@ from .supermodel_config import configPadsIni
 from .supermodel_paths import _SUPERMODEL_EMUDIR, SUPERMODEL_BIN
 
 if TYPE_CHECKING:
-    from ...typedefs import HotkeysContext
     from ...config import SystemConfig
 
 _WIDESCREEN_OPTION = "m3_wideScreen"
@@ -69,21 +68,6 @@ class SupermodelGenerator(Generator):
 
     # the method names are fixed by the Generator interface
     # pylint: disable=invalid-name
-
-    def getHotkeysContext(self) -> HotkeysContext:
-        """Return the Supermodel hotkeys."""
-        return {
-            "name": "supermodel",
-            "keys": {
-                "exit": "KEY_ESC",
-                "menu": ["KEY_LEFTALT", "KEY_P"],
-                "pause": ["KEY_LEFTALT", "KEY_P"],
-                "reset": ["KEY_LEFTALT", "KEY_R"],
-                "save_state": "KEY_F5",
-                "restore_state": "KEY_F7",
-                "next_state": "KEY_F6",
-            },
-        }
 
     def allows_bezel(self, config: SystemConfig) -> bool:
         """A widescreen picture leaves no room for a bezel."""

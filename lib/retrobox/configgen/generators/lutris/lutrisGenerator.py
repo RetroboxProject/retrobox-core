@@ -19,7 +19,6 @@ import stat
 import subprocess
 import tempfile
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 from retrobox.configgen.utils.pc_launchers import launcher_environment
 from retrobox.paths import RUNTIME_DIR
@@ -28,8 +27,6 @@ from ... import Command
 from ...exceptions import RetroboxException
 from ..Generator import Generator
 
-if TYPE_CHECKING:
-    from ...typedefs import HotkeysContext
 
 # Timing of the wrapper
 POLL_INTERVAL = 3  # seconds between two checks
@@ -308,13 +305,6 @@ class LutrisGenerator(Generator):
 
     def __init__(self) -> None:
         self._wine_prefix = ""
-
-    def getHotkeysContext(self) -> HotkeysContext:
-        """Alt+F4 closes the game."""
-        return {
-            "name": "wine",
-            "keys": {"exit": ["KEY_LEFTALT", "KEY_F4"]},
-        }
 
     # the signature is fixed by the Generator interface
     # pylint: disable-next=too-many-arguments,too-many-positional-arguments

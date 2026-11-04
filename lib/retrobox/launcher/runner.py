@@ -23,6 +23,7 @@ from retrobox.paths import (
     ES_INPUT_CFG,
     RUNTIME_DIR,
     SAVES,
+    SESSION_PAD_PROFILE,
     mkdir_if_not_exists,
 )
 
@@ -31,6 +32,7 @@ from .emulator_setup import ensure_emulator
 from .game_state import GameState, clear_state, process_start_time, write_state
 from .hooks import call_game_hooks
 from .hud import setup_hud
+from .pad_profile import build_session_profile
 from .power import apply_power_profile, restore_power_profile
 from .process import run_command
 from .session import GameInputs, GameSession, effective_core
@@ -183,20 +185,48 @@ def _run_game(session: GameSession, previous_power_profile: str | None) -> int:
         return exit_code
     finally:
         clear_state()
+        SESSION_PAD_PROFILE.unlink(missing_ok=True)
         restore_power_profile(previous_power_profile)
         _GAME_INFO_FILE.unlink(missing_ok=True)
 
 
-def _gamepad_manager(**kwargs):
-    """Gamepadly (pad -> keyboard hotkeys) is a separate package; run without it if absent."""
+def _gamepad_manager(session: GameSession) -> AbstractContextManager[object]:
+    """Run gamepadly with the game's profile plus the standard hotkeys.
+
+    Gamepadly (pad -> keyboard mappings and hotkeys) is a separate package:
+    the game runs without it when it is absent.
+    """
     try:
-        from gamepadly import GamepadManager  # pylint: disable=import-outside-toplevel
+        # pylint: disable-next=import-outside-toplevel
+        from gamepadly import GamepadManager, find_profile
     except ImportError:
         _logger.warning(
             "gamepadly is not installed: gamepad hotkeys (e.g. Hotkey+Start) are disabled"
         )
         return contextlib.nullcontext()
-    return GamepadManager(**kwargs)
+
+    system = session.system
+    lookup = {
+        "rom": session.rom,
+        "system": session.args.system,
+        "emulator": system.config.emulator,
+        "core": effective_core(system),
+        "profiles_dir": _GAMEPADLY_PROFILES,
+        "user_profiles_dir": _GAMEPADLY_USER_PROFILES,
+    }
+    profile = build_session_profile(
+        session.generator, system, find_profile(**lookup), SESSION_PAD_PROFILE
+    )
+    manager_args = {
+        **lookup,
+        "controllers": session.inputs.controllers,
+        "es_input": ES_INPUT_CFG,
+    }
+    try:
+        return GamepadManager(**manager_args, profile=profile)
+    except TypeError:
+        _logger.warning("gamepadly is older than 0.1.4: the standard hotkeys are disabled")
+        return GamepadManager(**manager_args)
 
 
 def _publish_state(session: GameSession) -> Callable[[subprocess.Popen[bytes]], None]:
@@ -236,16 +266,7 @@ def _run_emulator(session: GameSession) -> int:
     """Generate the emulator command, set up HUD and gun helpers, and run it."""
     system = session.system
 
-    with _gamepad_manager(
-        system=session.args.system,
-        emulator=system.config.emulator,
-        core=effective_core(system),
-        rom=session.rom,
-        controllers=session.inputs.controllers,
-        profiles_dir=_GAMEPADLY_PROFILES,
-        user_profiles_dir=_GAMEPADLY_USER_PROFILES,
-        es_input=ES_INPUT_CFG,
-    ):
+    with _gamepad_manager(session):
         # change directory if wanted
         execution_directory = session.generator.executionDirectory(system.config, session.rom)
         if execution_directory is not None:

@@ -1,0 +1,171 @@
+"""Standard hotkeys: the actions, how an emulator performs them, and which combination fires them.
+
+Three pieces, kept apart so that each changes on its own:
+
+* ``HotkeyAction``: the closed list of actions a hotkey can ask for;
+* the table (``share/pad2key/hotkeys.yaml``, or the user's copy): which
+  controller combination asks for which action, the same for every emulator;
+* the bindings: how one emulator performs each action. Every generator gets
+  ``common_bindings()`` and adds or replaces its own with
+  ``Generator.hotkey_bindings()``.
+
+A binding is one of:
+
+* ``Keys``: a key chord the emulator listens to, pressed by gamepadly's
+  virtual keyboard;
+* ``Exec``: a command, run by gamepadly;
+* ``Native``: the emulator reads the combination from the controller itself
+  (its generator writes it to the emulator's configuration), so gamepadly
+  must not fire it too;
+* ``None``: the emulator cannot do it; the combination is left free.
+"""
+
+from __future__ import annotations
+
+import enum
+import logging
+import shutil
+from collections.abc import Mapping
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
+
+import yaml
+
+from retrobox.paths import BIN_DIR, HOTKEYS_TABLE, USER_HOTKEYS_TABLE
+
+_logger = logging.getLogger(__name__)
+
+OVERLAY_COMMAND = "retrobox-overlay"
+"""The in-game overlay, a separate package: its hotkeys exist only once installed."""
+
+
+class HotkeyAction(enum.StrEnum):
+    """What a hotkey can ask for."""
+
+    OVERLAY = "overlay"
+    EXIT = "exit"
+    MENU = "menu"
+    PAUSE = "pause"
+    RESET = "reset"
+    SAVE_STATE = "save_state"
+    LOAD_STATE = "load_state"
+    SLOT_PREV = "slot_prev"
+    SLOT_NEXT = "slot_next"
+    REWIND = "rewind"
+    FAST_FORWARD = "fast_forward"
+    SCREENSHOT = "screenshot"
+    TRANSLATE = "translate"
+    SWAP_SCREENS = "swap_screens"
+    NEXT_LAYOUT = "next_layout"
+    DISK_NEXT = "disk_next"
+    DISK_PREV = "disk_prev"
+    DISK_EJECT = "disk_eject"
+    TOGGLE_BEZEL = "toggle_bezel"
+
+
+@dataclass(frozen=True)
+class Keys:
+    """A key chord (evdev names, e.g. ``("KEY_LEFTSHIFT", "KEY_F3")``)."""
+
+    codes: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class Exec:
+    """A command line (argv, no shell)."""
+
+    argv: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class Native:
+    """The emulator handles the combination itself."""
+
+
+CLOSE_WINDOW = Keys(("KEY_LEFTALT", "KEY_F4"))
+"""Alt+F4: emulators that quit cleanly when their window is closed."""
+
+type Binding = Keys | Exec | Native
+type Bindings = Mapping[HotkeyAction, Binding | None]
+
+
+@dataclass(frozen=True)
+class HotkeyEntry:
+    """One line of the table: a combination and the action it asks for."""
+
+    action: HotkeyAction
+    trigger: tuple[str, ...]
+    tap: bool = False
+
+
+def common_bindings() -> dict[HotkeyAction, Binding | None]:
+    """What every emulator gets: leaving the game, screenshots and the overlay."""
+    bindings: dict[HotkeyAction, Binding | None] = {
+        HotkeyAction.EXIT: Exec((str(BIN_DIR / "retrobox-emukill"),)),
+        HotkeyAction.SCREENSHOT: Exec((str(BIN_DIR / "retrobox-screenshot"),)),
+    }
+    overlay = shutil.which(OVERLAY_COMMAND)
+    if overlay is not None:
+        bindings[HotkeyAction.OVERLAY] = Exec((overlay,))
+    return bindings
+
+
+def _parse_entry(raw: Any, index: int, source: Path) -> HotkeyEntry | None:
+    """Check one table line; None (and a warning) when it is invalid."""
+    error = None
+    entry = None
+    if not isinstance(raw, dict):
+        error = "not a mapping"
+    else:
+        trigger = raw.get("trigger")
+        tap = bool(raw.get("tap", False))
+        if isinstance(trigger, str):
+            trigger = [trigger]
+        try:
+            action = HotkeyAction(raw.get("action"))
+        except ValueError:
+            error = f"unknown action {raw.get('action')!r}"
+        else:
+            if not trigger or not all(isinstance(name, str) for name in trigger):
+                error = "'trigger' must be a list of input names"
+            elif tap and len(trigger) != 1:
+                error = "'tap' needs a single input"
+            else:
+                entry = HotkeyEntry(action=action, trigger=tuple(trigger), tap=tap)
+    if error is not None:
+        _logger.warning("%s, hotkey #%d: %s: ignored", source, index, error)
+    return entry
+
+
+def _read_table(path: Path) -> list[HotkeyEntry] | None:
+    """The entries of a table file; None when it is missing or unreadable."""
+    try:
+        data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return None
+    except (OSError, yaml.YAMLError) as err:
+        _logger.warning("cannot read the hotkeys table %s: %s", path, err)
+        return None
+    if not isinstance(data, dict) or not isinstance(data.get("pad"), list):
+        _logger.warning("%s: a 'pad' list is expected", path)
+        return None
+    entries = (_parse_entry(raw, index, path) for index, raw in enumerate(data["pad"]))
+    return [entry for entry in entries if entry is not None]
+
+
+def load_table(
+    user_table: Path = USER_HOTKEYS_TABLE, default_table: Path = HOTKEYS_TABLE
+) -> list[HotkeyEntry]:
+    """The hotkeys table: the user's when there is a valid one, else the shipped one."""
+    for path in (user_table, default_table):
+        entries = _read_table(path)
+        if entries is not None:
+            _logger.debug("hotkeys table: %s", path)
+            return entries
+    return []
+
+
+def pad_buttons(table: list[HotkeyEntry], action: HotkeyAction) -> list[tuple[str, ...]]:
+    """The combinations the table gives an action (taps excluded)."""
+    return [entry.trigger for entry in table if entry.action is action and not entry.tap]

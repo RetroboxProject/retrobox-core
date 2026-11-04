@@ -17,8 +17,9 @@ waiting. It only stops waiting on a clear sign that the game is not coming:
 * the Steam client exits (or never starts);
 * Steam logs that the launch action failed or was cancelled;
 * Steam logs that the game's process ended before it was ever seen;
-* Alt+F4 is pressed on any keyboard, gamepadly's virtual one included (the
-  Hotkey+Start exit of Retrobox), while the game hasn't shown up yet.
+* Alt+F4 is pressed on any keyboard while the game hasn't shown up yet.
+  (Hotkey+Start runs retrobox-emukill, which stops this monitor with
+  SIGTERM after ending the game's processes.)
 
 The game counts as alive while any of these is there:
 
@@ -317,9 +318,9 @@ def _registry_says_running(appid: str) -> bool:
 class _ExitKeyWatcher:
     """Notices Alt+F4 on any keyboard, without grabbing it from anyone.
 
-    gamepadly turns Hotkey+Start into Alt+F4 on a virtual keyboard, which is
-    just one more evdev device here. Needs the "input" group, like the rest
-    of Retrobox's keyboard handling; without it the watcher does nothing.
+    A virtual keyboard (gamepadly's, for one) is just one more evdev device
+    here. Needs the "input" group, like the rest of Retrobox's keyboard
+    handling; without it the watcher does nothing.
     """
 
     devices: dict[str, object] = field(default_factory=dict)

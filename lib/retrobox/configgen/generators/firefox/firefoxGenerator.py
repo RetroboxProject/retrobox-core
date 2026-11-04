@@ -1,14 +1,11 @@
 from __future__ import annotations
 import os
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 from ...controller import generate_sdl_game_controller_config
 from ... import Command
 from ..Generator import Generator
 
-if TYPE_CHECKING:
-    from ...typedefs import HotkeysContext
 
 def _parse_rom_launcher(lines: list[str]) -> tuple[str, str | None]:
     """Soporta tanto el formato legacy (url en línea 1, user-agent opcional
@@ -81,9 +78,3 @@ class FirefoxGenerator(Generator):
 
     def getMouseMode(self, config, rom):
         return False
-
-    def getHotkeysContext(self) -> HotkeysContext:
-        return {
-            "name": "firefox",
-            "keys": {"exit": ["KEY_LEFTALT", "KEY_F4"]},
-        }

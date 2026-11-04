@@ -5,15 +5,12 @@ import os
 import stat
 import tempfile
 import uuid
-from typing import TYPE_CHECKING
 
 from ...controller import generate_sdl_game_controller_config
 from ... import Command
 from ..Generator import Generator
 from retrobox.paths import RUNTIME_DIR, SAVES
 
-if TYPE_CHECKING:
-    from ...typedefs import HotkeysContext
 
 _DDG_SEARCH_DATA = {
     "short_name": "DuckDuckGo",
@@ -137,9 +134,3 @@ class ChromeGenerator(Generator):
 
     def getMouseMode(self, config, rom):
         return False
-
-    def getHotkeysContext(self) -> HotkeysContext:
-        return {
-            "name": "chrome",
-            "keys": {"exit": ["KEY_LEFTALT", "KEY_F4"]},
-        }

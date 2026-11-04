@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
 
 from retrobox.configgen import Command
 from retrobox.configgen.controller import generate_sdl_game_controller_config, write_sdl_controller_db
@@ -8,16 +7,7 @@ from retrobox.configgen.generators.Generator import Generator
 from retrobox.paths import EMULATORS
 
 
-if TYPE_CHECKING:
-    from retrobox.configgen.typedefs import HotkeysContext
-
 class ShGenerator(Generator):
-
-    def getHotkeysContext(self) -> HotkeysContext:
-        return {
-            "name": "shell",
-            "keys": { "exit": ["KEY_LEFTALT", "KEY_F4"] }
-        }
 
     def generate(self, system, rom, playersControllers, metadata, guns, wheels, gameResolution):
         # in case of squashfs, the root directory is passed

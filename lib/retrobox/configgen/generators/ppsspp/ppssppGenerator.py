@@ -8,6 +8,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from retrobox.configgen.Emulator import generate_bash_wrapper
+from retrobox.configgen.hotkeys import CLOSE_WINDOW, HotkeyAction
 from retrobox.paths import SAVES, configure_emulator, ensure_symlink
 
 from ... import Command
@@ -17,7 +18,7 @@ from . import ppssppConfig, ppssppControllers
 from .ppssppPaths import _PPSSPP_CFGDIR, _PPSSPP_PSPDIR, _PPSSPP_XDG, PPSSPP_BIN
 
 if TYPE_CHECKING:
-    from ...typedefs import HotkeysContext, Resolution
+    from ...typedefs import Resolution
 
 _LOW_RESOLUTION = 480  # below it, PPSSPP's menu is too big
 
@@ -33,22 +34,9 @@ class PPSSPPGenerator(Generator):
     # the method names are fixed by the Generator interface
     # pylint: disable=invalid-name
 
-    def getHotkeysContext(self) -> HotkeysContext:
-        """Return the PPSSPP hotkeys."""
-        return {
-            "name": "ppsspp",
-            "keys": {
-                "exit": ["KEY_LEFTALT", "KEY_F4"],
-                "menu": "KEY_F9",
-                "pause": "KEY_F9",
-                "rewind": "KEY_F1",
-                "fastforward": "KEY_F2",
-                "next_slot": "KEY_F6",
-                "previous_slot": "KEY_F5",
-                "save_state": "KEY_F3",
-                "restore_state": "KEY_F4",
-            },
-        }
+    def hotkey_bindings(self, system):
+        """Hotkey+Start closes the window (Alt+F4), so PPSSPP quits cleanly."""
+        return {HotkeyAction.EXIT: CLOSE_WINDOW}
 
     def usesOpenGLDirectPreload(self, config) -> bool:
         """MangoHud is preloaded when the graphics API that ends up used is OpenGL."""
