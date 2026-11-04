@@ -1,5 +1,8 @@
 """Generator for Steam games (.steam launchers) and Steam Big Picture."""
 
+# the module name follows the <emulator>Generator convention of generators/importer.py
+# pylint: disable=invalid-name
+
 from __future__ import annotations
 
 import glob
@@ -20,6 +23,9 @@ if TYPE_CHECKING:
 BIGPICTURE_ROM_NAME = "steam.steam"
 BIGPICTURE_ROM_CONTENT = "steam"
 RUNGAMEID_PREFIX = "steam://rungameid/"
+
+EXIT_TIMEOUT = 10.0
+"""Seconds a Steam game has to quit after SIGTERM (retrobox-emukill)."""
 
 _MONITOR_MODULE = "retrobox.configgen.generators.steam.steam_monitor"
 
@@ -106,6 +112,19 @@ class SteamGenerator(Generator):
     def getMouseMode(self, config, rom):
         """Steam games are driven by the mouse too."""
         return True
+
+    def exit_env(self, system, rom):
+        """Steam gives every process of the game its AppId in the environment."""
+        if _is_bigpicture_rom(rom):
+            return {}
+        appid = _read_appid(rom)
+        if appid is None:
+            return {}
+        return {"SteamAppId": [appid], "SteamGameId": [appid]}
+
+    def exit_timeout(self, config):
+        """Proton games take a while to close; the monitor needs time to notice."""
+        return EXIT_TIMEOUT
 
     def getHotkeysContext(self) -> HotkeysContext:
         """Alt+F4 closes the game."""

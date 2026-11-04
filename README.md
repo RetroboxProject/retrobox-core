@@ -195,7 +195,7 @@ Install directory (read-only):
 
 ```
 <install dir>/                 # a checkout, or /opt/retrobox: the repo IS the installed tree
-├── bin/                       # commands: retrobox (/usr/bin/retrobox in the packages), retrobox-launch, retrobox-exit, retrobox-screenshot...
+├── bin/                       # commands: retrobox (/usr/bin/retrobox in the packages), retrobox-launch, retrobox-emukill, retrobox-exit, retrobox-screenshot...
 ├── lib/
 │   └── retrobox/              # the Python package: paths, startup, launcher, configgen, utils
 ├── libexec/                   # internal helpers: emuconfig/ (per-emulator config launchers), stubs/, mangohud/ (from the retrobox-mangohud component)

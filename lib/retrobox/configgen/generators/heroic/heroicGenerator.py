@@ -1,59 +1,83 @@
+"""Generator for Heroic Games Launcher games (Epic, GOG, Amazon, sideloaded).
+
+A Heroic "rom" holds the launch link the PC games sync writes:
+``heroic://launch?appName=<id>&runner=<runner>``.
+"""
+
+# the module name follows the <emulator>Generator convention of generators/importer.py
+# pylint: disable=invalid-name
+
 from __future__ import annotations
 
-import os
-import subprocess
 from pathlib import Path
 from typing import TYPE_CHECKING
+from urllib.parse import parse_qs, urlsplit
+
+from retrobox.configgen.utils.pc_launchers import launcher_environment
 
 from ... import Command
-from ...controller import generate_sdl_game_controller_config
 from ...exceptions import RetroboxException
 from ..Generator import Generator
 
 if TYPE_CHECKING:
     from ...typedefs import HotkeysContext
 
+EXIT_TIMEOUT = 10.0
+"""Seconds a Heroic game (often Wine) has to quit after SIGTERM."""
+
+
+def _read_link(rom: Path) -> str:
+    """The launch link stored in the rom file."""
+    try:
+        return rom.read_text(encoding="utf-8").strip()
+    except OSError as err:
+        raise RetroboxException(f"Cannot read the Heroic launch link {rom}: {err}") from err
+
+
+def app_name_of(link: str) -> str | None:
+    """The game id (Heroic's ``appName``) of a launch link, or None.
+
+    Accepts ``heroic://launch?appName=<id>&runner=<runner>`` and the older
+    ``heroic://launch/<runner>/<id>``.
+    """
+    parts = urlsplit(link)
+    if parts.scheme != "heroic" or parts.netloc != "launch":
+        return None
+    names = parse_qs(parts.query).get("appName")
+    if names and names[0]:
+        return names[0]
+    segments = [segment for segment in parts.path.split("/") if segment]
+    return segments[-1] if segments else None
+
+
 class HeroicGenerator(Generator):
+    """Hands the launch link to Heroic, which starts the game."""
 
     def getHotkeysContext(self) -> HotkeysContext:
+        """Alt+F4 closes the game."""
         return {
-            "name": "wine",
-            # Es posible que necesites cambiar esto si "batocera-wine windows stop" 
-            # ya no aplica para cerrar juegos lanzados nativamente por heroic.
-            "keys": { "exit": "/usr/bin/batocera-wine windows stop" }
+            "name": "heroic",
+            "keys": {"exit": ["KEY_LEFTALT", "KEY_F4"]},
         }
 
+    # the signature is fixed by the Generator interface
+    # pylint: disable-next=too-many-arguments,too-many-positional-arguments
     def generate(self, system, rom, playersControllers, metadata, guns, wheels, gameResolution):
-        # Leer el contenido del archivo (el enlace de heroic, legendary, gog, etc.)
-        try:
-            with open(rom, 'r', encoding='utf-8') as f:
-                enlace = f.read().strip()
-        except Exception as e:
-            raise RetroboxException(f"No se pudo leer el archivo de enlace: {e}")
-
-        # Sustituir batocera-wine por heroic y pasarle el enlace leído
-        commandArray = ["heroic", "--no-gui", enlace]
-
-        environment: dict[str, str | Path] = {}
-        
-        try:
-            language = subprocess.check_output("batocera-settings-get system.language", shell=True, text=True).strip()
-        except subprocess.CalledProcessError:
-            language = 'en_US'
-            
-        if language:
-            environment.update({
-                "LANG": language + ".UTF-8",
-                "LC_ALL": language + ".UTF-8"
-            })
-            
-        if system.config.get_bool("sdl_config", True):
-            environment.update({
-                "SDL_GAMECONTROLLERCONFIG": generate_sdl_game_controller_config(playersControllers),
-                "SDL_JOYSTICK_HIDAPI": "0"
-            })
-
-        return Command.Command(array=commandArray, env=environment)
+        """Run ``heroic --no-gui <link>``."""
+        command = ["heroic", "--no-gui", _read_link(rom)]
+        return Command.Command(
+            array=command, env=launcher_environment(system, playersControllers)
+        )
 
     def getMouseMode(self, config, rom):
-        return config.get_bool('force_mouse')
+        """The mouse is only grabbed when the user asks for it."""
+        return config.get_bool("force_mouse")
+
+    def exit_env(self, system, rom):
+        """Heroic (2.9.2 and later) puts the game id in the environment of the game."""
+        app_name = app_name_of(_read_link(rom))
+        return {"HEROIC_APP_NAME": [app_name]} if app_name else {}
+
+    def exit_timeout(self, config):
+        """Wine games take a while to close."""
+        return EXIT_TIMEOUT

@@ -9,9 +9,10 @@ from abc import ABCMeta, abstractmethod
 from typing import TYPE_CHECKING
 
 from retrobox.configgen.exceptions import RetroboxException
+from retrobox.launcher.game_state import DEFAULT_EXIT_TIMEOUT
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
+    from collections.abc import Mapping, Sequence
     from pathlib import Path
 
     from ..typedefs import DeviceInfoMapping, Resolution
@@ -91,3 +92,17 @@ class Generator(metaclass=ABCMeta):
     def usesOpenGLDirectPreload(self, config) -> bool:
         """Tell whether MangoHud must be preloaded for an OpenGL emulator."""
         return False
+
+    def exit_env(self, system: Emulator, rom: Path) -> Mapping[str, Sequence[str]]:
+        """Environment variables, and their values, that mark the game's processes.
+
+        Only needed when the game is started by a client that may already run
+        (Steam, Heroic, Lutris): its processes are then not in the emulator's
+        process group, and ``retrobox-emukill`` finds them by environment.
+        Called after ``generate()``.
+        """
+        return {}
+
+    def exit_timeout(self, config: SystemConfig) -> float:
+        """Seconds the game has to quit after SIGTERM before it is killed."""
+        return DEFAULT_EXIT_TIMEOUT

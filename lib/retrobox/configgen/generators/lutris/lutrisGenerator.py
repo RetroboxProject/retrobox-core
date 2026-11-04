@@ -1,7 +1,18 @@
+"""Generator for Lutris games.
+
+A Lutris "rom" holds ``lutris:rungameid/<id>``. Most games are left to
+Lutris, which waits for them. Games whose Wine prefix belongs to a
+third-party launcher (Ubisoft Connect, EA) keep that launcher running after
+the game exits, so they get a bash wrapper that waits for the game's .exe
+and then purges the launcher and the prefix's wineserver.
+"""
+
+# the module name follows the <emulator>Generator convention of generators/importer.py
+# pylint: disable=invalid-name
+
 from __future__ import annotations
 
 import glob
-import locale
 import os
 import re
 import stat
@@ -10,23 +21,25 @@ import tempfile
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from retrobox.configgen.utils.language import _detect_language
+from retrobox.configgen.utils.pc_launchers import launcher_environment
+from retrobox.paths import RUNTIME_DIR
 
 from ... import Command
 from ...exceptions import RetroboxException
-from ...controller import generate_sdl_game_controller_config
 from ..Generator import Generator
-from retrobox.paths import RUNTIME_DIR
 
 if TYPE_CHECKING:
     from ...typedefs import HotkeysContext
 
-# Constantes de temporización
-POLL_INTERVAL   = 3    # segundos entre comprobaciones
-LAUNCH_TIMEOUT  = 90   # máximo esperando a que aparezca el .exe
-MAX_TOTAL       = 7200 # timeout global de seguridad (2 h)
+# Timing of the wrapper
+POLL_INTERVAL = 3  # seconds between two checks
+LAUNCH_TIMEOUT = 90  # longest wait for the game's .exe to show up
+MAX_TOTAL = 7200  # global safety timeout (2 h)
 
-# Procesos a purgar al salir, por launcher
+EXIT_TIMEOUT = 10.0
+"""Seconds a Lutris game (often Wine) has to quit after SIGTERM."""
+
+# Processes purged on exit, by launcher
 UBISOFT_PROCS = [
     "UbisoftConnect.exe",
     "UbisoftGameLauncher.exe",
@@ -42,14 +55,14 @@ EA_PROCS = [
     "OriginWebHelperService.exe",
 ]
 
-# Binarios "wrapper" que NUNCA deben considerarse como el proceso del juego
+# Wrapper executables that are NEVER the game's process
 WRAPPER_BASENAMES = [
     "steam.exe",
 ]
 
-# Patrones para detectar prefijos de launchers de terceros en el YML de Lutris.
-# Si el prefijo del juego coincide con alguno de estos, se activa el wrapper bash.
-# Se usan regex case-insensitive para cubrir variaciones de mayúsculas/rutas.
+# Wine prefixes of third-party launchers in the Lutris YAML. A game whose
+# prefix matches one of them gets the bash wrapper (case-insensitive regexes,
+# to cover variations in case and paths).
 THIRD_PARTY_PREFIX_PATTERNS: list[tuple[re.Pattern[str], list[str]]] = [
     (
         re.compile(r"ubisoft.connect|uplay", re.IGNORECASE),
@@ -61,74 +74,82 @@ THIRD_PARTY_PREFIX_PATTERNS: list[tuple[re.Pattern[str], list[str]]] = [
     ),
 ]
 
+_LINK_PREFIX = "lutris:rungameid/"
+
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Helpers Python
+# Python helpers
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _get_lutris_info(game_id: str) -> tuple[str, str]:
-    """
-    Ejecuta 'lutris -l' y extrae (slug, nombre) para el game_id numérico.
-    Formato de línea: ID | slug | Nombre del juego | …
+    """Run ``lutris -l`` and return (slug, name) for the numeric game id.
+
+    Line format: ``ID | slug | Game name | ...``
     """
     try:
         output = subprocess.check_output(
             ["lutris", "-l"], text=True, stderr=subprocess.DEVNULL
         )
-    except (subprocess.CalledProcessError, FileNotFoundError) as e:
-        raise RetroboxException(f"No se pudo ejecutar 'lutris -l': {e}")
+    except (subprocess.CalledProcessError, FileNotFoundError) as err:
+        raise RetroboxException(f"Cannot run 'lutris -l': {err}") from err
 
     for line in output.splitlines():
-        parts = [p.strip() for p in line.split("|")]
+        parts = [part.strip() for part in line.split("|")]
         if len(parts) >= 3 and parts[0] == game_id:
-            return parts[2], parts[1]  # (slug, nombre)
+            return parts[2], parts[1]
 
-    raise RetroboxException(
-        f"No se encontró ningún juego con ID {game_id} en 'lutris -l'"
-    )
+    raise RetroboxException(f"No game with id {game_id} in 'lutris -l'")
 
 
 def _parse_lutris_yml(slug: str) -> tuple[str, str]:
-    """
-    Localiza el YML más reciente para el slug dado y extrae (exe_name, wine_prefix).
-    Devuelve (exe_basename, prefix_path).
-    """
+    """Find the newest YAML of the slug and return (exe basename, Wine prefix)."""
     conf_dir = Path.home() / ".local/share/lutris/games"
     candidates = sorted(
         conf_dir.glob(f"{slug}*.yml"),
-        key=lambda p: p.stat().st_mtime,
+        key=lambda path: path.stat().st_mtime,
         reverse=True,
     )
     if not candidates:
-        raise RetroboxException(
-            f"No se encontró archivo .yml para el slug '{slug}' en {conf_dir}"
-        )
+        raise RetroboxException(f"No .yml file for slug '{slug}' in {conf_dir}")
 
     yml_path = candidates[0]
     exe_path = ""
     wine_prefix = ""
 
-    with yml_path.open(encoding="utf-8") as f:
-        for line in f:
+    with yml_path.open(encoding="utf-8") as yml:
+        for line in yml:
             if line.startswith("  exe: ") and not exe_path:
                 exe_path = line.removeprefix("  exe: ").strip()
             if line.startswith("  prefix: ") and not wine_prefix:
                 wine_prefix = line.removeprefix("  prefix: ").strip()
 
     if not exe_path:
-        raise RetroboxException(f"No se encontró 'exe:' en {yml_path}")
+        raise RetroboxException(f"No 'exe:' in {yml_path}")
 
-    exe_name = Path(exe_path).name
-    return exe_name, wine_prefix
+    return Path(exe_path).name, wine_prefix
+
+
+def _read_link(rom: Path) -> str:
+    """The ``lutris:rungameid/<id>`` link stored in the rom file."""
+    try:
+        link = Path(rom).read_text(encoding="utf-8").strip()
+    except OSError as err:
+        raise RetroboxException(f"Cannot read the Lutris link {rom}: {err}") from err
+    if not link.startswith(_LINK_PREFIX):
+        raise RetroboxException(f"Unknown Lutris link format: '{link}'")
+    return link
+
+
+def _resolve_game(link: str) -> tuple[str, str]:
+    """id -> (slug, name) -> YAML -> (exe basename, Wine prefix)."""
+    slug, _name = _get_lutris_info(link.removeprefix(_LINK_PREFIX))
+    return _parse_lutris_yml(slug)
 
 
 def _detect_third_party_launcher(wine_prefix: str) -> list[str] | None:
-    """
-    Comprueba si el wine_prefix del juego corresponde a un launcher de terceros
-    (Ubisoft Connect, EA) mediante regex sobre la ruta del prefijo.
+    """The processes to purge when the prefix belongs to a third-party launcher.
 
-    Devuelve la lista de procesos a purgar si hay coincidencia, o None si el
-    juego no usa ningún launcher de terceros conocido (Wine manual, nativo, etc.)
+    None when the game uses no known launcher (manual Wine, native, etc.).
     """
     if not wine_prefix:
         return None
@@ -140,8 +161,16 @@ def _detect_third_party_launcher(wine_prefix: str) -> list[str] | None:
     return None
 
 
+def _prefix_forms(wine_prefix: str) -> list[str]:
+    """The ways WINEPREFIX may spell the prefix in a process environment."""
+    if not wine_prefix:
+        return []
+    expanded = os.path.expanduser(wine_prefix).rstrip("/")
+    return sorted({wine_prefix, expanded, f"{expanded}/"})
+
+
 # ─────────────────────────────────────────────────────────────────────────────
-# Generador del wrapper bash (solo para launchers de terceros)
+# Bash wrapper (third-party launchers only)
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _make_wrapper(
@@ -150,15 +179,15 @@ def _make_wrapper(
     wine_prefix: str,
     procs_to_purge: list[str],
 ) -> str:
-    """
-    Genera un script bash temporal que:
-      1. Lanza el juego vía lutris <link> (fire & forget)
-      2. Espera hasta LAUNCH_TIMEOUT a que aparezca el .exe del juego
-      3. Vigila el .exe hasta que termine
-      4. Purga los procesos del launcher (Ubisoft Connect / EA) y el wineserver
+    """Write a temporary bash script and return its path. The script:
 
-    Solo se llama cuando se detecta un prefijo de launcher de terceros.
-    Para juegos sin launcher (nativos, Wine manual) se usa lutris directamente.
+    1. starts the game through ``lutris <link>`` (fire and forget);
+    2. waits up to LAUNCH_TIMEOUT for the game's .exe to show up;
+    3. watches the .exe until it ends;
+    4. purges the launcher's processes (Ubisoft Connect / EA) and wineserver.
+
+    Only used for third-party launcher prefixes; other games run through
+    lutris directly.
     """
     purge_lines = "\n".join(
         f'pkill -f "{proc}" 2>/dev/null || true' for proc in procs_to_purge
@@ -167,7 +196,7 @@ def _make_wrapper(
     wineserver_kill = (
         f'WINEPREFIX="{wine_prefix}" wineserver -k 2>/dev/null || true'
         if wine_prefix
-        else "# (sin prefijo Wine detectado)"
+        else "# (no Wine prefix found)"
     )
 
     wrapper_excl = "|".join(re.escape(name) for name in WRAPPER_BASENAMES)
@@ -204,12 +233,12 @@ _game_running() {{
     return 1
 }}
 
-# 1. Lanzar el juego via Lutris (fire & forget)
-echo "[lutris-wrapper] Lanzando: lutris {lutris_link}"
+# 1. Start the game through Lutris (fire and forget)
+echo "[lutris-wrapper] Running: lutris {lutris_link}"
 lutris "{lutris_link}" > /dev/null 2>&1 &
 
-# 2. Esperar a que aparezca el .exe del juego
-echo "[lutris-wrapper] Esperando a que '$EXE_NAME' arranque..."
+# 2. Wait for the game's .exe
+echo "[lutris-wrapper] Waiting for '$EXE_NAME' to start..."
 APPEARED=0
 DEADLINE=$(( START + LAUNCH_TIMEOUT ))
 while [ "$(date +%s)" -lt "$DEADLINE" ]; do
@@ -221,36 +250,36 @@ while [ "$(date +%s)" -lt "$DEADLINE" ]; do
 done
 
 if [ "$APPEARED" -eq 0 ]; then
-    echo "[lutris-wrapper] Timeout: '$EXE_NAME' no detectado tras ${{LAUNCH_TIMEOUT}}s."
+    echo "[lutris-wrapper] Timeout: '$EXE_NAME' not seen after ${{LAUNCH_TIMEOUT}}s."
     exit 1
 fi
 
-echo "[lutris-wrapper] '$EXE_NAME' detectado. Monitorizando..."
+echo "[lutris-wrapper] '$EXE_NAME' is running. Watching it..."
 
-# 3. Vigilar hasta que el juego cierre
+# 3. Watch until the game closes
 while true; do
-    _timeout && echo "[lutris-wrapper] Timeout global alcanzado, saliendo." && exit 0
+    _timeout && echo "[lutris-wrapper] Global timeout reached, leaving." && exit 0
 
     if ! _game_running; then
         sleep 5
         if ! _game_running; then
-            echo "[lutris-wrapper] '$EXE_NAME' ha terminado."
+            echo "[lutris-wrapper] '$EXE_NAME' has ended."
             break
         fi
-        echo "[lutris-wrapper] Falsa alarma, '$EXE_NAME' sigue corriendo."
+        echo "[lutris-wrapper] False alarm, '$EXE_NAME' is still running."
     fi
 
     sleep "$POLL"
 done
 
-# 4. Purga del launcher de terceros
-echo "[lutris-wrapper] Purgando procesos del launcher..."
+# 4. Purge the third-party launcher
+echo "[lutris-wrapper] Purging the launcher's processes..."
 {purge_lines}
 
-echo "[lutris-wrapper] Matando wineserver del prefijo..."
+echo "[lutris-wrapper] Killing the prefix's wineserver..."
 {wineserver_kill}
 
-echo "[lutris-wrapper] Limpieza completada."
+echo "[lutris-wrapper] Cleanup done."
 exit 0
 """
 
@@ -261,72 +290,57 @@ exit 0
     return path
 
 
+def _remove_old_wrappers() -> None:
+    """Delete the wrappers left behind by earlier launches."""
+    for old in glob.glob(str(RUNTIME_DIR / "lutris_wrapper_*.sh")):
+        try:
+            os.remove(old)
+        except OSError:
+            pass
+
+
 # ─────────────────────────────────────────────────────────────────────────────
-# Generador
+# Generator
 # ─────────────────────────────────────────────────────────────────────────────
 
 class LutrisGenerator(Generator):
+    """Runs a Lutris game, through the wrapper when a third-party launcher is involved."""
+
+    def __init__(self) -> None:
+        self._wine_prefix = ""
 
     def getHotkeysContext(self) -> HotkeysContext:
+        """Alt+F4 closes the game."""
         return {
             "name": "wine",
             "keys": {"exit": ["KEY_LEFTALT", "KEY_F4"]},
         }
 
+    # the signature is fixed by the Generator interface
+    # pylint: disable-next=too-many-arguments,too-many-positional-arguments
     def generate(self, system, rom, playersControllers, metadata, guns, wheels, gameResolution):
-        # Limpiar wrappers anteriores huérfanos
-        for old in glob.glob(str(RUNTIME_DIR / "lutris_wrapper_*.sh")):
-            try:
-                os.remove(old)
-            except OSError:
-                pass
+        """Return ``lutris <link>``, or the wrapper for third-party launchers."""
+        _remove_old_wrappers()
+        lutris_link = _read_link(rom)
+        exe_name, wine_prefix = _resolve_game(lutris_link)
+        self._wine_prefix = wine_prefix
+        environment = launcher_environment(system, playersControllers)
 
-        # Leer el enlace del .rom
-        try:
-            with open(rom, "r", encoding="utf-8") as f:
-                lutris_link = f.read().strip()
-        except OSError as e:
-            raise RetroboxException(f"No se pudo leer el archivo .rom: {e}")
-
-        if not lutris_link.startswith("lutris:rungameid/"):
-            raise RetroboxException(
-                f"Formato de enlace no reconocido: '{lutris_link}'"
-            )
-
-        game_id = lutris_link.removeprefix("lutris:rungameid/")
-
-        # Resolver ID → (slug, nombre) → YML → exe + prefix
-        slug, _game_name      = _get_lutris_info(game_id)
-        exe_name, wine_prefix = _parse_lutris_yml(slug)
-
-        # Entorno común
-        lang = _detect_language()
-        environment: dict[str, str] = {
-            "LANG":   f"{lang}.UTF-8",
-            "LC_ALL": f"{lang}.UTF-8",
-        }
-
-        if system.config.get_bool("sdl_config", True):
-            environment.update({
-                "SDL_GAMECONTROLLERCONFIG": generate_sdl_game_controller_config(playersControllers),
-                "SDL_JOYSTICK_HIDAPI": "0",
-            })
-
-        # ── Decisión: ¿necesitamos wrapper o lutris directo? ──────────────────
         procs_to_purge = _detect_third_party_launcher(wine_prefix)
-
         if procs_to_purge is not None:
-            # Juego con launcher de terceros (Ubisoft Connect, EA):
-            # necesitamos el wrapper para detectar el fin del juego y purgar
+            # a third-party launcher (Ubisoft Connect, EA) outlives the game:
+            # the wrapper notices the end of the game and purges it
             wrapper_path = _make_wrapper(lutris_link, exe_name, wine_prefix, procs_to_purge)
             return Command.Command(array=[wrapper_path], env=environment)
-        else:
-            # Juego nativo Linux, Wine sin launcher, instalación manual, etc.:
-            # lutris se encarga solo de la espera y la vuelta a EmulationStation
-            return Command.Command(
-                array=["lutris", lutris_link],
-                env=environment,
-            )
 
-    def getMouseMode(self, config, rom):
-        return config.get_bool("force_mouse")
+        # native game, plain Wine, manual install...: Lutris waits for the game
+        return Command.Command(array=["lutris", lutris_link], env=environment)
+
+    def exit_env(self, system, rom):
+        """Every process of a Wine game (wineserver included) carries its WINEPREFIX."""
+        forms = _prefix_forms(self._wine_prefix)
+        return {"WINEPREFIX": forms} if forms else {}
+
+    def exit_timeout(self, config):
+        """Wine games take a while to close."""
+        return EXIT_TIMEOUT

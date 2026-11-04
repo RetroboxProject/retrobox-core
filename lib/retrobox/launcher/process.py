@@ -8,7 +8,7 @@ import signal
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable
 
 from retrobox.configgen.exceptions import BadCommandLineArguments, UnexpectedEmulatorExit
 from retrobox.paths import RUNTIME_DIR
@@ -21,6 +21,9 @@ if TYPE_CHECKING:
 _logger = logging.getLogger(__name__)
 
 _ENV_DUMP_FILE = RUNTIME_DIR / "env-launcher.txt"
+
+_KILL_AFTER_SECONDS = 10
+"""Seconds the emulator has to quit once the launcher is asked to stop."""
 
 
 @dataclass
@@ -52,8 +55,15 @@ def _build_environment(command: Command) -> dict[str, str | Path]:
     return envvars
 
 
-def run_command(command: Command) -> int:
+def run_command(
+    command: Command, on_started: Callable[[subprocess.Popen[bytes]], None] | None = None
+) -> int:
     """Run the generated command with subprocess.Popen.
+
+    The emulator runs in a session (and process group) of its own, so that
+    ``retrobox-emukill`` can signal its whole tree without reaching the
+    launcher or the frontend. ``on_started`` is called with the process as
+    soon as it exists.
 
     Also handles error codes and exceptions to send them to the launcher.
 
@@ -84,8 +94,11 @@ def run_command(command: Command) -> int:
             env=envvars,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
+            start_new_session=True,
         ) as process:
             _running.proc = process
+            if on_started is not None:
+                on_started(process)
             out, err = process.communicate()
             exitcode = process.returncode
 
@@ -104,18 +117,45 @@ def run_command(command: Command) -> int:
     return exitcode
 
 
+@dataclass
+class _Interrupts:
+    """How many times the launcher has been asked to stop."""
+
+    count: int = 0
+
+
+_interrupts = _Interrupts()
+
+
 def _on_interrupt(sig: int, _frame: FrameType | None) -> None:
-    """Kill the running emulator process when the launcher is interrupted."""
+    """Stop the emulator's process group when the launcher is interrupted.
+
+    The emulator no longer shares the launcher's process group, so a Ctrl+C
+    or the end of the session does not reach it by itself. The first signal
+    asks it to quit (SIGTERM); a second one, or the alarm set by the first
+    one, kills it.
+    """
     _logger.debug("Exiting (signal %s)", sig)
-    if _running.proc:
-        _logger.debug("killing proc")
-        _running.proc.kill()
+    _interrupts.count += 1
+    proc = _running.proc
+    if proc is None or proc.poll() is not None:
+        return
+    kill_signal = signal.Signals.SIGTERM if _interrupts.count == 1 else signal.Signals.SIGKILL
+    if kill_signal is signal.Signals.SIGTERM:
+        signal.alarm(_KILL_AFTER_SECONDS)
+    _logger.debug("sending %s to the emulator's process group", kill_signal.name)
+    try:
+        os.killpg(proc.pid, kill_signal)
+    except ProcessLookupError:
+        pass
 
 
 def install_interrupt_handler() -> None:
-    """Forget any previous process and kill the emulator on SIGINT."""
+    """Forget any previous process and stop the emulator on SIGINT, SIGTERM or SIGHUP."""
     _running.proc = None
-    signal.signal(signal.SIGINT, _on_interrupt)
+    _interrupts.count = 0
+    for sig in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP, signal.SIGALRM):
+        signal.signal(sig, _on_interrupt)
 
 
 def normalize_exit_code(exitcode: int) -> int:

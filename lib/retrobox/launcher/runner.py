@@ -28,6 +28,7 @@ from retrobox.paths import (
 
 from .controller_monitor import ControllerMonitor
 from .emulator_setup import ensure_emulator
+from .game_state import GameState, clear_state, process_start_time, write_state
 from .hooks import call_game_hooks
 from .hud import setup_hud
 from .power import apply_power_profile, restore_power_profile
@@ -37,6 +38,8 @@ from .hotkey_held import hotkey_held
 
 if TYPE_CHECKING:
     import argparse
+    import subprocess
+    from collections.abc import Callable
     from contextlib import AbstractContextManager
 
     from retrobox.configgen.generators.Generator import Generator
@@ -179,6 +182,7 @@ def _run_game(session: GameSession, previous_power_profile: str | None) -> int:
         call_game_hooks(session, "on-close-game")
         return exit_code
     finally:
+        clear_state()
         restore_power_profile(previous_power_profile)
         _GAME_INFO_FILE.unlink(missing_ok=True)
 
@@ -193,6 +197,39 @@ def _gamepad_manager(**kwargs):
         )
         return contextlib.nullcontext()
     return GamepadManager(**kwargs)
+
+
+def _publish_state(session: GameSession) -> Callable[[subprocess.Popen[bytes]], None]:
+    """Return the callback that writes session.json once the emulator has started.
+
+    Called after ``generate()``: the generator knows by then how its game is
+    started, so it can tell how to end it.
+    """
+    system = session.system
+    generator = session.generator
+    exit_env = {
+        name: list(values)
+        for name, values in generator.exit_env(system, session.rom).items()
+    }
+
+    def on_started(process: subprocess.Popen[bytes]) -> None:
+        write_state(
+            GameState(
+                pid=process.pid,
+                pgid=process.pid,  # start_new_session: the emulator leads its group
+                start_time=process_start_time(process.pid) or 0,
+                launcher_pid=os.getpid(),
+                system=session.args.system,
+                emulator=system.config.emulator,
+                core=effective_core(system),
+                rom=str(session.rom),
+                metadata=dict(session.metadata),
+                exit_timeout=generator.exit_timeout(system.config),
+                exit_env=exit_env,
+            )
+        )
+
+    return on_started
 
 
 def _run_emulator(session: GameSession) -> int:
@@ -228,4 +265,4 @@ def _run_emulator(session: GameSession) -> int:
 
         with profiler.pause():
             session.inputs.monitor.start()
-            return run_command(cmd)
+            return run_command(cmd, on_started=_publish_state(session))

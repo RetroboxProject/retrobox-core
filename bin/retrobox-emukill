@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# retrobox-emukill: end the game being played (Retrobox's counterpart of
+# "batocera-es-swissknife --emukill"). The gamepad hotkey (Hotkey+Start) and
+# the in-game overlay run it; it does nothing when no game is running.
+#
+# It only picks the interpreter and sets up the import path; the work is
+# lib/retrobox/launcher/emukill.py.
+set -eo pipefail
+SELF="$(readlink -f "${BASH_SOURCE[0]}")"
+RETROBOX_ROOTDIR="${RETROBOX_ROOTDIR:-$(dirname "$(dirname "${SELF}")")}"
+export RETROBOX_ROOTDIR
+export PYTHONPATH="${RETROBOX_ROOTDIR}/lib${PYTHONPATH:+:${PYTHONPATH}}"
+
+if [[ -z "${RETROBOX_PYTHON:-}" ]]; then
+    if [[ -x "${RETROBOX_ROOTDIR}/venv/bin/python3" ]]; then
+        RETROBOX_PYTHON="${RETROBOX_ROOTDIR}/venv/bin/python3"
+    else
+        RETROBOX_PYTHON="$(command -v python3 || true)"
+    fi
+fi
+[[ -n "${RETROBOX_PYTHON}" ]] || { echo "retrobox-emukill: python3 not found" >&2; exit 1; }
+
+exec "${RETROBOX_PYTHON}" -m retrobox.launcher.emukill "$@"

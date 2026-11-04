@@ -699,13 +699,29 @@ def _watch_game(options: _Options) -> int:
                 break
             time.sleep(watch.poll_interval)
     finally:
+        # also when stopped by a signal (retrobox-emukill)
         watch.close()
-    _shutdown_steam(options)
+        _shutdown_steam(options)
     return 0
 
 
 def _watch_big_picture(options: _Options) -> int:
-    """Start Big Picture and return once the Steam client exits."""
+    """Start Big Picture and return once the Steam client exits.
+
+    The session lasts as long as the Steam client, so when it is stopped by
+    a signal (retrobox-emukill) it shuts Steam down: that is what ending
+    this "game" means.
+    """
+    try:
+        return _wait_big_picture(options)
+    except SystemExit:
+        _logger.info("shutting Steam down")
+        _launch_steam(options.steam_bin, ["-shutdown"])
+        raise
+
+
+def _wait_big_picture(options: _Options) -> int:
+    """Wait for the Steam client to start, then for it to exit."""
     scanner = _Scanner(None)
     _launch_steam(options.steam_bin, ["-bigpicture", "-gamepadui"])
     start = time.monotonic()

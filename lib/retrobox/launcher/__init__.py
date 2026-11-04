@@ -14,4 +14,6 @@ Each module owns one concern of launching a game:
 * ``controller_monitor``: controller hot-plug watching.
 * ``hud``: the MangoHud overlay (HUD text and environment).
 * ``hud_bezel``: building the bezel image MangoHud draws as background.
+* ``game_state``: ``session.json``, the running game as the outside helpers see it.
+* ``emukill``: ``retrobox-emukill``, ending the running game.
 """
