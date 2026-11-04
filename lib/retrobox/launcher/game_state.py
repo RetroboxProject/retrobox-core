@@ -13,6 +13,13 @@ whole tree it starts can be signalled at once. ``start_time`` (from
 pid. Games started by a client that already runs (Steam, Heroic, Lutris)
 are not in that group: ``exit_env`` lists the environment variables, and
 their values, that mark their processes.
+
+For the in-game overlay it also carries the game's controllers (their evdev
+devices, which the overlay grabs while it is open), how the emulator performs
+each standard hotkey action (``hotkeys``, see ``configgen.hotkeys``: keys to
+press, a command to run, or ``native`` when the emulator reads the
+combination itself), the game information EmulationStation exported
+(``game_info``) and its resolved menu theme (``menu_theme``).
 """
 
 from __future__ import annotations
@@ -65,6 +72,10 @@ class GameState:  # pylint: disable=too-many-instance-attributes
     metadata: dict[str, str] = field(default_factory=dict)
     exit_timeout: float = DEFAULT_EXIT_TIMEOUT
     exit_env: dict[str, list[str]] = field(default_factory=dict)
+    controllers: list[dict[str, object]] = field(default_factory=list)
+    hotkeys: dict[str, dict[str, object]] = field(default_factory=dict)
+    game_info: str = ""
+    menu_theme: str = ""
     version: int = SESSION_VERSION
 
     def is_alive(self) -> bool:

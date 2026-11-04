@@ -95,6 +95,8 @@ from ._configgen import (
 )
 from ._frontend import (
     ES_EXECUTABLE,
+    ES_GAME_INFO,
+    ES_MENU_THEME,
     ES_FEATURES_CFG,
     ES_FEATURES_TMP,
     ES_GAMES_METADATA,
@@ -195,6 +197,8 @@ __all__ = [
     "ES_RESOURCE_DIRS",
     "ES_WM_CLASS",
     "ES_EXECUTABLE",
+    "ES_GAME_INFO",
+    "ES_MENU_THEME",
     "ES_FEATURES_CFG",
     "ES_FEATURES_TMP",
     "ES_GAMES_METADATA",

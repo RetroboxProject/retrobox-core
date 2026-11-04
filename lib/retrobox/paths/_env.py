@@ -33,7 +33,14 @@ from ._base import (
     _STARTUP_ENVIRON,
 )
 from ._configgen import _DECORATIONS_DEF_DIR, _DECORATIONS_DIR, BIOS, SAVES, SCREENSHOTS
-from ._frontend import ES_EXECUTABLE, FRONTEND_DIR, FRONTEND_HOME, MUSIC_DIR, THEMES_DIR
+from ._frontend import (
+    ES_EXECUTABLE,
+    ES_MENU_THEME,
+    FRONTEND_DIR,
+    FRONTEND_HOME,
+    MUSIC_DIR,
+    THEMES_DIR,
+)
 
 # Set by bin/retrobox: the RETROBOX_* variables the user exported himself, as
 # opposed to the ones it resolved from retrobox.ini (tools/lib/paths.sh).
@@ -63,6 +70,8 @@ def exported_environment() -> dict[str, Path]:
         "RETROBOX_FRONTEND_DIR": FRONTEND_DIR,
         "RETROBOX_FRONTEND_HOME": FRONTEND_HOME,
         "RETROBOX_ES_EXECUTABLE": ES_EXECUTABLE,
+        # read by EmulationStation itself (patch 0006 of retrobox-emulationstation)
+        "RETROBOX_ES_MENU_THEME": ES_MENU_THEME,
     }
 
 

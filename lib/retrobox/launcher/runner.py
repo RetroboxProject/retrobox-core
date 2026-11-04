@@ -13,14 +13,17 @@ from retrobox.configgen.controller import Controller
 from retrobox.configgen.Emulator import Emulator
 from retrobox.configgen.generators import get_generator
 from retrobox.configgen.gun import Guns
+from retrobox.configgen.hotkeys import binding_to_json
 from retrobox.configgen.utils import metadata, videoMode, wheelsUtils
 from retrobox.configgen.utils.overlayfs import mount_overlayfs
 from retrobox.configgen.utils.squashfs import mount_squashfs
 from retrobox.paths import (
     _GAMEPADLY_PROFILES,
     _GAMEPADLY_USER_PROFILES,
+    ES_GAME_INFO,
     ES_GAMES_METADATA,
     ES_INPUT_CFG,
+    ES_MENU_THEME,
     RUNTIME_DIR,
     SAVES,
     SESSION_PAD_PROFILE,
@@ -32,7 +35,7 @@ from .emulator_setup import ensure_emulator
 from .game_state import GameState, clear_state, process_start_time, write_state
 from .hooks import call_game_hooks
 from .hud import setup_hud
-from .pad_profile import build_session_profile
+from .pad_profile import build_session_profile, effective_bindings
 from .power import apply_power_profile, restore_power_profile
 from .process import run_command
 from .session import GameInputs, GameSession, effective_core
@@ -48,7 +51,6 @@ if TYPE_CHECKING:
 
 _logger = logging.getLogger(__name__)
 
-_GAME_INFO_FILE = Path("/tmp/game.xml")
 
 
 def run_rom(args: argparse.Namespace, max_players: int) -> int:
@@ -187,7 +189,7 @@ def _run_game(session: GameSession, previous_power_profile: str | None) -> int:
         clear_state()
         SESSION_PAD_PROFILE.unlink(missing_ok=True)
         restore_power_profile(previous_power_profile)
-        _GAME_INFO_FILE.unlink(missing_ok=True)
+        ES_GAME_INFO.unlink(missing_ok=True)
 
 
 def _gamepad_manager(session: GameSession) -> AbstractContextManager[object]:
@@ -229,6 +231,19 @@ def _gamepad_manager(session: GameSession) -> AbstractContextManager[object]:
         return GamepadManager(**manager_args)
 
 
+def _controllers_json(session: GameSession) -> list[dict[str, object]]:
+    """The game's controllers as session.json lists them (the overlay grabs their devices)."""
+    return [
+        {
+            "player": controller.player_number,
+            "guid": controller.guid,
+            "name": controller.real_name,
+            "device": controller.physical_device_path or controller.device_path,
+        }
+        for controller in session.inputs.controllers
+    ]
+
+
 def _publish_state(session: GameSession) -> Callable[[subprocess.Popen[bytes]], None]:
     """Return the callback that writes session.json once the emulator has started.
 
@@ -240,6 +255,10 @@ def _publish_state(session: GameSession) -> Callable[[subprocess.Popen[bytes]], 
     exit_env = {
         name: list(values)
         for name, values in generator.exit_env(system, session.rom).items()
+    }
+    hotkeys = {
+        action.value: binding_to_json(binding)
+        for action, binding in effective_bindings(generator, system).items()
     }
 
     def on_started(process: subprocess.Popen[bytes]) -> None:
@@ -256,6 +275,10 @@ def _publish_state(session: GameSession) -> Callable[[subprocess.Popen[bytes]], 
                 metadata=dict(session.metadata),
                 exit_timeout=generator.exit_timeout(system.config),
                 exit_env=exit_env,
+                controllers=_controllers_json(session),
+                hotkeys=hotkeys,
+                game_info=str(ES_GAME_INFO),
+                menu_theme=str(ES_MENU_THEME),
             )
         )
 

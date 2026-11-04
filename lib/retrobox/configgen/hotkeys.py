@@ -81,7 +81,13 @@ class Exec:
 
 @dataclass(frozen=True)
 class Native:
-    """The emulator handles the combination itself."""
+    """The emulator handles the combination itself.
+
+    ``keys`` is the emulator's keyboard shortcut for the same action, when
+    it has one: gamepadly ignores it, the overlay presses it.
+    """
+
+    keys: tuple[str, ...] = ()
 
 
 CLOSE_WINDOW = Keys(("KEY_LEFTALT", "KEY_F4"))
@@ -89,6 +95,15 @@ CLOSE_WINDOW = Keys(("KEY_LEFTALT", "KEY_F4"))
 
 type Binding = Keys | Exec | Native
 type Bindings = Mapping[HotkeyAction, Binding | None]
+
+
+def binding_to_json(binding: Binding) -> dict[str, object]:
+    """A binding as session.json describes it to the overlay."""
+    if isinstance(binding, Keys):
+        return {"type": "keys", "keys": list(binding.codes)}
+    if isinstance(binding, Exec):
+        return {"type": "exec", "argv": list(binding.argv)}
+    return {"type": "native", "keys": list(binding.keys)}
 
 
 @dataclass(frozen=True)

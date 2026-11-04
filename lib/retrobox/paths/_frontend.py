@@ -38,6 +38,11 @@ ES_SYSTEMS_TMP: Final = RUNTIME_DIR / "es_systems.cfg"
 ES_INPUT_CFG: Final = _USER_ES_DIR / "es_input.cfg"
 ES_INI_TMP: Final = RUNTIME_DIR / "emulationstation.ini"
 ES_INI_CFG: Final = _USER_ES_DIR / "emulationstation.ini"
+# The resolved menu theme, which EmulationStation writes on every game launch
+# (retrobox-emulationstation patch 0006) for retrobox-overlay.
+ES_MENU_THEME: Final = RUNTIME_DIR / "es-menu-theme.json"
+# The game being launched, written by EmulationStation (%GAMEINFOXML%).
+ES_GAME_INFO: Final = Path("/tmp/game.xml")
 # The retrobox-emulationstation package installs it in FRONTEND_DIR and links it
 # as `retrobox-emulationstation` in the PATH; the PATH name is the fallback when
 # it lives elsewhere (e.g. a distro package with another prefix).

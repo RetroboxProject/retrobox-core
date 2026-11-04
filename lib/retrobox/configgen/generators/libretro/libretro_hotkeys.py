@@ -79,10 +79,11 @@ def bindings(table: list[HotkeyEntry]) -> dict[HotkeyAction, Binding | None]:
     native = native_buttons(table)
     result: dict[HotkeyAction, Binding | None] = {}
     for action, retroarch in ACTIONS.items():
+        keys = ("KEY_LEFTSHIFT", retroarch.key) if retroarch.key is not None else ()
         if action in native:
-            result[action] = Native()
-        elif retroarch.key is not None:
-            result[action] = Keys(("KEY_LEFTSHIFT", retroarch.key))
+            result[action] = Native(keys)
+        elif keys:
+            result[action] = Keys(keys)
         else:
             result[action] = None
     # RetroArch cannot swap screens, change the layout or toggle the bezel
