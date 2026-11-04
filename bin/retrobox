@@ -89,6 +89,7 @@ function preflight() {
     local missing
     missing="$("${RETROBOX_PYTHON}" -W ignore -c '
 import importlib.util as u
+import retrobox  # adds the bundled modules (PySDL2) to sys.path
 mods = ["yaml", "evdev", "pyudev", "sdl2", "PIL", "ruamel.yaml"]
 print(" ".join(m for m in mods if u.find_spec(m) is None))' 2>/dev/null || true)"
     if [[ -n "${missing}" ]]; then
