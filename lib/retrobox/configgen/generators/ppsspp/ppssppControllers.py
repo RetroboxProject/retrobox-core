@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Final
 
+from retrobox.configgen.hotkeys import HotkeyAction, Keys
 from retrobox.paths import mkdir_if_not_exists
 from ...utils.configparser import CaseSensitiveConfigParser
 from .ppssppPaths import PPSSPP_CONFIG_INIT, _PPSSPP_SYSDIR
@@ -39,6 +40,32 @@ PPSSPP_NINTENDO_CONTROLLERS = {
 # NKCODE_F10 = 140,
 # NKCODE_F11 = 141,
 # NKCODE_F12 = 142,
+
+DEVICE_ID_KEYBOARD = 1
+NKCODE_F1 = 131
+
+# PPSSPP's keyboard hotkeys: [ControlMapping] entry -> function key (1 = F1),
+# and the standard hotkey action each one performs ("Pause" opens the menu)
+KEYBOARD_HOTKEYS: Final = (
+    ("Rewind", 1, HotkeyAction.REWIND),
+    ("Fast-forward", 2, HotkeyAction.FAST_FORWARD),
+    ("Save State", 3, HotkeyAction.SAVE_STATE),
+    ("Load State", 4, HotkeyAction.LOAD_STATE),
+    ("Previous Slot", 5, HotkeyAction.SLOT_PREV),
+    ("Next Slot", 6, HotkeyAction.SLOT_NEXT),
+    ("Screenshot", 7, None),
+    ("Pause", 9, HotkeyAction.MENU),
+)
+
+
+def hotkey_bindings() -> dict[HotkeyAction, Keys]:
+    """The keys gamepadly presses for each standard action, as controls.ini sets them."""
+    return {
+        action: Keys((f"KEY_F{function_key}",))
+        for _entry, function_key, action in KEYBOARD_HOTKEYS
+        if action is not None
+    }
+
 
 # Will later be used to convert SDL input ids
 NKCODE_BUTTON_1 = 188
@@ -202,14 +229,8 @@ def generateControllerConfig(controller: Controller):
 
         mkdir_if_not_exists(configFileName.parent)
 
-    Config.set(section, "Rewind",        "1-131")
-    Config.set(section, "Fast-forward",  "1-132")
-    Config.set(section, "Save State",    "1-133")
-    Config.set(section, "Load State",    "1-134")
-    Config.set(section, "Previous Slot", "1-135")
-    Config.set(section, "Next Slot",     "1-136")
-    Config.set(section, "Screenshot",    "1-137")
-    Config.set(section, "Pause",         "1-139")
+    for entry, function_key, _action in KEYBOARD_HOTKEYS:
+        Config.set(section, entry, f"{DEVICE_ID_KEYBOARD}-{NKCODE_F1 + function_key - 1}")
 
     with configFileName.open('w+') as cfgfile:
         Config.write(cfgfile)

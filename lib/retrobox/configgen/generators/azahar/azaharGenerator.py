@@ -5,6 +5,7 @@ from os import environ
 from typing import TYPE_CHECKING
 
 from retrobox.configgen.generators.azahar.azahar_paths import _AZAHAR_XDG, AZAHAR_INI, AZAHAR_SAVES
+from retrobox.configgen.hotkeys import HotkeyAction, Keys
 
 from ... import Command
 from retrobox.paths import CACHE, SAVES, SCREENSHOTS, ensure_parents_and_open
@@ -23,6 +24,15 @@ if TYPE_CHECKING:
 _logger = logging.getLogger(__name__)
 
 class AzaharGenerator(Generator):
+
+    def hotkey_bindings(self, system):
+        """Azahar's default keyboard hotkeys (Citra's), which the generator keeps."""
+        return {
+            HotkeyAction.PAUSE: Keys(("KEY_F4",)),
+            HotkeyAction.RESET: Keys(("KEY_F6",)),
+            HotkeyAction.SWAP_SCREENS: Keys(("KEY_F9",)),
+            HotkeyAction.NEXT_LAYOUT: Keys(("KEY_F10",)),
+        }
 
     # Main entry of the module
     def generate(self, system, rom, playersControllers, metadata, guns, wheels, gameResolution):
@@ -66,8 +76,9 @@ class AzaharGenerator(Generator):
             "button_select": "select",
             "button_zl":     "l2",
             "button_zr":     "r2",
-            "button_home":   "hotkey"
         }
+        # The 3DS HOME button is left unbound: on the hotkey it would fire with
+        # every hotkey combination and with the overlay's hotkey tap.
 
         azaharAxis = {
             "circle_pad":    "joystick1",
@@ -231,6 +242,8 @@ class AzaharGenerator(Generator):
             for x in azaharButtons:
                 azaharConfig.set("Controls", f"profiles\\1\\{x}", f'"{AzaharGenerator.setButton(azaharButtons[x], controller.guid, controller.inputs)}"')
                 azaharConfig.set("Controls", f"profiles\\1\\{x}\\default", "false")
+            azaharConfig.set("Controls", r"profiles\1\button_home", '""')
+            azaharConfig.set("Controls", r"profiles\1\button_home\default", "false")
             for x in azaharAxis:
                 azaharConfig.set("Controls", f"profiles\\1\\{x}", f'"{AzaharGenerator.setAxis(azaharAxis[x], controller.guid, controller.inputs)}"')
                 azaharConfig.set("Controls", f"profiles\\1\\{x}\\default", "false")

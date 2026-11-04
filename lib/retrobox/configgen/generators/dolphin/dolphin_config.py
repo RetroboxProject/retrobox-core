@@ -16,6 +16,7 @@ import logging
 import struct
 from typing import TYPE_CHECKING, BinaryIO
 
+from retrobox.configgen.hotkeys import HotkeyAction, keys_of
 from retrobox.paths import BIOS, ROMS, SAVES, mkdir_if_not_exists
 
 from ...utils import vulkan
@@ -37,6 +38,8 @@ from .dolphin_paths import (
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
+
+    from retrobox.configgen.hotkeys import Keys
     from pathlib import Path
 
     from ...typedefs import DeviceInfoMapping, Resolution
@@ -282,6 +285,33 @@ _HOTKEYS = (
     ("USB Emulation Devices/Show Skylanders Portal", "@(Ctrl+P)"),
     ("USB Emulation Devices/Show Infinity Base", "@(Ctrl+I)"),
 )  # fmt: skip
+
+
+# Standard hotkey actions -> the Hotkeys.ini entry that performs them
+_HOTKEY_ACTIONS = {
+    HotkeyAction.PAUSE: "General/Toggle Pause",
+    HotkeyAction.SAVE_STATE: "Save State/Save to Selected Slot",
+    HotkeyAction.LOAD_STATE: "Load State/Load from Selected Slot",
+    HotkeyAction.SLOT_NEXT: "Other State Hotkeys/Increase Selected State Slot",
+    HotkeyAction.SLOT_PREV: "Other State Hotkeys/Decrease Selected State Slot",
+    HotkeyAction.FAST_FORWARD: "Emulation Speed/Disable Emulation Speed Limit",
+}
+
+
+def _expression_keys(expression: str) -> list[str]:
+    """The key names of a Hotkeys.ini expression: ``F5``, ``Tab``, ``@(Shift+F1)``."""
+    if expression.startswith("@(") and expression.endswith(")"):
+        expression = expression[2:-1]
+    return expression.split("+")
+
+
+def hotkey_bindings() -> dict[HotkeyAction, Keys]:
+    """The keys gamepadly presses for each standard action, as Hotkeys.ini sets them."""
+    hotkeys = dict(_HOTKEYS)
+    return {
+        action: keys_of(_expression_keys(hotkeys[entry]))
+        for action, entry in _HOTKEY_ACTIONS.items()
+    }
 
 
 def write_hotkeys_ini() -> None:

@@ -38,8 +38,8 @@ class DolphinGenerator(Generator):
     # pylint: disable=invalid-name
 
     def hotkey_bindings(self, system):
-        """Hotkey+Start closes the window (Alt+F4), so Dolphin quits cleanly."""
-        return {HotkeyAction.EXIT: CLOSE_WINDOW}
+        """Dolphin's own keyboard hotkeys (Hotkeys.ini); Alt+F4 lets it quit cleanly."""
+        return {HotkeyAction.EXIT: CLOSE_WINDOW, **dolphin_config.hotkey_bindings()}
 
     def usesOpenGLDirectPreload(self, config) -> bool:
         """MangoHud is preloaded when the graphics API that ends up used is OpenGL."""

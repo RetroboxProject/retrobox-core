@@ -99,6 +99,44 @@ class HotkeyEntry:
     tap: bool = False
 
 
+# Key names as emulators spell them -> evdev key names
+_KEY_ALIASES: dict[str, str] = {
+    "shift": "KEY_LEFTSHIFT",
+    "ctrl": "KEY_LEFTCTRL",
+    "control": "KEY_LEFTCTRL",
+    "alt": "KEY_LEFTALT",
+    "esc": "KEY_ESC",
+    "escape": "KEY_ESC",
+    "return": "KEY_ENTER",
+    "enter": "KEY_ENTER",
+    "space": "KEY_SPACE",
+    "tab": "KEY_TAB",
+    "backspace": "KEY_BACKSPACE",
+    "period": "KEY_DOT",
+    "plus": "KEY_EQUAL",
+    "minus": "KEY_MINUS",
+    "insert": "KEY_INSERT",
+}
+
+
+def evdev_key(name: str) -> str:
+    """The evdev name of a key as emulators spell it (``Shift``, ``F5``, ``Escape``, ``O``)."""
+    clean = name.strip().strip("`")
+    alias = _KEY_ALIASES.get(clean.lower())
+    if alias is not None:
+        return alias
+    if len(clean) >= 2 and clean[0] in "fF" and clean[1:].isdigit():
+        return f"KEY_F{int(clean[1:])}"
+    if len(clean) == 1 and clean.isalnum():
+        return f"KEY_{clean.upper()}"
+    raise ValueError(f"unknown key name {name!r}")
+
+
+def keys_of(names: list[str]) -> Keys:
+    """A chord from key names as emulators spell them."""
+    return Keys(tuple(evdev_key(name) for name in names))
+
+
 def common_bindings() -> dict[HotkeyAction, Binding | None]:
     """What every emulator gets: leaving the game, screenshots and the overlay."""
     bindings: dict[HotkeyAction, Binding | None] = {

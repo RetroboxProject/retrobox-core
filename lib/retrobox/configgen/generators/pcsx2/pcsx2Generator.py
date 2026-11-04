@@ -59,8 +59,8 @@ class Pcsx2Generator(Generator):
     # pylint: disable=invalid-name
 
     def hotkey_bindings(self, system):
-        """Hotkey+Start closes the window (Alt+F4), so PCSX2 quits cleanly."""
-        return {HotkeyAction.EXIT: CLOSE_WINDOW}
+        """PCSX2's own keyboard hotkeys (PCSX2.ini); Alt+F4 lets it quit cleanly."""
+        return {HotkeyAction.EXIT: CLOSE_WINDOW, **pcsx2_config.hotkey_bindings()}
 
     def usesOpenGLDirectPreload(self, config) -> bool:
         """MangoHud is preloaded when the renderer that ends up used is OpenGL."""

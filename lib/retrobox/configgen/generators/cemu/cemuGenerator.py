@@ -7,7 +7,7 @@ from __future__ import annotations
 
 
 from retrobox.configgen.utils.bios_files import check_biosfile
-from retrobox.configgen.hotkeys import CLOSE_WINDOW, HotkeyAction
+from retrobox.configgen.hotkeys import CLOSE_WINDOW, HotkeyAction, Keys
 from retrobox.paths import BIOS, configure_emulator, mkdir_if_not_exists
 
 from ... import Command
@@ -34,8 +34,11 @@ class CemuGenerator(Generator):
     # pylint: disable=invalid-name
 
     def hotkey_bindings(self, system):
-        """Hotkey+Start closes the window (Alt+F4), so Cemu quits cleanly."""
-        return {HotkeyAction.EXIT: CLOSE_WINDOW}
+        """Alt+F4 lets Cemu quit cleanly; Ctrl+Tab is its TV/GamePad view switch."""
+        return {
+            HotkeyAction.EXIT: CLOSE_WINDOW,
+            HotkeyAction.SWAP_SCREENS: Keys(("KEY_LEFTCTRL", "KEY_TAB")),
+        }
 
     def hasInternalMangoHUDCall(self) -> bool:
         """Cemu gets neither the MangoHud HUD nor the bezels: they cause game issues."""

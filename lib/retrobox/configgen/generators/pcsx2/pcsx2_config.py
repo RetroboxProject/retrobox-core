@@ -16,6 +16,7 @@ import logging
 import re
 from typing import TYPE_CHECKING
 
+from retrobox.configgen.hotkeys import HotkeyAction, keys_of
 from retrobox.paths import CACHE, CHEATS, LOGS, ROMS, SAVES, SCREENSHOTS, mkdir_if_not_exists
 
 from ...exceptions import RetroboxException
@@ -34,6 +35,7 @@ if TYPE_CHECKING:
     from ...controller import Controllers
     from ...Emulator import Emulator
     from ...gun import Guns
+    from ...hotkeys import Keys
 
 _logger = logging.getLogger(__name__)
 
@@ -84,6 +86,32 @@ _HOTKEYS = (
     ("ToggleTurbo", "Keyboard/Tab"),
     ("HoldTurbo", "Keyboard/Period"),
 )
+
+
+# Standard hotkey actions -> the [Hotkeys] entry of PCSX2.ini that performs them
+_HOTKEY_ACTIONS = {
+    HotkeyAction.MENU: "OpenPauseMenu",
+    HotkeyAction.PAUSE: "TogglePause",
+    HotkeyAction.SAVE_STATE: "SaveStateToSlot",
+    HotkeyAction.LOAD_STATE: "LoadStateFromSlot",
+    HotkeyAction.SLOT_NEXT: "NextSaveStateSlot",
+    HotkeyAction.SLOT_PREV: "PreviousSaveStateSlot",
+    HotkeyAction.FAST_FORWARD: "HoldTurbo",
+}
+
+
+def _binding_keys(binding: str) -> list[str]:
+    """The key names of a PCSX2 binding: ``Keyboard/Shift & Keyboard/F2``."""
+    return [part.strip().removeprefix("Keyboard/") for part in binding.split("&")]
+
+
+def hotkey_bindings() -> dict[HotkeyAction, Keys]:
+    """The keys gamepadly presses for each standard action, as [Hotkeys] sets them."""
+    hotkeys = dict(_HOTKEYS)
+    return {
+        action: keys_of(_binding_keys(hotkeys[entry]))
+        for action, entry in _HOTKEY_ACTIONS.items()
+    }
 
 
 def _ensure_sections(settings: CaseSensitiveConfigParser, *sections: str) -> None:
@@ -322,4 +350,3 @@ def get_in_game_ratio(config: SystemConfig, resolution: Resolution) -> float:
         # fills the window, so it depends on the physical screen
         return resolution["width"] / resolution["height"]
     return 4 / 3
-
