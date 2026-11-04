@@ -5,11 +5,18 @@ Two layers, merged into ``<runtime dir>/pad2key/session.keys``:
 1. the profile gamepadly would pick for the game (per game, system,
    emulator, core; ``share/pad2key/profiles`` and the user's), with the
    full pad-to-keyboard mappings of keyboard-only games;
-2. the standard hotkeys (``retrobox.configgen.hotkeys``) for player 1, as
-   the emulator performs them.
+2. the standard hotkeys (``retrobox.configgen.hotkeys``): the pad ones for
+   player 1, as the emulator performs them, and the keyboard ones
+   (``actions_keyboard``, gamepadly 0.1.5 and later).
 
 The first layer wins: a combination it already maps is not touched, so a
 game or system profile can still do its own thing with any hotkey.
+
+The keyboard chords reach the emulator too, and the user holds their
+modifier while gamepadly would press its keys, so only commands are bound
+to them: an emulator's key binding gives way to the common command for the
+action (``retrobox-emukill`` to leave), and a chord the emulator reads
+itself (``Native``, or the very same keys) is left to it.
 """
 
 from __future__ import annotations
@@ -20,9 +27,11 @@ import shlex
 from typing import TYPE_CHECKING, Any
 
 from retrobox.configgen.hotkeys import (
+    KEYBOARD_SECTION,
     Exec,
     HotkeyAction,
     Keys,
+    Native,
     common_bindings,
     load_table,
 )
@@ -37,6 +46,7 @@ if TYPE_CHECKING:
 _logger = logging.getLogger(__name__)
 
 _HOTKEYS_PLAYER = "actions_player1"
+_KEYBOARD_ACTIONS = "actions_keyboard"
 
 type _ComboKey = tuple[frozenset[str], bool]
 
@@ -70,6 +80,31 @@ def hotkey_mappings(
     return mappings
 
 
+def keyboard_mappings(
+    table: list[HotkeyEntry],
+    bindings: dict[HotkeyAction, Binding],
+    common: dict[HotkeyAction, Binding | None],
+) -> list[dict[str, Any]]:
+    """The gamepadly keyboard mappings of the table entries (commands only)."""
+    mappings: list[dict[str, Any]] = []
+    for entry in table:
+        binding = bindings.get(entry.action)
+        if isinstance(binding, Native) or (
+            isinstance(binding, Keys) and set(binding.codes) == set(entry.trigger)
+        ):
+            continue  # the emulator reads this chord itself
+        if not isinstance(binding, Exec):
+            binding = common.get(entry.action)
+        if isinstance(binding, Exec):
+            mappings.append({
+                "trigger": list(entry.trigger),
+                "type": "exec",
+                "target": shlex.join(binding.argv),
+                "description": entry.action.value,
+            })
+    return mappings
+
+
 def _combo_key(mapping: dict[str, Any]) -> _ComboKey:
     """What makes two mappings clash: their inputs, and whether they are taps."""
     def names(value: Any) -> list[str]:
@@ -96,19 +131,32 @@ def _read_base(base: Path | None) -> dict[str, Any]:
     return data
 
 
+def _merge(own: list[Any], hotkeys: list[dict[str, Any]]) -> tuple[list[Any], int]:
+    """The profile's mappings plus the hotkeys whose combination they leave free."""
+    taken = {_combo_key(mapping) for mapping in own if isinstance(mapping, dict)}
+    added = [mapping for mapping in hotkeys if _combo_key(mapping) not in taken]
+    return own + added, len(added)
+
+
 def compose_profile(
-    base: Path | None, mappings: list[dict[str, Any]], output: Path
+    base: Path | None,
+    mappings: list[dict[str, Any]],
+    output: Path,
+    keyboard: list[dict[str, Any]] | None = None,
 ) -> Path | None:
     """Write the session profile; None when there is nothing to map at all."""
     profile = _read_base(base)
 
     # gamepadly falls back to "mappings" when a player has no section: player 1
     # keeps those once it gets a section of its own
-    player1 = list(profile.get(_HOTKEYS_PLAYER) or profile.get("mappings") or [])
-    taken = {_combo_key(mapping) for mapping in player1 if isinstance(mapping, dict)}
-    added = [mapping for mapping in mappings if _combo_key(mapping) not in taken]
+    player1, added = _merge(
+        list(profile.get(_HOTKEYS_PLAYER) or profile.get("mappings") or []), mappings
+    )
     if added:
-        profile[_HOTKEYS_PLAYER] = player1 + added
+        profile[_HOTKEYS_PLAYER] = player1
+    keys, added_keys = _merge(list(profile.get(_KEYBOARD_ACTIONS) or []), keyboard or [])
+    if added_keys:
+        profile[_KEYBOARD_ACTIONS] = keys
 
     if not any(key.startswith("actions_") or key == "mappings" for key in profile):
         return None
@@ -120,7 +168,8 @@ def compose_profile(
         _logger.warning("cannot write the gamepad profile %s: %s", output, err)
         return base
     _logger.debug(
-        "gamepad profile %s: %s + %d hotkey(s)", output, base or "no base profile", len(added)
+        "gamepad profile %s: %s + %d pad and %d keyboard hotkey(s)",
+        output, base or "no base profile", added, added_keys,
     )
     return output
 
@@ -129,5 +178,10 @@ def build_session_profile(
     generator: Generator, system: Emulator, base: Path | None, output: Path
 ) -> Path | None:
     """Compose the session profile for this game (see the module docstring)."""
-    mappings = hotkey_mappings(load_table(), effective_bindings(generator, system))
-    return compose_profile(base, mappings, output)
+    bindings = effective_bindings(generator, system)
+    return compose_profile(
+        base,
+        hotkey_mappings(load_table(), bindings),
+        output,
+        keyboard_mappings(load_table(KEYBOARD_SECTION), bindings, common_bindings()),
+    )

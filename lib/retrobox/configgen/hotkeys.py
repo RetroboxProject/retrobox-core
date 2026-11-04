@@ -4,7 +4,8 @@ Three pieces, kept apart so that each changes on its own:
 
 * ``HotkeyAction``: the closed list of actions a hotkey can ask for;
 * the table (``share/pad2key/hotkeys.yaml``, or the user's copy): which
-  controller combination asks for which action, the same for every emulator;
+  controller combination (``pad``) or key chord (``keyboard``) asks for
+  which action, the same for every emulator;
 * the bindings: how one emulator performs each action. Every generator gets
   ``common_bindings()`` and adds or replaces its own with
   ``Generator.hotkey_bindings()``.
@@ -176,8 +177,12 @@ def _parse_entry(raw: Any, index: int, source: Path) -> HotkeyEntry | None:
     return entry
 
 
-def _read_table(path: Path) -> list[HotkeyEntry] | None:
-    """The entries of a table file; None when it is missing or unreadable."""
+PAD_SECTION = "pad"
+KEYBOARD_SECTION = "keyboard"
+
+
+def _read_table(path: Path, section: str) -> list[HotkeyEntry] | None:
+    """The entries of one section of a table file; None when it is missing or unreadable."""
     try:
         data = yaml.safe_load(path.read_text(encoding="utf-8"))
     except FileNotFoundError:
@@ -185,21 +190,44 @@ def _read_table(path: Path) -> list[HotkeyEntry] | None:
     except (OSError, yaml.YAMLError) as err:
         _logger.warning("cannot read the hotkeys table %s: %s", path, err)
         return None
-    if not isinstance(data, dict) or not isinstance(data.get("pad"), list):
-        _logger.warning("%s: a 'pad' list is expected", path)
+    if not isinstance(data, dict):
+        _logger.warning("%s: a mapping is expected", path)
         return None
-    entries = (_parse_entry(raw, index, path) for index, raw in enumerate(data["pad"]))
-    return [entry for entry in entries if entry is not None]
+    if section not in data:
+        return None
+    if not isinstance(data[section], list):
+        _logger.warning("%s: '%s' must be a list", path, section)
+        return None
+    entries = (_parse_entry(raw, index, path) for index, raw in enumerate(data[section]))
+    valid = [entry for entry in entries if entry is not None]
+    if section == KEYBOARD_SECTION:
+        valid = [entry for entry in valid if _keyboard_trigger_ok(entry, path)]
+    return valid
+
+
+def _keyboard_trigger_ok(entry: HotkeyEntry, source: Path) -> bool:
+    """Keyboard triggers are evdev key names (``KEY_LEFTSHIFT``, ``KEY_ESC``...)."""
+    if all(name.startswith("KEY_") for name in entry.trigger):
+        return True
+    _logger.warning("%s: keyboard hotkey %r: evdev key names expected: ignored",
+                    source, entry.trigger)
+    return False
 
 
 def load_table(
-    user_table: Path = USER_HOTKEYS_TABLE, default_table: Path = HOTKEYS_TABLE
+    section: str = PAD_SECTION,
+    user_table: Path = USER_HOTKEYS_TABLE,
+    default_table: Path = HOTKEYS_TABLE,
 ) -> list[HotkeyEntry]:
-    """The hotkeys table: the user's when there is a valid one, else the shipped one."""
+    """One section of the hotkeys table (``pad`` or ``keyboard``).
+
+    The user's table wins when it has the section (and is readable); the
+    shipped one gives the sections it lacks.
+    """
     for path in (user_table, default_table):
-        entries = _read_table(path)
+        entries = _read_table(path, section)
         if entries is not None:
-            _logger.debug("hotkeys table: %s", path)
+            _logger.debug("hotkeys table, %s: %s", section, path)
             return entries
     return []
 

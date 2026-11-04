@@ -17,7 +17,7 @@ Requires(post): shadow-utils
 @REQUIRES@
 Recommends:     retrobox-emulationstation
 Recommends:     retrobox-mangohud
-Recommends:     python3-gamepadly >= 0.1.4
+Recommends:     python3-gamepadly >= 0.1.5
 Suggests:       retrobox-labwc
 @RECOMMENDS@
 

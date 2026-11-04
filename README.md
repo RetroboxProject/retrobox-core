@@ -98,9 +98,9 @@ The Eden and Ryujinx generators were adapted from a third-party batocera package
 
 ### Gamepadly
 
-A replacement for evmapy, now a standalone project ([`gamepadly`](https://github.com/RetroboxProject/gamepadly), package `python3-gamepadly`, recommended by the core packages; install it separately). The launcher starts it with every game: it reads evmapy-style JSON profiles (`share/pad2key/profiles/*.keys`, overridable in `~/.config/retrobox/pad2key/profiles`) and maps gamepad buttons to keys, shortcuts and mouse events. Without it (or with a version older than 0.1.4) the game still runs, but with no gamepad hotkeys.
+A replacement for evmapy, now a standalone project ([`gamepadly`](https://github.com/RetroboxProject/gamepadly), package `python3-gamepadly`, recommended by the core packages; install it separately). The launcher starts it with every game: it reads evmapy-style JSON profiles (`share/pad2key/profiles/*.keys`, overridable in `~/.config/retrobox/pad2key/profiles`) and maps gamepad buttons to keys, shortcuts and mouse events. Without it (or with a version older than 0.1.4) the game still runs, but with no gamepad hotkeys; the keyboard hotkeys need 0.1.5.
 
-**Standard hotkeys.** Every emulator gets the same combinations for player 1, from `share/pad2key/hotkeys.yaml` (copy it to `~/.config/retrobox/pad2key/hotkeys.yaml` to change them; the copy replaces the whole table):
+**Standard hotkeys.** Every emulator gets the same combinations for player 1, from `share/pad2key/hotkeys.yaml` (copy it to `~/.config/retrobox/pad2key/hotkeys.yaml` to change them):
 
 | Combination | Action |
 |---|---|
@@ -116,6 +116,15 @@ A replacement for evmapy, now a standalone project ([`gamepadly`](https://github
 | Hotkey+L2 / Hotkey+R2 | Swap screens / next screen layout |
 | Hotkey+L3 | Next disc |
 | Hotkey+R3 | Show or hide the bezel |
+
+On the keyboard (gamepadly 0.1.5 or later; any keyboard, right or left modifiers):
+
+| Keys | Action |
+|---|---|
+| Shift+Esc | Leave the game (`retrobox-emukill`; RetroArch does it itself) |
+| Shift+F7 | In-game overlay (when installed) |
+
+Gamepadly does not take these keys from the game, so they use keys emulators leave free (RetroArch's own Shift hotkeys use F1-F6 and F9-F12). Only commands are bound to the keyboard. The table's `keyboard` section holds them; a user table can replace the `pad` and `keyboard` sections separately.
 
 Each generator says how its emulator performs these actions (`hotkey_bindings()`, see `lib/retrobox/configgen/hotkeys.py`): a key chord gamepadly presses, a command, or `Native` when the emulator reads the combination itself (RetroArch does, from its own configuration). An action the emulator cannot perform leaves its combination free. Leaving the game, screenshots and the overlay work in every emulator. For each game the launcher writes `<runtime dir>/pad2key/session.keys`: the profile gamepadly would pick for the game (`share/pad2key/profiles`, the user's, `<rom>.keys`) plus these hotkeys; a combination the game's profile already maps keeps the profile's meaning.
 
