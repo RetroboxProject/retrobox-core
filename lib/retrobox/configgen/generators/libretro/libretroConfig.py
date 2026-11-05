@@ -136,6 +136,11 @@ _N64_BUTTONS = {
     "btn_select": "12",
 }  # fmt: skip
 
+# melonDS DS: R2 (by default the touch-screen joystick) and R3 (next screen
+# layout) swapped, so changing the layout is on a trigger. Values are RetroPad
+# ids: R2 = 13, R3 = 15.
+_MELONDSDS_BUTTONS = {"btn_r2": "15", "btn_r3": "13"}
+
 _LANGUAGE_FONTS = {
     "1": "/usr/share/fonts/truetype/noto/NotoSansJP-VF.ttf",
     "ja_JP": "/usr/share/fonts/truetype/noto/NotoSansJP-VF.ttf",
@@ -317,6 +322,10 @@ def _apply_simple_core_inputs(
     if core == "fceumm":
         config["input_libretro_device_p1"] = system.config.get("controller1_nes", "1")
         config["input_libretro_device_p2"] = system.config.get("controller2_nes", "1")
+
+    if core == "melondsds":
+        for button, value in _MELONDSDS_BUTTONS.items():
+            config[f"input_player1_{button}"] = value
 
 
 def _apply_psx_inputs(config: dict[str, object], launch: LibretroLaunch) -> None:
