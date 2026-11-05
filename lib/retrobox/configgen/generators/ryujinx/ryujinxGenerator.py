@@ -152,12 +152,8 @@ class RyujinxGenerator(Generator):
         _logger.debug("Controller mapping after: {}".format(str(sdl_mapping)))
 
         environment = { 
-                        "SDL_JOYSTICK_HIDAPI": "1",
-                        "SDL_JOYSTICK_HIDAPI_XBOX": "1",
-                        "SDL_JOYSTICK_HIDAPI_STEAMDECK" : "1",
-                        "SDL_JOYSTICK_HIDAPI_PS4" : "1",
-                        "SDL_JOYSTICK_HIDAPI_PS5" : "1",
-                        "SDL_JOYSTICK_HIDAPI_SWITCH" : "1",
+                        # no HIDAPI: the button numbers of es_input.cfg are evdev's (see startup/run.py)
+                        "SDL_JOYSTICK_HIDAPI": "0",
                         "SDL_GAMECONTROLLERCONFIG": sdl_mapping,
                         "DOTNET_EnableAlternateStackCheck":"1",
                         "XDG_CONFIG_HOME":f"{_RYUJINX_XDG}",

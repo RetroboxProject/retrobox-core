@@ -214,6 +214,14 @@ def run_emulationstation(args: list[str], updates: frozenset[str] = frozenset())
     # entry (StartupWMClass) and the task bar recognise the window.
     es_env["SDL_VIDEO_X11_WMCLASS"] = ES_WM_CLASS
     es_env["SDL_VIDEO_WAYLAND_WMCLASS"] = ES_WM_CLASS
+    # Controllers through the kernel's evdev devices, not SDL's HIDAPI drivers:
+    # HIDAPI numbers the buttons of some pads (Switch, DualShock 4, DualSense)
+    # its own way, and es_input.cfg (from which every emulator's controls are
+    # written) must use the numbering of evdev, which RetroArch's udev driver,
+    # gamepadly and the overlay read. Everything started from EmulationStation
+    # inherits it; the emulators that want HIDAPI (Dolphin, Eden, Ryujinx...)
+    # turn it back on in their generator, with their own controller ids.
+    es_env["SDL_JOYSTICK_HIDAPI"] = "0"
 
     _logger.info("Starting EmulationStation")
 

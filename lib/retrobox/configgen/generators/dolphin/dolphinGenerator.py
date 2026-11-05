@@ -89,9 +89,8 @@ class DolphinGenerator(Generator):
             "XDG_CONFIG_HOME": _DOLPHIN_XDG,
             "XDG_DATA_HOME": _DOLPHIN_XDG,
             "LOCPATH": str(_DOLPHIN_LOCALE),
-            "SDL_JOYSTICK_HIDAPI": "1",
-            "SDL_JOYSTICK_HIDAPI_SWITCH": "1",
-            "SDL_JOYSTICK_HIDAPI_PRO": "1",
+            # no HIDAPI: the button numbers of es_input.cfg are evdev's (see startup/run.py)
+            "SDL_JOYSTICK_HIDAPI": "0",
             "SDL_JOYSTICK_ALLOW_BACKGROUND_EVENTS": "1",
         }
 

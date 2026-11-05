@@ -157,12 +157,8 @@ def detect_bus_from_hidraw(hidraw_path: str):
     return bus_prefix[2:]
 
 def eden_list_sdl_gamepads():
-    os.environ["SDL_JOYSTICK_HIDAPI"] = "1"
-    os.environ["SDL_JOYSTICK_HIDAPI_PS4"] = "1"
-    os.environ["SDL_JOYSTICK_HIDAPI_PS5"] = "1"
-    os.environ["SDL_JOYSTICK_HIDAPI_SWITCH"] = "1"
-    os.environ["SDL_JOYSTICK_HIDAPI_XBOX"] = "1"
-    os.environ["SDL_JOYSTICK_HIDAPI_STEAMDECK"] = "0"
+    # the same devices and GUIDs the emulator sees: the button numbers of es_input.cfg are evdev's (see startup/run.py)
+    os.environ["SDL_JOYSTICK_HIDAPI"] = "0"
     os.environ["SDL_GAMECONTROLLERCONFIG_FILE"] = f"{DEFAULTS_DIR}/data/switch/sdl2/gamecontrollerdb.txt"
     
     sdl2.SDL_ClearError()

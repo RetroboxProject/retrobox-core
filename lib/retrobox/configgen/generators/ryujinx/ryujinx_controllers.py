@@ -86,12 +86,8 @@ def _sdl_mapping_to_input_lookup(mapping_str: str) -> dict[tuple[str, str], str]
 
 def list_sdl_gamepads(sdlversion):
 
-    os.environ["SDL_JOYSTICK_HIDAPI"] = "1"
-    os.environ["SDL_JOYSTICK_HIDAPI_PS4"] = "1"
-    os.environ["SDL_JOYSTICK_HIDAPI_PS5"] = "1"
-    os.environ["SDL_JOYSTICK_HIDAPI_SWITCH"] = "1"
-    os.environ["SDL_JOYSTICK_HIDAPI_XBOX"] = "1"
-    os.environ["SDL_JOYSTICK_HIDAPI_STEAMDECK"] = "0"
+    # the same devices and GUIDs the emulator sees: the button numbers of es_input.cfg are evdev's (see startup/run.py)
+    os.environ["SDL_JOYSTICK_HIDAPI"] = "0"
 
     sdl2.SDL_ClearError()
 

@@ -40,12 +40,8 @@ class EdenGenerator(Generator):
         environment = {
             "XDG_CONFIG_HOME":f"{_EDEN_XDG}",
             "XDG_DATA_HOME":f"{SAVES}/switch",
-            "SDL_JOYSTICK_HIDAPI": "1",
-            "SDL_JOYSTICK_HIDAPI_STEAMDECK": "0",
-            "SDL_JOYSTICK_HIDAPI_PS4": "1",
-            "SDL_JOYSTICK_HIDAPI_PS5": "1",
-            "SDL_JOYSTICK_HIDAPI_SWITCH": "1",
-            "SDL_JOYSTICK_HIDAPI_XBOX": "1",
+            # no HIDAPI: the button numbers of es_input.cfg are evdev's (see startup/run.py)
+            "SDL_JOYSTICK_HIDAPI": "0",
         }
 
         return Command.Command(array=commandArray, env=environment)
