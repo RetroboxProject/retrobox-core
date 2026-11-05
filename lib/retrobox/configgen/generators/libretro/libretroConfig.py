@@ -25,6 +25,7 @@ from retrobox.utils.es_settings import confirm_is_east, read_es_settings
 from ... import controllersConfig
 from ...settings.unixSettings import UnixSettings
 from ...utils import metadata as metadata_utils
+from ...utils.performance import gamemode_value
 from .libretro_bezel import BezelRequest, write_bezel_config
 from .libretro_core_options import (
     apply_core_features,
@@ -563,6 +564,8 @@ def _apply_video_and_misc_settings(config: dict[str, object], launch: LibretroLa
     can_rewind = system.name not in SYSTEMS_WITHOUT_REWIND and system.config.get_bool("rewind")
     config["rewind_enable"] = "true" if can_rewind else "false"
     config["audio_volume"] = system.config.get("audio_volume", "0")
+    # part of the "performance" power profile (see utils.performance)
+    config["gamemode_enable"] = gamemode_value(system.config)
 
     _apply_ai_service_settings(config, system)
     config["discord_allow"] = system.config.get_bool(

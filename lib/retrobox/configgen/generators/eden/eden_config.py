@@ -8,6 +8,7 @@ from retrobox.paths import SCREENSHOTS
 from .edenPaths import EDEN_DATA, SWITCH_DLC_DIR, SWITCH_ROMS, SWITCH_UPDATE_DIR
 from .eden_controllers import _eden_write_controller_config
 from ...utils.configparser import CaseSensitiveRawConfigParser
+from ...utils.performance import gamemode_value
 _logger = logging.getLogger(__name__)
 
 def read_file_lower(path):
@@ -46,6 +47,13 @@ def _eden_write_config(edenConfigFile, edenConfigTemplateFile, system, playersCo
                     new = new.replace(token, real)
                 if new != value:
                     eden_config.set(section, key, new)
+
+    # GameMode: part of the "performance" power profile (see utils.performance)
+    if not eden_config.has_section("Linux"):
+        eden_config.add_section("Linux")
+    gamemode = gamemode_value(system.config)
+    eden_config.set("Linux", "enable_gamemode", gamemode)
+    eden_config.set("Linux", "enable_gamemode\\default", gamemode)
 
 # UI section
     if not eden_config.has_section("UI"):

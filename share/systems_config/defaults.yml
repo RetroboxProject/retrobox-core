@@ -11,5 +11,4 @@ default:
     rewind:             false
     bezel:              consoles
     force_no_bezel:       false
-    gamemode_enable:    false
     video_frame_delay_auto: true

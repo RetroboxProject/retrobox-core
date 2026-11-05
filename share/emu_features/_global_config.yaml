@@ -222,7 +222,7 @@ groups:
             value: 0
       - name: POWER PROFILE
         value: power_profile
-        description: Scalates performance as needed. May not work properly on battery.
+        description: Power profile while the game runs. Performance also turns on GameMode in the emulators that support it. May not work properly on battery.
         choices:
           - name: balanced
             value: balanced
