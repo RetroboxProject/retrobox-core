@@ -76,6 +76,7 @@ class GameState:  # pylint: disable=too-many-instance-attributes
     hotkeys: dict[str, dict[str, object]] = field(default_factory=dict)
     game_info: str = ""
     menu_theme: str = ""
+    savestates: dict[str, object] | None = None
     version: int = SESSION_VERSION
 
     def is_alive(self) -> bool:

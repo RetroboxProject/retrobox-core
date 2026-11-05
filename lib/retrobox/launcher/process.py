@@ -87,15 +87,20 @@ def run_command(
             print(f"{key}={value}", file=env_file)
 
     exitcode = 0
+    stdin = _open_stdin_fifo(command.stdin_fifo)
 
     try:
         with subprocess.Popen(
             command.array,
             env=envvars,
+            stdin=stdin,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             start_new_session=True,
         ) as process:
+            if stdin is not None:
+                os.close(stdin)  # the emulator has its own copy
+                stdin = None
             _running.proc = process
             if on_started is not None:
                 on_started(process)
@@ -113,8 +118,34 @@ def run_command(
     except BaseException as err:
         _logger.error("emulator exited: %s: %s", type(err).__name__, err)
         raise UnexpectedEmulatorExit from err
+    finally:
+        if stdin is not None:
+            os.close(stdin)
+        if command.stdin_fifo is not None:
+            command.stdin_fifo.unlink(missing_ok=True)
 
     return exitcode
+
+
+def _open_stdin_fifo(path: Path | None) -> int | None:
+    """Create the emulator's command pipe and open it as its standard input.
+
+    Opened for reading AND writing: the emulator then always holds a writer
+    end too, so it never reads end-of-file between the commands that other
+    programs write; non-blocking, so that reading an empty pipe never stops
+    it. None (and a warning) when the pipe cannot be made: the emulator
+    then simply gets no commands.
+    """
+    if path is None:
+        return None
+    try:
+        path.unlink(missing_ok=True)
+        path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+        os.mkfifo(path, 0o600)
+        return os.open(path, os.O_RDWR | os.O_NONBLOCK)
+    except OSError as err:
+        _logger.warning("cannot create the command pipe %s: %s", path, err)
+        return None
 
 
 @dataclass

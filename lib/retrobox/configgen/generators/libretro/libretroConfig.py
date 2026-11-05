@@ -195,6 +195,9 @@ _FIXED_RETROARCH_SETTINGS: dict[str, str] = {
     "fps_update_interval": '"30"',
     "confirm_close": '"false"',
     "confirm_quit": '"false"',
+    "quit_press_twice": '"false"',
+    # commands on the standard input (the launcher's pipe): retrobox-overlay
+    "stdin_cmd_enable": '"true"',
     "video_fullscreen": '"true"',
     "video_windowed_fullscreen": "'true'",
     "sort_savefiles_by_content_enable": '"true"',
@@ -252,6 +255,12 @@ def write_libretro_config_to_file(
     """Save every setting of ``config`` in ``retroconfig``."""
     for setting, value in config.items():
         retroconfig.save(setting, value)
+    # No "press again to confirm" for any hotkey (quit, reset, close
+    # content...): whatever RetroArch version wrote the file, every
+    # *_press_twice setting it knows is turned off.
+    for setting in retroconfig.names():
+        if setting.endswith("_press_twice"):
+            retroconfig.save(setting, '"false"')
 
 
 def _apply_base_settings(config: dict[str, object], system: Emulator, gfx_backend: str) -> None:
@@ -549,12 +558,9 @@ def _apply_savestate_settings(config: dict[str, object], system: Emulator) -> No
     config["savestate_auto_save"] = autosave
     config["savestate_auto_load"] = autosave
 
-    if system.config.get_bool("incrementalsavestates", True):
-        config["savestate_auto_index"] = "true"
-        config["savestate_max_keep"] = "0"
-    else:
-        config["savestate_auto_index"] = "false"
-        config["savestate_max_keep"] = "50"
+    # Fixed slots, chosen in retrobox-overlay: saving never picks a new slot
+    # by itself (the overlay keeps track of RetroArch's current slot).
+    config["savestate_auto_index"] = "false"
 
     config["state_slot"] = system.config.get("state_slot", "0")
 

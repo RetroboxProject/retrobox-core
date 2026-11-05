@@ -140,6 +140,12 @@ class UnixSettings:
     # Read
     # ------------------------------------------------------------------
 
+    def names(self) -> list[str]:
+        """Every setting the file has."""
+        if self._xml_mode:
+            return list(self._xml_data)
+        return [key for key, _ in self.config.items('DEFAULT')]
+
     def get_all(self, name: str, /, *, keep_name: bool = False, keep_defaults: bool = False) -> dict[str, str]:
         return dict(self.get_all_iter(name, keep_name=keep_name, keep_defaults=keep_defaults))
 

@@ -30,7 +30,14 @@ from retrobox.configgen.generators.libretro.libretroPaths import (
 from retrobox.configgen.utils import videoMode, vulkan
 from retrobox.configgen.hotkeys import load_table
 from retrobox.configgen.utils.bezel_policy import configured_bezel
-from retrobox.paths import OVERLAYS, _SHADERS_DIR, configure_emulator, mkdir_if_not_exists
+from retrobox.paths import (
+    OVERLAYS,
+    RETROARCH_COMMANDS,
+    SAVES,
+    _SHADERS_DIR,
+    configure_emulator,
+    mkdir_if_not_exists,
+)
 
 if TYPE_CHECKING:
     from retrobox.configgen.Emulator import Emulator
@@ -249,7 +256,30 @@ class LibretroGenerator(Generator):
             generate_bash_wrapper(system.config.emulator, _RETROARCH_BIN, args_array)
         ]
 
-        return Command.Command(array=command_wrapper, env={"XDG_CONFIG_HOME": _RETROARCH_XDG})
+        return Command.Command(
+            array=command_wrapper,
+            env={"XDG_CONFIG_HOME": _RETROARCH_XDG},
+            stdin_fifo=RETROARCH_COMMANDS,
+        )
+
+    def savestates(self, system: Emulator, rom: Path) -> dict[str, object] | None:
+        """RetroArch's states, by slot: ``<saves>/<rom's folder>/<rom name>.state<N>``.
+
+        The folder follows ``sort_savestates_by_content_enable``; the overlay
+        asks for them through the command pipe (``stdin_cmd_enable``).
+        """
+        if configure_emulator(rom):
+            return None
+        try:
+            slot = int(system.config.get_str("state_slot") or 0)
+        except ValueError:
+            slot = 0
+        return {
+            "control": str(RETROARCH_COMMANDS),
+            "dir": str(SAVES / rom.parent.name),
+            "name": rom.stem,
+            "slot": slot,
+        }
 
     @staticmethod
     def _write_retroarch_cfg(launch: libretroConfig.LibretroLaunch) -> None:

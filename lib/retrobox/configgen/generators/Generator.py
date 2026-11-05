@@ -108,6 +108,17 @@ class Generator(metaclass=ABCMeta):
         """Seconds the game has to quit after SIGTERM before it is killed."""
         return DEFAULT_EXIT_TIMEOUT
 
+    def savestates(self, system: Emulator, rom: Path) -> dict[str, object] | None:
+        """Where the game's save states are and how to ask for them, for the overlay.
+
+        None when the overlay cannot manage the emulator's save states. Else
+        ``control`` (the command pipe, see ``Command.stdin_fifo``), ``dir``
+        and ``name`` (states are ``<dir>/<name>.state<N>``, with a
+        ``.png`` preview next to them) and ``slot`` (the emulator's slot when
+        the game starts). Called after ``generate()``.
+        """
+        return None
+
     def hotkey_bindings(self, system: Emulator) -> Bindings:
         """How the emulator performs the standard hotkey actions.
 

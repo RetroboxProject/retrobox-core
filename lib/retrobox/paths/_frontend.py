@@ -41,6 +41,8 @@ ES_INI_CFG: Final = _USER_ES_DIR / "emulationstation.ini"
 # The resolved menu theme, which EmulationStation writes on every game launch
 # (retrobox-emulationstation patch 0006) for retrobox-overlay.
 ES_MENU_THEME: Final = RUNTIME_DIR / "es-menu-theme.json"
+# RetroArch's command pipe (its standard input): save states from the overlay
+RETROARCH_COMMANDS: Final = RUNTIME_DIR / "retroarch.cmd"
 # The game being launched, written by EmulationStation (%GAMEINFOXML%).
 ES_GAME_INFO: Final = Path("/tmp/game.xml")
 # The retrobox-emulationstation package installs it in FRONTEND_DIR and links it

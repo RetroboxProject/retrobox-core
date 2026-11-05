@@ -36,8 +36,6 @@ ACTIONS: Final[dict[HotkeyAction, RetroArchAction]] = {
     HotkeyAction.PAUSE: RetroArchAction("input_pause_toggle", "KEY_P"),
     HotkeyAction.SAVE_STATE: RetroArchAction("input_save_state", "KEY_F3"),
     HotkeyAction.LOAD_STATE: RetroArchAction("input_load_state", "KEY_F4"),
-    HotkeyAction.SLOT_PREV: RetroArchAction("input_state_slot_decrease", "KEY_F5"),
-    HotkeyAction.SLOT_NEXT: RetroArchAction("input_state_slot_increase", "KEY_F6"),
     HotkeyAction.TRANSLATE: RetroArchAction("input_ai_service", "KEY_F9"),
     HotkeyAction.RESET: RetroArchAction("input_reset", "KEY_F10"),
     HotkeyAction.REWIND: RetroArchAction("input_rewind", "KEY_F11"),
@@ -86,8 +84,11 @@ def bindings(table: list[HotkeyEntry]) -> dict[HotkeyAction, Binding | None]:
             result[action] = Keys(keys)
         else:
             result[action] = None
-    # RetroArch cannot swap screens, change the layout or toggle the bezel
+    # RetroArch cannot swap screens, change the layout or toggle the bezel;
+    # the save state slot is chosen in retrobox-overlay, which keeps track of
+    # it, so nothing else may change it
     for action in (HotkeyAction.SWAP_SCREENS, HotkeyAction.NEXT_LAYOUT,
-                   HotkeyAction.TOGGLE_BEZEL):
+                   HotkeyAction.TOGGLE_BEZEL, HotkeyAction.SLOT_PREV,
+                   HotkeyAction.SLOT_NEXT):
         result[action] = None
     return result

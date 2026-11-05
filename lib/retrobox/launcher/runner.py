@@ -260,6 +260,7 @@ def _publish_state(session: GameSession) -> Callable[[subprocess.Popen[bytes]], 
         action.value: binding_to_json(binding)
         for action, binding in effective_bindings(generator, system).items()
     }
+    savestates = generator.savestates(system, session.rom)
 
     def on_started(process: subprocess.Popen[bytes]) -> None:
         write_state(
@@ -279,6 +280,7 @@ def _publish_state(session: GameSession) -> Callable[[subprocess.Popen[bytes]], 
                 hotkeys=hotkeys,
                 game_info=str(ES_GAME_INFO),
                 menu_theme=str(ES_MENU_THEME),
+                savestates=savestates,
             )
         )
 
