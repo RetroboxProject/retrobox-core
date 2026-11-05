@@ -42,9 +42,9 @@ ACTIONS: Final[dict[HotkeyAction, RetroArchAction]] = {
     HotkeyAction.RESET: RetroArchAction("input_reset", "KEY_F10"),
     HotkeyAction.REWIND: RetroArchAction("input_rewind", "KEY_F11"),
     HotkeyAction.FAST_FORWARD: RetroArchAction("input_hold_fast_forward", "KEY_F12"),
-    HotkeyAction.DISK_NEXT: RetroArchAction("input_disk_next", None),
-    HotkeyAction.DISK_PREV: RetroArchAction("input_disk_prev", None),
-    HotkeyAction.DISK_EJECT: RetroArchAction("input_disk_eject_toggle", None),
+    HotkeyAction.DISK_NEXT: RetroArchAction("input_disk_next", "KEY_PAGEDOWN"),
+    HotkeyAction.DISK_PREV: RetroArchAction("input_disk_prev", "KEY_PAGEUP"),
+    HotkeyAction.DISK_EJECT: RetroArchAction("input_disk_eject_toggle", "KEY_F8"),
 }
 
 

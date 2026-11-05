@@ -102,6 +102,10 @@ def writeControllersConfig(
     retroconfig.save('input_ai_service',          '"f9"')
     retroconfig.save('input_reset',               '"f10"')
     retroconfig.save('input_rewind',              '"f11"')
+    # discs: eject/close the tray, then pick the disc (the overlay's "next disc")
+    retroconfig.save('input_disk_eject_toggle',   '"f8"')
+    retroconfig.save('input_disk_next',           '"pagedown"')
+    retroconfig.save('input_disk_prev',           '"pageup"')
 
     # See if FF is toggle or hold
     ff_action = 'toggle_fast_forward' if (
