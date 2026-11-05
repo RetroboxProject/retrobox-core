@@ -257,7 +257,10 @@ def write_libretro_config_to_file(
 def _apply_base_settings(config: dict[str, object], system: Emulator, gfx_backend: str) -> None:
     """Set the drivers, directories, fonts and other settings common to all cores."""
     config["video_driver"] = f'"{gfx_backend}"'
-    config["pause_nonactive"] = "true"
+    # No pause when the window loses the focus: retrobox-overlay takes the
+    # focus and pauses the game itself (pause toggle), and the two together
+    # left the game paused after the overlay closed.
+    config["pause_nonactive"] = "false"
     mkdir_if_not_exists(_RETROARCH_CFGDIR / "cache")
     config["cache_directory"] = _RETROARCH_CFGDIR / "cache"
     config["libretro_directory"] = RETROARCH_CORES
