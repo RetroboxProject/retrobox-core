@@ -72,6 +72,10 @@ SLOT_PLUS = "slot_plus"
 SLOT_MINUS = "slot_minus"
 STATUS = "status"  # answered by a "<command> PAUSED|PLAYING ..." output line
 _STATUS_TIMEOUT = 1.0
+# After a resume, how often and how many times to ask whether the game runs
+# again before the next request (see Control._await_running).
+_RESUME_POLL = 0.05
+_RESUME_TRIES = 10
 
 _HOLD_SECONDS = 0.06  # a chord stays down a few frames
 _KEYBOARD_NAME = "retrobox keyboard"
@@ -264,7 +268,23 @@ class Control:  # pylint: disable=too-many-instance-attributes
         result = self._run(self._way(HotkeyAction.PAUSE.value))
         if result == "ok":
             self.paused = pause
+            if not pause:
+                self._await_running()
         return result
+
+    def _await_running(self) -> None:
+        """Wait until the game runs again, so that what comes after a resume
+        finds it running: RetroArch pauses a game again right after resetting
+        it if it was still paused."""
+        for _ in range(_RESUME_TRIES):
+            status = self._query_status()
+            if status is None:
+                # no way to know: give the toggle a few frames
+                time.sleep(_RESUME_POLL * 2)
+                return
+            if status != "PAUSED":
+                return
+            time.sleep(_RESUME_POLL)
 
     def _query_status(self) -> str | None:
         """PAUSED or PLAYING as the emulator says; None when it cannot say."""
