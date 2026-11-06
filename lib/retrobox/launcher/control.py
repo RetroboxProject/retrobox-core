@@ -15,11 +15,12 @@ Every request is carried out the best way the emulator allows:
    compositor and the emulator long before it is needed);
 3. else the binding's command line.
 
-``pause`` and ``resume`` keep track of whether the overlay paused the game,
-so asking twice does nothing and a game paused by its player before the
-overlay opened stays paused (both use the emulator's pause toggle). Save
-state slots need the pipe: the channel moves the emulator's current slot to
-the requested one and remembers where it left it.
+``pause`` leaves the game paused and ``resume`` leaves it running, whatever
+it was before. With a ``status`` pipe command (RetroArch's ``GET_STATUS``,
+answered on the emulator's standard output) the channel asks the emulator
+first; otherwise it keeps track of the pauses it made itself (the emulators'
+pause is a toggle). Save state slots need the pipe: the channel moves the
+emulator's current slot to the requested one and remembers where it left it.
 """
 
 from __future__ import annotations
@@ -60,6 +61,8 @@ MENU_ACTIONS: tuple[HotkeyAction, ...] = (
 SLOT_LOAD = "slot_load"  # with "{slot}" in the command
 SLOT_PLUS = "slot_plus"
 SLOT_MINUS = "slot_minus"
+STATUS = "status"  # answered by a "<command> PAUSED|PLAYING ..." output line
+_STATUS_TIMEOUT = 1.0
 
 _HOLD_SECONDS = 0.06  # a chord stays down a few frames
 _KEYBOARD_NAME = "retrobox keyboard"
@@ -88,6 +91,8 @@ class Control:  # pylint: disable=too-many-instance-attributes
     slot: int = 0
     paused: bool = False
     _keyboard: object | None = None
+    _status: str | None = None
+    _status_ready: threading.Event = field(default_factory=threading.Event)
 
     def __post_init__(self) -> None:
         if self.pipe is None:
@@ -161,12 +166,38 @@ class Control:  # pylint: disable=too-many-instance-attributes
         return f"error unknown request {verb!r}"
 
     def _toggle_pause(self, pause: bool) -> str:
+        status = self._query_status()
+        if status is not None:
+            self.paused = status == "PAUSED"
         if self.paused == pause:
             return "ok"
         result = self._run(self._way(HotkeyAction.PAUSE.value))
         if result == "ok":
             self.paused = pause
         return result
+
+    def _query_status(self) -> str | None:
+        """PAUSED or PLAYING as the emulator says; None when it cannot say."""
+        command = self.pipe_commands.get(STATUS)
+        if not command:
+            return None
+        self._status = None
+        self._status_ready.clear()
+        if self._send([command]) != "ok" or not self._status_ready.wait(_STATUS_TIMEOUT):
+            # not worth waiting every time: keep track of the pauses instead
+            _logger.warning("no answer to %s: keeping track of the pauses", command)
+            self.pipe_commands = {
+                name: value for name, value in self.pipe_commands.items() if name != STATUS
+            }
+            return None
+        return self._status
+
+    def on_output(self, line: str) -> None:
+        """A line of the emulator's standard output: the answer to ``status``?"""
+        command = self.pipe_commands.get(STATUS)
+        if command and line.startswith(f"{command} "):
+            self._status = line.split()[1]
+            self._status_ready.set()
 
     def _do(self, name: str) -> str:
         if name not in self.actions():

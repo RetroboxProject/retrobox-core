@@ -6,6 +6,7 @@ import logging
 import os
 import signal
 import subprocess
+import threading
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable
@@ -56,14 +57,17 @@ def _build_environment(command: Command) -> dict[str, str | Path]:
 
 
 def run_command(
-    command: Command, on_started: Callable[[subprocess.Popen[bytes]], None] | None = None
+    command: Command,
+    on_started: Callable[[subprocess.Popen[bytes]], None] | None = None,
+    on_output: Callable[[str], None] | None = None,
 ) -> int:
     """Run the generated command with subprocess.Popen.
 
     The emulator runs in a session (and process group) of its own, so that
     ``retrobox-emukill`` can signal its whole tree without reaching the
     launcher or the frontend. ``on_started`` is called with the process as
-    soon as it exists.
+    soon as it exists; ``on_output`` with each line of its standard output
+    while it runs (answers to its pipe commands, see control.py).
 
     Also handles error codes and exceptions to send them to the launcher.
 
@@ -104,7 +108,7 @@ def run_command(
             _running.proc = process
             if on_started is not None:
                 on_started(process)
-            out, err = process.communicate()
+            out, err = _collect_output(process, on_output)
             exitcode = process.returncode
 
             if err is not None:
@@ -125,6 +129,31 @@ def run_command(
             command.stdin_fifo.unlink(missing_ok=True)
 
     return exitcode
+
+
+def _collect_output(
+    process: subprocess.Popen[bytes], on_output: Callable[[str], None] | None
+) -> tuple[bytes | None, bytes | None]:
+    """Wait for the emulator and gather its output, showing stdout lines as they come."""
+    if on_output is None or process.stdout is None:
+        return process.communicate()
+    stdout = process.stdout
+    lines: list[bytes] = []
+
+    def read_stdout() -> None:
+        for line in stdout:
+            lines.append(line)
+            try:
+                on_output(line.decode(errors="replace").rstrip("\n"))
+            except Exception:  # pylint: disable=broad-exception-caught
+                _logger.exception("output listener failed")
+
+    reader = threading.Thread(target=read_stdout, name="emulator-stdout", daemon=True)
+    reader.start()
+    err = process.stderr.read() if process.stderr is not None else None
+    process.wait()
+    reader.join(timeout=5)
+    return b"".join(lines), err
 
 
 def _open_stdin_fifo(path: Path | None) -> int | None:

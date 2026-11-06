@@ -325,4 +325,6 @@ def _run_emulator(session: GameSession) -> int:
         control = _control(session, cmd)
         with profiler.pause(), control_channel.serve(control):
             session.inputs.monitor.start()
-            return run_command(cmd, on_started=_publish_state(session, control))
+            return run_command(
+                cmd, on_started=_publish_state(session, control), on_output=control.on_output
+            )

@@ -124,8 +124,9 @@ class Generator(metaclass=ABCMeta):
 
         Keyed by hotkey action (``HotkeyAction`` values) and, for save state
         slots, ``slot_load`` (with ``{slot}``), ``slot_plus`` and
-        ``slot_minus``. The control channel (launcher/control.py) prefers
-        these to key chords.
+        ``slot_minus``; ``status`` asks whether the game is paused (answered
+        ``<command> PAUSED|PLAYING ...`` on standard output). The control
+        channel (launcher/control.py) prefers these to key chords.
         """
         return {}
 

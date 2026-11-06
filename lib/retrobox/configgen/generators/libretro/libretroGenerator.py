@@ -71,6 +71,7 @@ _PIPE_COMMANDS: dict[str, str] = {
     "slot_load": "LOAD_STATE_SLOT {slot}",
     "slot_plus": "STATE_SLOT_PLUS",
     "slot_minus": "STATE_SLOT_MINUS",
+    "status": "GET_STATUS",
 }
 
 
