@@ -26,6 +26,7 @@ from ... import controllersConfig
 from ...settings.unixSettings import UnixSettings
 from ...utils import metadata as metadata_utils
 from ...utils.performance import gamemode_value
+from . import libretro_netplay
 from .libretro_bezel import BezelRequest, write_bezel_config
 from .libretro_core_options import (
     apply_core_features,
@@ -660,6 +661,9 @@ def create_libretro_config(launch: LibretroLaunch, /) -> dict[str, object]:
 
     drop_bezel = _apply_video_and_misc_settings(config, launch)
     _apply_bezel_settings(config, launch, drop_bezel)
+
+    if netplay := libretro_netplay.from_config(system.config):
+        config.update(libretro_netplay.settings(netplay))
 
     config.update(system.config.items(starts_with="retroarch."))
     return config

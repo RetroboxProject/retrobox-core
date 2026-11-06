@@ -26,4 +26,5 @@ inotify-tools
 jq
 unzip
 wget
+zstd
 7zip | p7zip-full

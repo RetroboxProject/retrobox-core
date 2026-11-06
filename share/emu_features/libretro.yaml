@@ -1,4 +1,48 @@
 emulator_name: libretro
+# cores that can host or join a netplay room (EmulationStation shows netplay
+# only for these). Same set as batocera, with retrobox's core names.
+netplay_cores:
+  - "81"
+  - mednafen_lynx
+  - mednafen_ngp
+  - pce
+  - pce_fast
+  - mednafen_pce
+  - mednafen_pce_fast
+  - pcfx
+  - mednafen_saturn
+  - mednafen_supergrafx
+  - mednafen_vb
+  - mednafen_wswan
+  - bsnes
+  - bsnes_hd
+  - cap32
+  - desmume
+  - fbneo
+  - fceumm
+  - fmsx
+  - genesis_plus_gx
+  - genesis_plus_gx-wide
+  - handy
+  - mame
+  - mame078plus
+  - mesen
+  - mesen-s
+  - mrboom
+  - nestopia
+  - opera
+  - quasi88
+  - np2kai
+  - picodrive
+  - same_cdi
+  - sameduck
+  - snes9x
+  - snes9x_next
+  - stella
+  - tgbdual
+  - theodore
+  - vircon32
+  - wasm4
 sharedFeatures:
   - power_profile
   - tdp

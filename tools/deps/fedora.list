@@ -17,4 +17,5 @@ inotify-tools
 jq
 unzip
 wget
+zstd
 p7zip

@@ -38,6 +38,8 @@ set -eo pipefail
 # symlink such as /usr/bin/retrobox -> /opt/retrobox/bin/retrobox.
 RETROBOX_SELF="$(readlink -f "${BASH_SOURCE[0]}")"
 RETROBOX_ROOTDIR="$(dirname "$(dirname "${RETROBOX_SELF}")")"
+# EmulationStation finds retrobox-store (Content Downloader) through it
+export RETROBOX_ROOTDIR
 TOOLS_DIR="${RETROBOX_ROOTDIR}/tools"
 
 # The Python code lives in <root>/lib (packages `retrobox` and `gamepadly`).

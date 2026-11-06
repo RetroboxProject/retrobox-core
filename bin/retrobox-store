@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# retrobox-store: install and remove content (music, bezels, shaders, homebrew...)
+# from the store. EmulationStation's "Content Downloader" runs this, the way
+# batocera's runs batocera-store; it also works from a terminal.
+#
+#   retrobox-store {install|remove} <package> | list | refresh | update | clean | clean-all
+#
+# It only picks the interpreter and sets up the import path; everything else
+# is lib/retrobox/store.
+set -eo pipefail
+SELF="$(readlink -f "${BASH_SOURCE[0]}")"
+RETROBOX_ROOTDIR="${RETROBOX_ROOTDIR:-$(dirname "$(dirname "${SELF}")")}"
+export RETROBOX_ROOTDIR
+export PYTHONPATH="${RETROBOX_ROOTDIR}/lib${PYTHONPATH:+:${PYTHONPATH}}"
+
+if [[ -z "${RETROBOX_PYTHON:-}" ]]; then
+    if [[ -x "${RETROBOX_ROOTDIR}/venv/bin/python3" ]]; then
+        RETROBOX_PYTHON="${RETROBOX_ROOTDIR}/venv/bin/python3"
+    else
+        RETROBOX_PYTHON="$(command -v python3 || true)"
+    fi
+fi
+[[ -n "${RETROBOX_PYTHON}" ]] || { echo "retrobox-store: python3 not found" >&2; exit 1; }
+
+exec "${RETROBOX_PYTHON}" -m retrobox.store "$@"

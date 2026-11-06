@@ -16,6 +16,8 @@ evdev
 ruamel.yaml
 tomlkit
 requests
+# Content Downloader: reads .zst packages (or the zstd tool; Python 3.14 has it built in)
+zstandard
 typing_extensions
 # settings window (retrobox --settings); any Qt 6 binding works, PyQt6 too
 PySide6-Essentials

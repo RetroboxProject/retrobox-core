@@ -37,7 +37,16 @@ _GENERAL_GROUP = "GENERAL"  # the features of this group have no "group" attribu
 _NO_SUBMENU = "NONE"
 # keys of the YAML that are not attributes of the element they describe
 _LAUNCHER_KEYS = ("core_option", "core_options", "retroarch_option")  # read by the launcher only
-_STRUCTURE_KEYS = ("emulator_name", "core_name", "features", "sharedFeatures", "systems", "groups")
+_STRUCTURE_KEYS = (
+    "emulator_name",
+    "core_name",
+    "features",
+    "sharedFeatures",
+    "systems",
+    "groups",
+    "netplay_cores",
+)
+_NETPLAY_FEATURE = "netplay"
 
 
 @dataclass(frozen=True)
@@ -217,6 +226,29 @@ def _append_systems(parent: ET.Element, systems: Any, context: _Context) -> None
         _append_features(system, system_data, context)
 
 
+def _cores_with_netplay(
+    data: Mapping[str, Any], cores: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    """The cores of an emulator, with the ``netplay`` feature on the ones it lists.
+
+    The emulator lists them in ``netplay_cores``. A core without a YAML file of
+    its own gets an entry with nothing else but that feature.
+    """
+    names = [str(name) for name in data.get("netplay_cores") or []]
+    if not names:
+        return cores
+
+    by_name = {str(core.get("core_name")): dict(core) for core in cores}
+    for name in names:
+        core = by_name.setdefault(name, {"core_name": name})
+        features = core.get("features") or []
+        if not isinstance(features, list):
+            features = [features]
+        if _NETPLAY_FEATURE not in features:
+            core["features"] = [*features, _NETPLAY_FEATURE]
+    return list(by_name.values())
+
+
 def _append_emulator(
     root: ET.Element,
     name: str,
@@ -232,6 +264,7 @@ def _append_emulator(
     _append_features(emulator, data, context)
     _append_systems(emulator, data.get("systems"), context)
 
+    cores = _cores_with_netplay(data, cores)
     if not cores:
         return
     container = ET.SubElement(emulator, "cores")
