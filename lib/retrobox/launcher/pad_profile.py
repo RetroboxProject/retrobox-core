@@ -53,7 +53,7 @@ type _ComboKey = tuple[frozenset[str], bool]
 
 def effective_bindings(generator: Generator, system: Emulator) -> dict[HotkeyAction, Binding]:
     """The common bindings, overridden by the emulator's own; unbound actions dropped."""
-    merged = {**common_bindings(), **generator.hotkey_bindings(system)}
+    merged = {**common_bindings(system), **generator.hotkey_bindings(system)}
     return {action: binding for action, binding in merged.items() if binding is not None}
 
 
@@ -183,5 +183,5 @@ def build_session_profile(
         base,
         hotkey_mappings(load_table(), bindings),
         output,
-        keyboard_mappings(load_table(KEYBOARD_SECTION), bindings, common_bindings()),
+        keyboard_mappings(load_table(KEYBOARD_SECTION), bindings, common_bindings(system)),
     )

@@ -29,11 +29,14 @@ import shutil
 from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import yaml
 
 from retrobox.paths import BIN_DIR, HOTKEYS_TABLE, USER_HOTKEYS_TABLE
+
+if TYPE_CHECKING:
+    from retrobox.configgen.Emulator import Emulator
 
 _logger = logging.getLogger(__name__)
 
@@ -144,14 +147,19 @@ def keys_of(names: list[str]) -> Keys:
     return Keys(tuple(evdev_key(name) for name in names))
 
 
-def common_bindings() -> dict[HotkeyAction, Binding | None]:
-    """What every emulator gets: leaving the game, screenshots and the overlay."""
+def common_bindings(system: Emulator | None = None) -> dict[HotkeyAction, Binding | None]:
+    """What every emulator gets: leaving the game, screenshots and the overlay.
+
+    The overlay only when it is installed and the ``overlay`` setting (global,
+    per system or per game, on by default) does not turn it off.
+    """
     bindings: dict[HotkeyAction, Binding | None] = {
         HotkeyAction.EXIT: Exec((str(BIN_DIR / "retrobox-emukill"),)),
         HotkeyAction.SCREENSHOT: Exec((str(BIN_DIR / "retrobox-screenshot"),)),
     }
     overlay = shutil.which(OVERLAY_COMMAND)
-    if overlay is not None:
+    wanted = system is None or system.config.get_bool("overlay", True)
+    if overlay is not None and wanted:
         bindings[HotkeyAction.OVERLAY] = Exec((overlay,))
     return bindings
 

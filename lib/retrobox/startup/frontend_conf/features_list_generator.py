@@ -4,6 +4,10 @@ Each YAML file describes the features of one emulator (``emulator_name``), of
 one of its cores (``emulator_name`` + ``core_name``) or the features every
 emulator can share (``emulator_name: _global_config``).
 
+Shared features listed in ``everyEmulator`` (in ``_global_config.yaml``) are
+added to every emulator, so they show in every system's and game's options
+without each emulator file listing them.
+
 The groups and submenus of the menu follow one vocabulary, declared in the
 ``vocabulary`` section of ``_global_config.yaml``. It is checked for the
 emulators it lists in ``enforce`` (or for all of them with ``enforce: all``,
@@ -37,16 +41,7 @@ _GENERAL_GROUP = "GENERAL"  # the features of this group have no "group" attribu
 _NO_SUBMENU = "NONE"
 # keys of the YAML that are not attributes of the element they describe
 _LAUNCHER_KEYS = ("core_option", "core_options", "retroarch_option")  # read by the launcher only
-_STRUCTURE_KEYS = (
-    "emulator_name",
-    "core_name",
-    "features",
-    "sharedFeatures",
-    "systems",
-    "groups",
-    "netplay_cores",
-)
-_NETPLAY_FEATURE = "netplay"
+_STRUCTURE_KEYS = ("emulator_name", "core_name", "features", "sharedFeatures", "systems", "groups")
 
 
 @dataclass(frozen=True)
@@ -226,35 +221,13 @@ def _append_systems(parent: ET.Element, systems: Any, context: _Context) -> None
         _append_features(system, system_data, context)
 
 
-def _cores_with_netplay(
-    data: Mapping[str, Any], cores: list[dict[str, Any]]
-) -> list[dict[str, Any]]:
-    """The cores of an emulator, with the ``netplay`` feature on the ones it lists.
-
-    The emulator lists them in ``netplay_cores``. A core without a YAML file of
-    its own gets an entry with nothing else but that feature.
-    """
-    names = [str(name) for name in data.get("netplay_cores") or []]
-    if not names:
-        return cores
-
-    by_name = {str(core.get("core_name")): dict(core) for core in cores}
-    for name in names:
-        core = by_name.setdefault(name, {"core_name": name})
-        features = core.get("features") or []
-        if not isinstance(features, list):
-            features = [features]
-        if _NETPLAY_FEATURE not in features:
-            core["features"] = [*features, _NETPLAY_FEATURE]
-    return list(by_name.values())
-
-
-def _append_emulator(
+def _append_emulator(  # pylint: disable=too-many-arguments,too-many-positional-arguments
     root: ET.Element,
     name: str,
     data: Mapping[str, Any],
     cores: list[dict[str, Any]],
     context: _Context,
+    every: Iterable[Any] = (),
 ) -> None:
     """Append an <emulator>, with its systems and cores."""
     context.emulator = name
@@ -262,9 +235,15 @@ def _append_emulator(
     emulator.set("name", name)
     _set_attributes(emulator, data, skip=_STRUCTURE_KEYS)
     _append_features(emulator, data, context)
+    listed = {
+        str(entry["value"] if isinstance(entry, dict) else entry)
+        for entry in data.get("sharedFeatures") or []
+    }
+    for entry in every:
+        if str(entry) not in listed:
+            _append_shared_feature(emulator, entry, context)
     _append_systems(emulator, data.get("systems"), context)
 
-    cores = _cores_with_netplay(data, cores)
     if not cores:
         return
     container = ET.SubElement(emulator, "cores")
@@ -356,8 +335,9 @@ def _build_tree(sources: _Sources) -> ET.Element:
     if sources.global_config:
         _append_global_features(root, sources.global_config, context)
 
+    every = (sources.global_config or {}).get("everyEmulator") or []
     for name, data in sources.emulators.items():
-        _append_emulator(root, name, data, sources.cores.get(name, []), context)
+        _append_emulator(root, name, data, sources.cores.get(name, []), context, every)
 
     for warning in sorted(context.warnings):
         _logger.warning("features vocabulary: %s", warning)
@@ -399,7 +379,9 @@ def _feature_yaml_files(yaml_dir: Path | None) -> list[Path]:
     """
     if yaml_dir is None:
         found = {
-            rel: path for rel, path in layered_files("emu_features", "*.yaml").items() if "/" not in rel
+            rel: path
+            for rel, path in layered_files("emu_features", "*.yaml").items()
+            if "/" not in rel
         }
         if not found:
             raise FileNotFoundError("No emu_features found in any configuration layer")
