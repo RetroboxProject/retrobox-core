@@ -297,6 +297,7 @@ def _control(session: GameSession, cmd: Command) -> control_channel.Control:
         pipe=cmd.stdin_fifo,
         pipe_commands=session.generator.pipe_commands(system),
         slot=slot if isinstance(slot, int) else 0,
+        discs=control_channel.Discs.of_playlist(session.rom, SAVES),
     )
 
 

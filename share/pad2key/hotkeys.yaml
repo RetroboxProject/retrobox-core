@@ -17,7 +17,7 @@
 # modifiers count as the left-hand ones). Gamepadly watches every keyboard
 # without taking the keys from the game, so a chord also reaches the
 # emulator: these use keys emulators leave free (RetroArch's own Shift+key
-# hotkeys use F1-F6, F8-F12, P, PageUp and PageDown). Only commands (leaving the game, the
+# hotkeys use F1-F4 and F9-F12, and P). Only commands (leaving the game, the
 # overlay) are bound to the keyboard; an emulator that reads the chord itself
 # (RetroArch's Shift+Esc) is left alone.
 #

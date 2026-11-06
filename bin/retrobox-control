@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# retrobox-control: send one request to the running game's control channel
+# (pause, resume, "do <action>", "save_slot <n>", "load_slot <n>", discs) and
+# print its answer. The disc hotkeys run it, so that every disc change goes
+# through the channel, which keeps track of the disc and the tray for
+# retrobox-overlay; it fails when no game is running.
+#
+# It only picks the interpreter and sets up the import path; the work is
+# lib/retrobox/launcher/control.py.
+set -eo pipefail
+SELF="$(readlink -f "${BASH_SOURCE[0]}")"
+RETROBOX_ROOTDIR="${RETROBOX_ROOTDIR:-$(dirname "$(dirname "${SELF}")")}"
+export RETROBOX_ROOTDIR
+export PYTHONPATH="${RETROBOX_ROOTDIR}/lib${PYTHONPATH:+:${PYTHONPATH}}"
+
+if [[ -z "${RETROBOX_PYTHON:-}" ]]; then
+    if [[ -x "${RETROBOX_ROOTDIR}/venv/bin/python3" ]]; then
+        RETROBOX_PYTHON="${RETROBOX_ROOTDIR}/venv/bin/python3"
+    else
+        RETROBOX_PYTHON="$(command -v python3 || true)"
+    fi
+fi
+[[ -n "${RETROBOX_PYTHON}" ]] || { echo "retrobox-control: python3 not found" >&2; exit 1; }
+
+exec "${RETROBOX_PYTHON}" -m retrobox.launcher.control "$@"

@@ -15,7 +15,6 @@ from retrobox.configgen.exceptions import MissingCore
 from retrobox.configgen.generators.Generator import Generator
 from retrobox.configgen.generators.libretro import (
     libretro_hotkeys,
-    libretro_netplay,
     libretroConfig,
     libretroControllers,
 )
@@ -260,10 +259,6 @@ class LibretroGenerator(Generator):
         if config_to_append := _extra_config_files(system, rom):
             args_array.extend(["--appendconfig", "|".join(str(path) for path in config_to_append)])
 
-        # host or join a netplay room (the room settings are in retroarch.cfg)
-        if netplay := libretro_netplay.from_config(system.config):
-            args_array.extend(libretro_netplay.command_arguments(netplay))
-
         if not dont_append_rom:
             args_array.append(rom)
 
@@ -285,9 +280,9 @@ class LibretroGenerator(Generator):
         )
 
     def savestates(self, system: Emulator, rom: Path) -> dict[str, object] | None:
-        """RetroArch's states, by slot: ``<saves>/<rom's folder>/<rom name>.state<N>``.
+        """RetroArch's states, by slot: ``<saves>/<system>/<rom name>.state<N>``.
 
-        The folder follows ``sort_savestates_by_content_enable``; the overlay
+        The folder is ``savestate_directory`` (libretroConfig); the overlay
         asks for them through the command pipe (``stdin_cmd_enable``).
         """
         if configure_emulator(rom):
@@ -297,7 +292,7 @@ class LibretroGenerator(Generator):
         except ValueError:
             slot = 0
         return {
-            "dir": str(SAVES / rom.parent.name),
+            "dir": str(SAVES / system.name),
             "name": rom.stem,
             "slot": slot,
         }

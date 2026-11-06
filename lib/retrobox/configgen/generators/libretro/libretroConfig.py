@@ -26,7 +26,6 @@ from ... import controllersConfig
 from ...settings.unixSettings import UnixSettings
 from ...utils import metadata as metadata_utils
 from ...utils.performance import gamemode_value
-from . import libretro_netplay
 from .libretro_bezel import BezelRequest, write_bezel_config
 from .libretro_core_options import (
     apply_core_features,
@@ -202,7 +201,6 @@ _FIXED_RETROARCH_SETTINGS: dict[str, str] = {
     "video_fullscreen": '"true"',
     "video_windowed_fullscreen": "'true'",
     "sort_savefiles_by_content_enable": '"true"',
-    "sort_savestates_by_content_enable": '"true"',
 }
 
 
@@ -281,7 +279,11 @@ def _apply_base_settings(config: dict[str, object], system: Emulator, gfx_backen
     # save directories
     config["sort_savefiles_enable"] = "false"
     config["sort_savestates_enable"] = "false"
-    config["savestate_directory"] = Path(f"{SAVES}")
+    # States in <saves>/<system>, where EmulationStation (es_savestates.cfg's
+    # default "{{system}}") and retrobox-overlay look for them, whatever the
+    # game's folder is called
+    config["sort_savestates_by_content_enable"] = "false"
+    config["savestate_directory"] = SAVES / system.name
     config["savefile_directory"] = Path(f"{SAVES}")
 
     if system.config.core == "tgbdual":
@@ -661,9 +663,6 @@ def create_libretro_config(launch: LibretroLaunch, /) -> dict[str, object]:
 
     drop_bezel = _apply_video_and_misc_settings(config, launch)
     _apply_bezel_settings(config, launch, drop_bezel)
-
-    if netplay := libretro_netplay.from_config(system.config):
-        config.update(libretro_netplay.settings(netplay))
 
     config.update(system.config.items(starts_with="retroarch."))
     return config

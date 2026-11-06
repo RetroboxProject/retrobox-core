@@ -3,8 +3,14 @@
 While the game runs, the launcher serves a Unix socket (``CONTROL_SOCKET``,
 owner only). Each request is one line, answered with one line::
 
-    pause | resume | do <action> | save_slot <n> | load_slot <n>
-    -> ok | error <reason>
+    pause | resume | do <action> | save_slot <n> | load_slot <n> | discs
+    -> ok [<answer>] | error <reason>
+
+``discs`` answers ``ok <disc> <discs> open|closed`` for a game made of
+several discs: the channel keeps track of the disc in the drive and of the
+tray, since every disc change goes through it (the overlay, and the disc
+hotkeys through ``retrobox-control``). Like RetroArch, a disc only changes
+with the tray open, and stops at the first and last disc.
 
 Every request is carried out the best way the emulator allows:
 
@@ -26,10 +32,13 @@ emulator's current slot to the requested one and remembers where it left it.
 from __future__ import annotations
 
 import contextlib
+import json
 import logging
 import os
+import socket
 import socketserver
 import subprocess
+import sys
 import threading
 import time
 from dataclasses import dataclass, field
@@ -70,6 +79,53 @@ _LAST_KEY = 248  # KEY_MICMUTE: every ordinary key, so udev tags it a keyboard
 
 
 @dataclass
+class Discs:
+    """The discs of a playlist game: which one is in the drive, and the tray."""
+
+    count: int
+    current: int = 1
+    tray_open: bool = False
+
+    @classmethod
+    def of_playlist(cls, playlist: Path, saves: Path) -> Discs | None:
+        """From an .m3u (one disc per line) and RetroArch's last used disc.
+
+        RetroArch restores the disc it had at the end of the last session from
+        ``<saves>/<rom folder>/<name>.ldci`` (``image_index``, from 0).
+        """
+        if playlist.suffix.lower() != ".m3u":
+            return None
+        try:
+            lines = playlist.read_text(encoding="utf-8", errors="replace").splitlines()
+        except OSError:
+            return None
+        count = sum(1 for line in lines if line.strip() and not line.startswith("#"))
+        if count < 2:
+            return None
+        current = 1
+        for index_file in (saves / playlist.parent.name / f"{playlist.stem}.ldci",
+                           saves / f"{playlist.stem}.ldci"):
+            with contextlib.suppress(OSError, ValueError, TypeError):
+                index = int(json.loads(index_file.read_text(encoding="utf-8"))["image_index"])
+                current = min(max(index + 1, 1), count)
+                break
+        return cls(count=count, current=current)
+
+    def apply(self, action: str) -> None:
+        """Follow a disc action the emulator was asked to do."""
+        if action == HotkeyAction.DISK_EJECT.value:
+            self.tray_open = not self.tray_open
+        elif action == HotkeyAction.DISK_NEXT.value and self.tray_open:
+            self.current = min(self.current + 1, self.count)
+        elif action == HotkeyAction.DISK_PREV.value and self.tray_open:
+            self.current = max(self.current - 1, 1)
+
+    def answer(self) -> str:
+        """The ``discs`` answer."""
+        return f"ok {self.current} {self.count} {'open' if self.tray_open else 'closed'}"
+
+
+@dataclass
 class _Way:
     """How one request is carried out."""
 
@@ -89,6 +145,7 @@ class Control:  # pylint: disable=too-many-instance-attributes
     pipe: Path | None = None
     pipe_commands: Mapping[str, str] = field(default_factory=dict)
     slot: int = 0
+    discs: Discs | None = None
     paused: bool = False
     _keyboard: object | None = None
     _status: str | None = None
@@ -146,24 +203,31 @@ class Control:  # pylint: disable=too-many-instance-attributes
             "pause": self.can_pause(),
             "actions": self.actions(),
             "slots": self.has_slots(),
+            "discs": self.discs is not None,
             "focus": self.needs_focus(),
         }
 
     def handle(self, request: str) -> str:
         """Carry out one request; the answer line."""
         verb, _, argument = request.strip().partition(" ")
+        handlers = {
+            "pause": lambda: self._toggle_pause(pause=True),
+            "resume": lambda: self._toggle_pause(pause=False),
+            "do": lambda: self._do(argument),
+            "save_slot": lambda: self._slot(verb, int(argument)),
+            "load_slot": lambda: self._slot(verb, int(argument)),
+            "discs": self._discs,
+        }
+        handler = handlers.get(verb)
+        if handler is None:
+            return f"error unknown request {verb!r}"
         try:
-            if verb == "pause":
-                return self._toggle_pause(pause=True)
-            if verb == "resume":
-                return self._toggle_pause(pause=False)
-            if verb == "do":
-                return self._do(argument)
-            if verb in ("save_slot", "load_slot"):
-                return self._slot(verb, int(argument))
+            return handler()
         except (ValueError, OSError) as err:
             return f"error {err}"
-        return f"error unknown request {verb!r}"
+
+    def _discs(self) -> str:
+        return self.discs.answer() if self.discs else "error not a multi-disc game"
 
     def _toggle_pause(self, pause: bool) -> str:
         status = self._query_status()
@@ -202,7 +266,10 @@ class Control:  # pylint: disable=too-many-instance-attributes
     def _do(self, name: str) -> str:
         if name not in self.actions():
             return f"error {name!r} is not available"
-        return self._run(self._way(name))
+        result = self._run(self._way(name))
+        if result == "ok" and self.discs is not None:
+            self.discs.apply(name)
+        return result
 
     def _slot(self, verb: str, slot: int) -> str:
         if not self.has_slots():
@@ -304,6 +371,31 @@ class _Server(socketserver.UnixStreamServer):
         super().__init__(str(path), _Handler)
 
 
+def send_request(line: str, path: Path = CONTROL_SOCKET) -> str:
+    """Send one request to the running game's channel; its answer."""
+    with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as client:
+        client.settimeout(3)
+        client.connect(str(path))
+        client.sendall(f"{line}\n".encode())
+        return client.makefile("r", encoding="utf-8").readline().strip()
+
+
+def main(argv: list[str] | None = None) -> int:
+    """``retrobox-control <request...>``: one request, for hotkeys and scripts."""
+    words = sys.argv[1:] if argv is None else argv
+    if not words:
+        print("usage: retrobox-control pause|resume|do <action>|save_slot <n>|"
+              "load_slot <n>|discs", file=sys.stderr)
+        return 2
+    try:
+        answer = send_request(" ".join(words))
+    except OSError as err:
+        print(f"retrobox-control: no game running ({err})", file=sys.stderr)
+        return 1
+    print(answer)
+    return 0 if answer.startswith("ok") else 1
+
+
 @contextlib.contextmanager
 def serve(control: Control, path: Path = CONTROL_SOCKET) -> Iterator[Control]:
     """Serve the control channel while the block runs."""
@@ -327,3 +419,7 @@ def serve(control: Control, path: Path = CONTROL_SOCKET) -> Iterator[Control]:
             server.server_close()
         path.unlink(missing_ok=True)
         control.close()
+
+
+if __name__ == "__main__":
+    sys.exit(main())

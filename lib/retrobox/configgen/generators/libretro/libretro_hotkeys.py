@@ -14,7 +14,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Final, NamedTuple
 
-from retrobox.configgen.hotkeys import HotkeyAction, Keys, Native
+from retrobox.configgen.hotkeys import Exec, HotkeyAction, Keys, Native
+from retrobox.paths import BIN_DIR
 
 if TYPE_CHECKING:
     from retrobox.configgen.hotkeys import Binding, HotkeyEntry
@@ -40,9 +41,6 @@ ACTIONS: Final[dict[HotkeyAction, RetroArchAction]] = {
     HotkeyAction.RESET: RetroArchAction("input_reset", "KEY_F10"),
     HotkeyAction.REWIND: RetroArchAction("input_rewind", "KEY_F11"),
     HotkeyAction.FAST_FORWARD: RetroArchAction("input_hold_fast_forward", "KEY_F12"),
-    HotkeyAction.DISK_NEXT: RetroArchAction("input_disk_next", "KEY_PAGEDOWN"),
-    HotkeyAction.DISK_PREV: RetroArchAction("input_disk_prev", "KEY_PAGEUP"),
-    HotkeyAction.DISK_EJECT: RetroArchAction("input_disk_eject_toggle", "KEY_F8"),
 }
 
 
@@ -91,4 +89,8 @@ def bindings(table: list[HotkeyEntry]) -> dict[HotkeyAction, Binding | None]:
                    HotkeyAction.TOGGLE_BEZEL, HotkeyAction.SLOT_PREV,
                    HotkeyAction.SLOT_NEXT):
         result[action] = None
+    # Discs go through the control channel, which keeps track of the disc in
+    # the drive and of the tray for the overlay: the hotkeys ask it too.
+    for action in (HotkeyAction.DISK_EJECT, HotkeyAction.DISK_NEXT, HotkeyAction.DISK_PREV):
+        result[action] = Exec((str(BIN_DIR / "retrobox-control"), "do", action.value))
     return result
