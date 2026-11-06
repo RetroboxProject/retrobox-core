@@ -109,15 +109,25 @@ class Generator(metaclass=ABCMeta):
         return DEFAULT_EXIT_TIMEOUT
 
     def savestates(self, system: Emulator, rom: Path) -> dict[str, object] | None:
-        """Where the game's save states are and how to ask for them, for the overlay.
+        """Where the game's save states are, for the overlay's slot pages.
 
-        None when the overlay cannot manage the emulator's save states. Else
-        ``control`` (the command pipe, see ``Command.stdin_fifo``), ``dir``
-        and ``name`` (states are ``<dir>/<name>.state<N>``, with a
+        None when the emulator's states cannot be handled by slot. Else
+        ``dir`` and ``name`` (states are ``<dir>/<name>.state<N>``, with a
         ``.png`` preview next to them) and ``slot`` (the emulator's slot when
-        the game starts). Called after ``generate()``.
+        the game starts). Needs ``pipe_commands`` for the slots. Called after
+        ``generate()``.
         """
         return None
+
+    def pipe_commands(self, system: Emulator) -> Mapping[str, str]:
+        """Commands the emulator takes on its command pipe (``Command.stdin_fifo``).
+
+        Keyed by hotkey action (``HotkeyAction`` values) and, for save state
+        slots, ``slot_load`` (with ``{slot}``), ``slot_plus`` and
+        ``slot_minus``. The control channel (launcher/control.py) prefers
+        these to key chords.
+        """
+        return {}
 
     def hotkey_bindings(self, system: Emulator) -> Bindings:
         """How the emulator performs the standard hotkey actions.

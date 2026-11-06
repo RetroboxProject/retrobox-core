@@ -97,15 +97,6 @@ type Binding = Keys | Exec | Native
 type Bindings = Mapping[HotkeyAction, Binding | None]
 
 
-def binding_to_json(binding: Binding) -> dict[str, object]:
-    """A binding as session.json describes it to the overlay."""
-    if isinstance(binding, Keys):
-        return {"type": "keys", "keys": list(binding.codes)}
-    if isinstance(binding, Exec):
-        return {"type": "exec", "argv": list(binding.argv)}
-    return {"type": "native", "keys": list(binding.keys)}
-
-
 @dataclass(frozen=True)
 class HotkeyEntry:
     """One line of the table: a combination and the action it asks for."""

@@ -13,7 +13,6 @@ from retrobox.configgen.controller import Controller
 from retrobox.configgen.Emulator import Emulator
 from retrobox.configgen.generators import get_generator
 from retrobox.configgen.gun import Guns
-from retrobox.configgen.hotkeys import binding_to_json
 from retrobox.configgen.utils import metadata, videoMode, wheelsUtils
 from retrobox.configgen.utils.overlayfs import mount_overlayfs
 from retrobox.configgen.utils.squashfs import mount_squashfs
@@ -30,6 +29,7 @@ from retrobox.paths import (
     mkdir_if_not_exists,
 )
 
+from . import control as control_channel
 from .controller_monitor import ControllerMonitor
 from .emulator_setup import ensure_emulator
 from .game_state import GameState, clear_state, process_start_time, write_state
@@ -48,6 +48,7 @@ if TYPE_CHECKING:
     from contextlib import AbstractContextManager
 
     from retrobox.configgen.generators.Generator import Generator
+    from retrobox.configgen.Command import Command
 
 _logger = logging.getLogger(__name__)
 
@@ -244,7 +245,9 @@ def _controllers_json(session: GameSession) -> list[dict[str, object]]:
     ]
 
 
-def _publish_state(session: GameSession) -> Callable[[subprocess.Popen[bytes]], None]:
+def _publish_state(
+    session: GameSession, control: control_channel.Control
+) -> Callable[[subprocess.Popen[bytes]], None]:
     """Return the callback that writes session.json once the emulator has started.
 
     Called after ``generate()``: the generator knows by then how its game is
@@ -256,11 +259,8 @@ def _publish_state(session: GameSession) -> Callable[[subprocess.Popen[bytes]], 
         name: list(values)
         for name, values in generator.exit_env(system, session.rom).items()
     }
-    hotkeys = {
-        action.value: binding_to_json(binding)
-        for action, binding in effective_bindings(generator, system).items()
-    }
-    savestates = generator.savestates(system, session.rom)
+    savestates = generator.savestates(system, session.rom) if control.has_slots() else None
+    description = control.describe()
 
     def on_started(process: subprocess.Popen[bytes]) -> None:
         write_state(
@@ -277,14 +277,27 @@ def _publish_state(session: GameSession) -> Callable[[subprocess.Popen[bytes]], 
                 exit_timeout=generator.exit_timeout(system.config),
                 exit_env=exit_env,
                 controllers=_controllers_json(session),
-                hotkeys=hotkeys,
                 game_info=str(ES_GAME_INFO),
                 menu_theme=str(ES_MENU_THEME),
+                control=description,
                 savestates=savestates,
             )
         )
 
     return on_started
+
+
+def _control(session: GameSession, cmd: Command) -> control_channel.Control:
+    """The control channel's view of the emulator about to run."""
+    system = session.system
+    savestates = session.generator.savestates(system, session.rom) or {}
+    slot = savestates.get("slot", 0)
+    return control_channel.Control(
+        bindings=effective_bindings(session.generator, system),
+        pipe=cmd.stdin_fifo,
+        pipe_commands=session.generator.pipe_commands(system),
+        slot=slot if isinstance(slot, int) else 0,
+    )
 
 
 def _run_emulator(session: GameSession) -> int:
@@ -309,6 +322,7 @@ def _run_emulator(session: GameSession) -> int:
 
         setup_hud(session, cmd)
 
-        with profiler.pause():
+        control = _control(session, cmd)
+        with profiler.pause(), control_channel.serve(control):
             session.inputs.monitor.start()
-            return run_command(cmd, on_started=_publish_state(session))
+            return run_command(cmd, on_started=_publish_state(session, control))

@@ -58,6 +58,22 @@ _AUTO_STATE_SUFFIX = ".auto"
 _AUTO_BACKEND = "auto"
 
 
+# RetroArch's commands (command.h) for the control channel
+_PIPE_COMMANDS: dict[str, str] = {
+    "pause": "PAUSE_TOGGLE",
+    "reset": "RESET",
+    "menu": "MENU_TOGGLE",
+    "disk_eject": "DISK_EJECT_TOGGLE",
+    "disk_next": "DISK_NEXT",
+    "disk_prev": "DISK_PREV",
+    "save_state": "SAVE_STATE",
+    "load_state": "LOAD_STATE",
+    "slot_load": "LOAD_STATE_SLOT {slot}",
+    "slot_plus": "STATE_SLOT_PLUS",
+    "slot_minus": "STATE_SLOT_MINUS",
+}
+
+
 def _resolve_shader(system: Emulator, rom: Path, gfx_backend: str) -> tuple[Path | None, bool]:
     """Find the video shader of the game.
 
@@ -275,11 +291,14 @@ class LibretroGenerator(Generator):
         except ValueError:
             slot = 0
         return {
-            "control": str(RETROARCH_COMMANDS),
             "dir": str(SAVES / rom.parent.name),
             "name": rom.stem,
             "slot": slot,
         }
+
+    def pipe_commands(self, system: Emulator) -> dict[str, str]:
+        """RetroArch's command interface (``stdin_cmd_enable``)."""
+        return dict(_PIPE_COMMANDS)
 
     @staticmethod
     def _write_retroarch_cfg(launch: libretroConfig.LibretroLaunch) -> None:

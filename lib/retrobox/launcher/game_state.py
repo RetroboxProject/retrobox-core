@@ -73,9 +73,9 @@ class GameState:  # pylint: disable=too-many-instance-attributes
     exit_timeout: float = DEFAULT_EXIT_TIMEOUT
     exit_env: dict[str, list[str]] = field(default_factory=dict)
     controllers: list[dict[str, object]] = field(default_factory=list)
-    hotkeys: dict[str, dict[str, object]] = field(default_factory=dict)
     game_info: str = ""
     menu_theme: str = ""
+    control: dict[str, object] | None = None
     savestates: dict[str, object] | None = None
     version: int = SESSION_VERSION
 
