@@ -133,9 +133,10 @@ class Store:
             # a damaged archive or a decompressor failing raise many kinds of errors
             _logger.debug("extraction failed", exc_info=True)
             self._undo(extraction, previous)
+            # the download is kept (`clean` deletes it) to look at what is wrong with it
+            _logger.error("the downloaded file is kept at %s", archive)
             raise StoreError(f"cannot install {name}: {error}") from error
-        finally:
-            archive.unlink(missing_ok=True)
+        archive.unlink(missing_ok=True)
 
         if previous is not None:
             # files that the old version had and the new one does not
