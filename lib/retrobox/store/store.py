@@ -122,11 +122,6 @@ class Store:
         package = self.catalog().get(name) if is_valid_name(name) else None
         if package is None:
             raise StoreError(f"package '{name}' not found")
-        # a courtesy check on the main data directory: a full disk also stops
-        # the extraction, which undoes what it wrote
-        if not free_space_ok(self.layout.roots["music"], package.installed_size):
-            raise StoreError(f"not enough disk space to install {name}")
-
         previous = self.installed.get(name)
         archive = self._fetch(package)
         extraction = Extraction()
@@ -134,7 +129,9 @@ class Store:
             extract_package(
                 archive, self.layout, package.installed_size, extraction, self._report
             )
-        except (OSError, ValueError) as error:
+        except Exception as error:  # pylint: disable=broad-exception-caught
+            # a damaged archive or a decompressor failing raise many kinds of errors
+            _logger.debug("extraction failed", exc_info=True)
             self._undo(extraction, previous)
             raise StoreError(f"cannot install {name}: {error}") from error
         finally:

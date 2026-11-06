@@ -12,6 +12,7 @@ from __future__ import annotations
 import logging
 import os
 import shutil
+import tarfile
 import time
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
@@ -19,9 +20,12 @@ from typing import IO, TYPE_CHECKING, Final
 
 from retrobox.paths import (
     BIOS,
+    CHEATS,
+    EMULATORS_CONFIG,
     MUSIC_DIR,
     ROMS,
     SAVES,
+    SCREENSHOTS,
     THEMES_DIR,
     _DECORATIONS_DIR,
     _SHADERS_DIR,
@@ -45,7 +49,7 @@ _BATOEXEC_MAX_BYTES: Final = 1024 * 1024
 class Layout:
     """Where each folder of batocera's ``userdata`` goes."""
 
-    roots: Mapping[str, Path]
+    roots: Mapping[str, Path]  # "folder" or "folder/subfolder" of userdata -> directory
 
     @classmethod
     def default(cls) -> Layout:
@@ -53,14 +57,25 @@ class Layout:
         return cls(
             {
                 "bios": BIOS,
+                "cheats": CHEATS,
                 "decorations": _DECORATIONS_DIR,
                 "music": MUSIC_DIR,
                 "roms": ROMS,
                 "saves": SAVES,
+                "screenshots": SCREENSHOTS,
                 "shaders": _SHADERS_DIR,
                 "themes": THEMES_DIR,
+                # batocera's /userdata/system/configs/<emu> is <config dir>/emulators/<emu>
+                "system/configs": EMULATORS_CONFIG,
             }
         )
+
+    def root_of(self, parts: tuple[str, ...]) -> Path:
+        """The directory a (valid) path of ``userdata/`` goes into."""
+        for length in range(min(len(parts), 2), 0, -1):
+            if (root := self.roots.get("/".join(parts[:length]))) is not None:
+                return root
+        raise KeyError(parts)
 
     def target(self, parts: tuple[str, ...]) -> Path | None:
         """The file for a path of ``userdata/``, or None if it has no place here.
@@ -68,10 +83,14 @@ class Layout:
         Args:
             parts: The path inside ``userdata/``, split in components.
         """
-        if not parts or (root := self.roots.get(parts[0])) is None:
+        # the longest prefix wins ("system/configs" before a plain "system")
+        for length in range(min(len(parts), 2), 0, -1):
+            if (root := self.roots.get("/".join(parts[:length]))) is not None:
+                rest = parts[length:]
+                break
+        else:
             return None
-        rest = parts[1:]
-        if any(part in ("", ".", "..") or "\x00" in part for part in rest):
+        if not rest or any(part in ("", ".", "..") or "\x00" in part for part in rest):
             return None
         target = root.joinpath(*rest)
         # a link that is already there must not lead out of the root
@@ -117,6 +136,34 @@ def _write_file(source: IO[bytes], target: Path, executable: bool) -> int:
     return written
 
 
+def _make_progress(
+    expected_bytes: int, report: Callable[[str, int], None]
+) -> Callable[[int], None]:
+    """A counter of the bytes written that reports the percentage now and then."""
+    done = 0
+    last = 0.0
+
+    def add(written: int) -> None:
+        nonlocal done, last
+        done += written
+        now = time.monotonic()
+        if now - last >= _REPORT_INTERVAL:
+            last = now
+            report("Installing", min(99, done * 100 // expected_bytes) if expected_bytes else 0)
+
+    return add
+
+
+def _read_batoexec(
+    archive: tarfile.TarFile, member: tarfile.TarInfo, parts: tuple[str, ...], result: Extraction
+) -> None:
+    """Keep the text of a ``.batoexec`` file of the package."""
+    if len(parts) != len(_BATOEXEC_DIR) + 1 or member.size > _BATOEXEC_MAX_BYTES:
+        return
+    if (stream := archive.extractfile(member)) is not None:
+        result.batoexec.append(stream.read().decode("utf-8", errors="replace"))
+
+
 def extract_package(
     archive_path: Path,
     layout: Layout,
@@ -129,47 +176,43 @@ def extract_package(
     Args:
         archive_path: The package file.
         layout: Where the folders of ``userdata/`` go.
-        expected_bytes: The installed size, for the progress.
+        expected_bytes: The installed size, for the progress and the free space.
         result: Filled in as files are written, so the caller can undo a failure.
         report: Called now and then with a text and the percentage done.
+
+    Raises:
+        OSError: A file cannot be written, or a directory has no room for the package.
     """
-    done = 0
-    last_report = 0.0
+    count_written = _make_progress(expected_bytes, report)
+    checked: set[Path] = set()
     with open_tar_stream(archive_path) as archive:
         for member in archive:
             parts = _member_parts(member.name)
             if parts is None:
                 continue
             if parts[: len(_BATOEXEC_DIR)] == _BATOEXEC_DIR and member.isfile():
-                if len(parts) == len(_BATOEXEC_DIR) + 1 and member.size <= _BATOEXEC_MAX_BYTES:
-                    stream = archive.extractfile(member)
-                    if stream is not None:
-                        result.batoexec.append(stream.read().decode("utf-8", errors="replace"))
+                _read_batoexec(archive, member, parts, result)
                 continue
 
             target = layout.target(parts)
-            if target is None:
+            if target is None or not (member.isdir() or member.isfile()):
+                # no place here, or links, devices and the like
                 result.skipped += 1
                 continue
             if member.isdir():
                 target.mkdir(parents=True, exist_ok=True)
                 continue
-            if not member.isfile():
-                # links, devices and the like
-                result.skipped += 1
+            if (stream := archive.extractfile(member)) is None:
                 continue
 
-            stream = archive.extractfile(member)
-            if stream is None:
-                continue
-            done += _write_file(stream, target, bool(member.mode & 0o100))
+            root = layout.root_of(parts)
+            if root not in checked:
+                # each root may be on its own disk (the ROMs directory often is)
+                checked.add(root)
+                if not free_space_ok(root, expected_bytes):
+                    raise OSError(f"not enough disk space in {root}")
+            count_written(_write_file(stream, target, bool(member.mode & 0o100)))
             result.files.append(str(target))
-
-            now = time.monotonic()
-            if now - last_report >= _REPORT_INTERVAL:
-                last_report = now
-                percent = min(99, done * 100 // expected_bytes) if expected_bytes else 0
-                report("Installing", percent)
 
     if result.skipped:
         _logger.debug("%d entries of the package have no place here", result.skipped)
