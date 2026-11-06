@@ -33,6 +33,8 @@ DEFAULT_COMMAND = [
     "-gameinfoxml", "%GAMEINFOXML%",
     "-systemname", "%SYSTEMNAME%"
 ]
+# Keys of a system's YAML for Retrobox itself, not for EmulationStation.
+RETROBOX_ONLY_KEYS: Final = frozenset({"disc_drive"})
 
 def _build_core_attributes(core_props):
     """Extract and format a core's attributes (default, incompatible_extensions)."""
@@ -138,7 +140,7 @@ def _append_system(root: ET.Element, sys_name: str, sys_content: dict) -> None:
     ET.SubElement(system_elem, "name").text = sys_name
 
     for key, value in sys_content.items():
-        if key == "name":
+        if key == "name" or key in RETROBOX_ONLY_KEYS:
             continue
 
         child_elem = ET.SubElement(system_elem, key)

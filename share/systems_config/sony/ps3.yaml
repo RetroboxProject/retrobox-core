@@ -3,6 +3,8 @@ ps3:
   manufacturer: Sony
   release: 2006
   hardware: console
+  # an optical drive: the overlay offers the tray (and the discs of an .m3u)
+  disc_drive: true
   extension:
   - .ps3
   - .psn

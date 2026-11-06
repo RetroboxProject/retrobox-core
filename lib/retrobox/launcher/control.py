@@ -78,13 +78,28 @@ _KEYBOARD_NAME = "retrobox keyboard"
 _LAST_KEY = 248  # KEY_MICMUTE: every ordinary key, so udev tags it a keyboard
 
 
+# The disc actions; changing the disc only makes sense with more than one.
+_DISC_CHANGES = (HotkeyAction.DISK_NEXT, HotkeyAction.DISK_PREV)
+
+
 @dataclass
 class Discs:
-    """The discs of a playlist game: which one is in the drive, and the tray."""
+    """The drive of a disc game: which disc is in it (of a playlist's), and
+    the tray."""
 
     count: int
     current: int = 1
     tray_open: bool = False
+
+    @classmethod
+    def for_game(cls, rom: Path, saves: Path, drive: bool) -> Discs | None:
+        """The drive of a game: a playlist's discs, or the single disc of a
+        platform with an optical drive (its tray can still be opened, e.g. to
+        reach a console's BIOS menu); None for the others."""
+        playlist = cls.of_playlist(rom, saves)
+        if playlist is not None:
+            return playlist
+        return cls(count=1) if drive else None
 
     @classmethod
     def of_playlist(cls, playlist: Path, saves: Path) -> Discs | None:
@@ -182,7 +197,18 @@ class Control:  # pylint: disable=too-many-instance-attributes
 
     def actions(self) -> list[str]:
         """The menu actions the emulator can do."""
-        return [action.value for action in MENU_ACTIONS if self._usable(self._way(action.value))]
+        return [action.value for action in MENU_ACTIONS if self._offers(action)]
+
+    def _offers(self, action: HotkeyAction) -> bool:
+        """Whether the menu offers an action: the tray for disc games, the
+        disc changes for playlists, the emulator's menu for RetroArch only."""
+        if action is HotkeyAction.DISK_EJECT and self.discs is None:
+            return False
+        if action in _DISC_CHANGES and (self.discs is None or self.discs.count < 2):
+            return False
+        if action is HotkeyAction.MENU and action.value not in self.pipe_commands:
+            return False
+        return self._usable(self._way(action.value))
 
     def has_slots(self) -> bool:
         """Whether save states can be saved and loaded by slot."""
@@ -227,7 +253,7 @@ class Control:  # pylint: disable=too-many-instance-attributes
             return f"error {err}"
 
     def _discs(self) -> str:
-        return self.discs.answer() if self.discs else "error not a multi-disc game"
+        return self.discs.answer() if self.discs else "error not a disc game"
 
     def _toggle_pause(self, pause: bool) -> str:
         status = self._query_status()

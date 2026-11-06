@@ -16,6 +16,7 @@ Conflicts:      retrobox
 Requires(post): shadow-utils
 @REQUIRES@
 Recommends:     retrobox-emulationstation
+Recommends:     retrobox-overlay
 Recommends:     retrobox-mangohud
 Recommends:     python3-gamepadly >= 0.1.5
 Suggests:       retrobox-labwc

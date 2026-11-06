@@ -3,6 +3,8 @@ megacd:
   manufacturer: Sega
   release: 1991
   hardware: console
+  # an optical drive: the overlay offers the tray (and the discs of an .m3u)
+  disc_drive: true
   extension:
   - .cue
   - .iso

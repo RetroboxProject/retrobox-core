@@ -111,6 +111,11 @@ def _load_system_config(system_name: str, rom: Path) -> dict[str, Any]:
     if not isinstance(yaml_content, dict) or system_name not in yaml_content:
         return data
 
+    # whether the platform has an optical drive (the overlay's disc tray);
+    # a core's options may say otherwise
+    if yaml_content[system_name].get('disc_drive') is not None:
+        data['disc_drive'] = bool(yaml_content[system_name]['disc_drive'])
+
     emulators_data = yaml_content[system_name] \
         .get('emulators', {})
 

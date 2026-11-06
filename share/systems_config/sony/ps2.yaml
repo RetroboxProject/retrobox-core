@@ -3,6 +3,8 @@ ps2:
   manufacturer: Sony
   release: 2000
   hardware: console
+  # an optical drive: the overlay offers the tray (and the discs of an .m3u)
+  disc_drive: true
   extension:
   - .iso
   - .mdf

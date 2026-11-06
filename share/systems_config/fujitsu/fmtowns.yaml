@@ -3,6 +3,8 @@ fmtowns:
   manufacturer: Fujitsu
   release: 1987
   hardware: computer
+  # an optical drive: the overlay offers the tray (and the discs of an .m3u)
+  disc_drive: true
   extension:
   - .bin
   - .m3u

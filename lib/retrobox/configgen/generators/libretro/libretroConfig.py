@@ -193,8 +193,11 @@ _FIXED_RETROARCH_SETTINGS: dict[str, str] = {
     "cheevos_badges_enable": '"true"',
     "builtin_imageviewer_enable": '"false"',
     "fps_update_interval": '"30"',
+    # no "press again to confirm" for the quit, close and reset hotkeys
+    # (RetroArch 1.22+; older versions only know quit_press_twice)
     "confirm_close": '"false"',
     "confirm_quit": '"false"',
+    "confirm_reset": '"false"',
     "quit_press_twice": '"false"',
     # commands on the standard input (the launcher's pipe): retrobox-overlay
     "stdin_cmd_enable": '"true"',
