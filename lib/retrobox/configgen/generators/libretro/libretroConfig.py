@@ -202,7 +202,7 @@ _FIXED_RETROARCH_SETTINGS: dict[str, str] = {
     # commands on the standard input (the launcher's pipe): retrobox-overlay
     "stdin_cmd_enable": '"true"',
     "video_fullscreen": '"true"',
-    "video_windowed_fullscreen": "'true'",
+    "video_windowed_fullscreen": '"true"',
     "sort_savefiles_by_content_enable": '"true"',
 }
 
