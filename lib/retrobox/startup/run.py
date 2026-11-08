@@ -226,7 +226,7 @@ def run_emulationstation(args: list[str], updates: frozenset[str] = frozenset())
     _logger.info("Starting EmulationStation")
 
     result = subprocess.run(
-        [str(ES_EXECUTABLE), "--home", str(FRONTEND_HOME), *map(str, args)],
+        [str(ES_EXECUTABLE), "--fullscreen-borderless", "--home", str(FRONTEND_HOME), *map(str, args)],
         cwd=str(FRONTEND_DIR),
         env=es_env,
         check=False,
