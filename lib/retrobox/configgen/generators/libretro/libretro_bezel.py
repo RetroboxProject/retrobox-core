@@ -34,6 +34,10 @@ _PER_GAME_BEZEL_PNG = RUNTIME_DIR / "bezel_per_game.png"
 _MIN_BEZEL_SCREEN_RATIO = 1.6
 _VIEWPORT_KEYS = ("width", "height", "top", "left", "bottom", "right")
 _RATIO_EPSILON = 0.01
+# notifications: fractions of the screen from its left and bottom edges
+# (RetroArch measures y from the bottom), so against the top left corner
+_MESSAGE_X = 0.01
+_MESSAGE_Y = 0.98
 # fallback bezel borders, expressed over a 1920x1080 picture
 _DEFAULT_TOP_BOTTOM = 2 / 1080
 _DEFAULT_LEFT_RIGHT = 241 / 1920
@@ -249,10 +253,10 @@ def write_bezel_config(request: BezelRequest, config: dict[str, object]) -> None
     """
     config["input_overlay_hide_in_menu"] = "false"
     config["input_overlay_enable"] = "false"
-    # notifications against the top left corner (RetroArch measures y from the bottom);
-    # a bezel's own position, if it has one, wins below
-    config["video_message_pos_x"] = 0.01
-    config["video_message_pos_y"] = 0.98
+    # notifications against the top left corner of the screen, or of the game
+    # inside a bezel (below)
+    config["video_message_pos_x"] = _MESSAGE_X
+    config["video_message_pos_y"] = _MESSAGE_Y
 
     overlay = _find_overlay(request)
     if overlay is None:
@@ -293,8 +297,12 @@ def write_bezel_config(request: BezelRequest, config: dict[str, object]) -> None
                 infos["width"] - infos["left"] - infos["right"],
                 infos["height"] - infos["top"] - infos["bottom"],
             )
-        config["video_message_pos_x"] = infos.get("messagex", 0.0)
-        config["video_message_pos_y"] = infos.get("messagey", 0.0)
+        if viewport_used:
+            # the bezel's own message position (often bottom left) is ignored
+            config["video_message_pos_x"] = infos["left"] / infos["width"] + _MESSAGE_X
+            config["video_message_pos_y"] = (
+                1 - infos["top"] / infos["height"] - (1 - _MESSAGE_Y)
+            )
 
     # only now that the bezel is usable, so a failure never leaves an overlay on
     if not request.shader_bezel:
