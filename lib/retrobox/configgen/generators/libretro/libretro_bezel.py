@@ -253,8 +253,8 @@ def write_bezel_config(request: BezelRequest, config: dict[str, object]) -> None
     """
     config["input_overlay_hide_in_menu"] = "false"
     config["input_overlay_enable"] = "false"
-    # notifications against the top left corner of the screen, or of the game
-    # inside a bezel (below)
+    # notifications against the top left corner of the screen, drawn over any
+    # bezel (its own message position is ignored)
     config["video_message_pos_x"] = _MESSAGE_X
     config["video_message_pos_y"] = _MESSAGE_Y
 
@@ -296,12 +296,6 @@ def write_bezel_config(request: BezelRequest, config: dict[str, object]) -> None
                 infos["top"],
                 infos["width"] - infos["left"] - infos["right"],
                 infos["height"] - infos["top"] - infos["bottom"],
-            )
-        if viewport_used:
-            # the bezel's own message position (often bottom left) is ignored
-            config["video_message_pos_x"] = infos["left"] / infos["width"] + _MESSAGE_X
-            config["video_message_pos_y"] = (
-                1 - infos["top"] / infos["height"] - (1 - _MESSAGE_Y)
             )
 
     # only now that the bezel is usable, so a failure never leaves an overlay on
