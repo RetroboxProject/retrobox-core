@@ -249,8 +249,10 @@ def write_bezel_config(request: BezelRequest, config: dict[str, object]) -> None
     """
     config["input_overlay_hide_in_menu"] = "false"
     config["input_overlay_enable"] = "false"
-    config["video_message_pos_x"] = 0.05
-    config["video_message_pos_y"] = 0.05
+    # notifications against the top left corner (RetroArch measures y from the bottom);
+    # a bezel's own position, if it has one, wins below
+    config["video_message_pos_x"] = 0.01
+    config["video_message_pos_y"] = 0.98
 
     overlay = _find_overlay(request)
     if overlay is None:

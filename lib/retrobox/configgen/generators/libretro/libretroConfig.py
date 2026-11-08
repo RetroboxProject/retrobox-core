@@ -202,6 +202,10 @@ _FIXED_RETROARCH_SETTINGS: dict[str, str] = {
     # commands on the standard input (the launcher's pipe): retrobox-overlay
     "stdin_cmd_enable": '"true"',
     "video_fullscreen": '"true"',
+    # plain yellow notifications (no graphics widgets), top left (see libretro_bezel)
+    "menu_enable_widgets": '"false"',
+    "video_message_color": '"ffff00"',
+    "video_font_size": '"16.000000"',
     "video_windowed_fullscreen": '"true"',
     "sort_savefiles_by_content_enable": '"true"',
 }
