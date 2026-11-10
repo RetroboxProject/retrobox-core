@@ -25,7 +25,6 @@ from __future__ import annotations
 
 import enum
 import logging
-import shutil
 from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
@@ -40,12 +39,13 @@ if TYPE_CHECKING:
 
 _logger = logging.getLogger(__name__)
 
-OVERLAY_COMMAND = "retrobox-overlay"
-"""The in-game overlay, a separate package: its hotkeys exist only once installed."""
-
-
 class HotkeyAction(enum.StrEnum):
-    """What a hotkey can ask for."""
+    """What a hotkey can ask for.
+
+    ``OVERLAY`` stays for the users' tables that still name it, but no
+    emulator binds it: retrobox-overlay's daemon opens the overlay itself
+    (the hotkey held), everywhere in Retrobox.
+    """
 
     OVERLAY = "overlay"
     EXIT = "exit"
@@ -148,20 +148,23 @@ def keys_of(names: list[str]) -> Keys:
 
 
 def common_bindings(system: Emulator | None = None) -> dict[HotkeyAction, Binding | None]:
-    """What every emulator gets: leaving the game, screenshots and the overlay.
+    """What every emulator gets: leaving the game and screenshots.
 
-    The overlay only when it is installed and the ``overlay`` setting (global,
-    per system or per game, on by default) does not turn it off.
+    ``system`` is accepted for the generators' sake; nothing here depends on
+    it any more (the overlay is opened by its own daemon, see
+    ``overlay_enabled``).
     """
-    bindings: dict[HotkeyAction, Binding | None] = {
+    del system
+    return {
         HotkeyAction.EXIT: Exec((str(BIN_DIR / "retrobox-emukill"),)),
         HotkeyAction.SCREENSHOT: Exec((str(BIN_DIR / "retrobox-screenshot"),)),
     }
-    overlay = shutil.which(OVERLAY_COMMAND)
-    wanted = system is None or system.config.get_bool("overlay", True)
-    if overlay is not None and wanted:
-        bindings[HotkeyAction.OVERLAY] = Exec((overlay,))
-    return bindings
+
+
+def overlay_enabled(system: Emulator) -> bool:
+    """Whether the overlay may open over this game (``overlay``: global, per
+    system or per game, on by default); published in session.json."""
+    return system.config.get_bool("overlay", True)
 
 
 def _parse_entry(raw: Any, index: int, source: Path) -> HotkeyEntry | None:

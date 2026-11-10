@@ -13,12 +13,17 @@
 # on the hotkey is ignored when the hotkey is select, so it never takes a
 # button the game needs.
 #
+# The overlay is not here: retrobox-overlay's daemon opens it everywhere in
+# Retrobox (EmulationStation too) when the hotkey (Select+A on controllers
+# without one) is held for a moment, or on Shift+F7 (see its overlay.ini,
+# hold_ms).
+#
 # "keyboard" holds the keyboard chords, as evdev key names (the right-hand
 # modifiers count as the left-hand ones). Gamepadly watches every keyboard
 # without taking the keys from the game, so a chord also reaches the
 # emulator: these use keys emulators leave free (RetroArch's own Shift+key
-# hotkeys use F1-F4 and F9-F12, and P). Only commands (leaving the game, the
-# overlay) are bound to the keyboard; an emulator that reads the chord itself
+# hotkeys use F1-F4 and F9-F12, and P; Shift+F7 is the overlay's). Only
+# commands (leaving the game) are bound to the keyboard; an emulator that reads the chord itself
 # (RetroArch's Shift+Esc) is left alone.
 #
 # To change them, copy this file to ~/.config/retrobox/pad2key/hotkeys.yaml
@@ -26,8 +31,6 @@
 # file's; a section it lacks is taken from here.
 
 pad:
-  - {action: overlay, trigger: [hotkey], tap: true}
-  - {action: overlay, trigger: [hotkey, a]}
   - {action: exit, trigger: [hotkey, start]}
   - {action: menu, trigger: [hotkey, b]}
   - {action: save_state, trigger: [hotkey, y]}
@@ -45,4 +48,3 @@ pad:
 
 keyboard:
   - {action: exit, trigger: [KEY_LEFTSHIFT, KEY_ESC]}
-  - {action: overlay, trigger: [KEY_LEFTSHIFT, KEY_F7]}

@@ -232,7 +232,7 @@ groups:
             value: performance
       - name: IN-GAME MENU (OVERLAY)
         value: overlay
-        description: Retrobox's in-game menu (the hotkey alone, or Shift+F7) with the game's info, save states, discs and manual. Off, the hotkey does nothing in the game.
+        description: Retrobox's in-game menu (hold the hotkey for a moment, or Select+A on controllers without one; or Shift+F7) with the game's info, save states, discs and manual. Off, it does not open over the game.
         choices:
           - name: On
             value: 1

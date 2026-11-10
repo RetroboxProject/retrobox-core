@@ -104,8 +104,6 @@ A replacement for evmapy, now a standalone project ([`gamepadly`](https://github
 
 | Combination | Action |
 |---|---|
-| Hotkey (pressed alone) | In-game overlay (`retrobox-overlay`, when installed; not when the hotkey is Select) |
-| Hotkey+A | In-game overlay |
 | Hotkey+Start | Leave the game (`retrobox-emukill`) |
 | Hotkey+B | Emulator menu |
 | Hotkey+Y / Hotkey+X | Save / load state |
@@ -122,9 +120,10 @@ On the keyboard (gamepadly 0.1.5 or later; any keyboard, right or left modifiers
 | Keys | Action |
 |---|---|
 | Shift+Esc | Leave the game (`retrobox-emukill`; RetroArch does it itself) |
-| Shift+F7 | In-game overlay (when installed) |
 
-Gamepadly does not take these keys from the game, so they use keys emulators leave free (RetroArch's own Shift hotkeys use F1-F6 and F9-F12). Only commands are bound to the keyboard. The table's `keyboard` section holds them; a user table can replace the `pad` and `keyboard` sections separately.
+Gamepadly does not take these keys from the game, so they use keys emulators leave free (RetroArch's own Shift hotkeys use F1-F6 and F9-F12). Only commands are bound to the keyboard.
+
+**The overlay** (`retrobox-overlay`, when installed) is not in the table: Retrobox starts its daemon (`retrobox-overlay --daemon`) with EmulationStation, and it opens the overlay anywhere in Retrobox, in a game or in EmulationStation, when the dedicated hotkey (Home/Guide) is held alone for a moment (750 ms), when Select+A is held as long on controllers without one, or on Shift+F7. Holding rather than pressing keeps the hotkey free as the modifier of the combinations above. The `overlay` setting (global, per system or per game) keeps it from opening over a game. The table's `keyboard` section holds them; a user table can replace the `pad` and `keyboard` sections separately.
 
 Each generator says how its emulator performs these actions (`hotkey_bindings()`, see `lib/retrobox/configgen/hotkeys.py`): a key chord gamepadly presses, a command, or `Native` when the emulator reads the combination itself (RetroArch does, from its own configuration). An action the emulator cannot perform leaves its combination free. Leaving the game, screenshots and the overlay work in every emulator. For each game the launcher writes `<runtime dir>/pad2key/session.keys`: the profile gamepadly would pick for the game (`share/pad2key/profiles`, the user's, `<rom>.keys`) plus these hotkeys; a combination the game's profile already maps keeps the profile's meaning.
 

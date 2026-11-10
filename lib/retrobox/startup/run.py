@@ -11,6 +11,10 @@ the default one is downloaded first, and so are the default bezels and
 shaders the first time they are on offer (see retrobox.startup.downloads),
 showing the progress on the setup screen.
 
+While EmulationStation runs, so does the overlay's daemon
+(``retrobox-overlay --daemon``, when the overlay is installed): it opens
+Retrobox's overlay when a controller's hotkey is held, in a game or not.
+
 Accepts three flags of its own, "--update-default-theme",
 "--update-default-bezels" and "--update-default-shaders", which download
 that content again (updating or reinstalling it) before startup. Every
@@ -68,6 +72,50 @@ _logger = logging.getLogger(__name__)
 
 # Global flag to ensure teardown runs only once
 _TEARDOWN_DONE: bool = False
+
+OVERLAY_COMMAND = "retrobox-overlay"
+"""The overlay, a separate package: its daemon only runs once installed."""
+OVERLAY_STOP_TIMEOUT = 2.0
+"""Seconds the overlay's daemon has to stop before it is killed."""
+
+
+def start_overlay_daemon(env: dict[str, str]) -> subprocess.Popen[bytes] | None:
+    """Start the overlay's daemon, when the overlay is installed.
+
+    It logs to its own file (``<state dir>/logs/overlay-daemon.log``) and
+    stops when Retrobox does (see stop_overlay_daemon()).
+    """
+    overlay = shutil.which(OVERLAY_COMMAND)
+    if overlay is None:
+        _logger.info("%s is not installed: no overlay", OVERLAY_COMMAND)
+        return None
+    try:
+        # pylint: disable-next=consider-using-with  # stopped by stop_overlay_daemon()
+        process = subprocess.Popen(
+            [overlay, "--daemon"],
+            env=env,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+        )
+    except OSError as err:
+        _logger.warning("cannot start the overlay's daemon: %s", err)
+        return None
+    _logger.info("Overlay daemon started (pid %d)", process.pid)
+    return process
+
+
+def stop_overlay_daemon(process: subprocess.Popen[bytes] | None) -> None:
+    """Stop the overlay's daemon (and the overlay, if it is open)."""
+    if process is None or process.poll() is not None:
+        return
+    process.terminate()
+    try:
+        process.wait(timeout=OVERLAY_STOP_TIMEOUT)
+    except subprocess.TimeoutExpired:
+        process.kill()
+        process.wait()
 
 
 def is_emulationstation_running(es_binary: Path) -> bool:
@@ -225,12 +273,17 @@ def run_emulationstation(args: list[str], updates: frozenset[str] = frozenset())
 
     _logger.info("Starting EmulationStation")
 
-    result = subprocess.run(
-        [str(ES_EXECUTABLE), "--fullscreen-borderless", "--home", str(FRONTEND_HOME), *map(str, args)],
-        cwd=str(FRONTEND_DIR),
-        env=es_env,
-        check=False,
-    )
+    overlay = start_overlay_daemon(es_env)
+    try:
+        result = subprocess.run(
+            [str(ES_EXECUTABLE), "--fullscreen-borderless", "--home", str(FRONTEND_HOME),
+             *map(str, args)],
+            cwd=str(FRONTEND_DIR),
+            env=es_env,
+            check=False,
+        )
+    finally:
+        stop_overlay_daemon(overlay)
 
     call_retrohook(
         "_frontend",

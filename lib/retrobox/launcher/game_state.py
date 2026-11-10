@@ -19,7 +19,8 @@ devices, which the overlay grabs while it is open), how the emulator performs
 each standard hotkey action (``hotkeys``, see ``configgen.hotkeys``: keys to
 press, a command to run, or ``native`` when the emulator reads the
 combination itself), the game information EmulationStation exported
-(``game_info``) and its resolved menu theme (``menu_theme``).
+(``game_info``), its resolved menu theme (``menu_theme``) and whether the
+overlay may open over the game at all (``overlay``).
 """
 
 from __future__ import annotations
@@ -77,6 +78,7 @@ class GameState:  # pylint: disable=too-many-instance-attributes
     menu_theme: str = ""
     control: dict[str, object] | None = None
     savestates: dict[str, object] | None = None
+    overlay: bool = True
     version: int = SESSION_VERSION
 
     def is_alive(self) -> bool:

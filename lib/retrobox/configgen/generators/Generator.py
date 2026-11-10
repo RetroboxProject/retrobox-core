@@ -134,7 +134,7 @@ class Generator(metaclass=ABCMeta):
         """How the emulator performs the standard hotkey actions.
 
         Added to (or replacing) ``hotkeys.common_bindings()``: leaving the
-        game, screenshots and the overlay work everywhere without this. Map
+        game and screenshots work everywhere without this. Map
         an action to ``None`` to leave its combination free, to ``Native``
         when the generator writes the combination into the emulator's own
         configuration.

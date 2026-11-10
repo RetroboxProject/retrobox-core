@@ -13,6 +13,7 @@ from retrobox.configgen.controller import Controller
 from retrobox.configgen.Emulator import Emulator
 from retrobox.configgen.generators import get_generator
 from retrobox.configgen.gun import Guns
+from retrobox.configgen.hotkeys import overlay_enabled
 from retrobox.configgen.utils import metadata, videoMode, wheelsUtils
 from retrobox.configgen.utils.overlayfs import mount_overlayfs
 from retrobox.configgen.utils.squashfs import mount_squashfs
@@ -281,6 +282,7 @@ def _publish_state(
                 menu_theme=str(ES_MENU_THEME),
                 control=description,
                 savestates=savestates,
+                overlay=overlay_enabled(system),
             )
         )
 
