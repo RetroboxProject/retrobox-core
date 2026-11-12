@@ -1,7 +1,7 @@
 Package: retrobox-core
 Replaces: retrobox
 Conflicts: retrobox
-Breaks: retrobox-overlay (<< 0.3.0)
+Breaks: retrobox-overlay (<< 0.2.8)
 Version: @VERSION@
 Section: games
 Priority: optional

@@ -82,7 +82,7 @@ OVERLAY_PROBE_TIMEOUT = 2.0
 
 
 def overlay_has_daemon(overlay: str) -> bool:
-    """Whether the installed overlay has a daemon (0.3.0 and later).
+    """Whether the installed overlay has a daemon (0.2.8 and later).
 
     An older one takes ``--daemon`` for a plain start, finds no game and
     exits, while Retrobox no longer binds the overlay to the hotkey: it would
@@ -112,7 +112,7 @@ def start_overlay_daemon(env: dict[str, str]) -> subprocess.Popen[bytes] | None:
         _logger.info("%s is not installed: no overlay", OVERLAY_COMMAND)
         return None
     if not overlay_has_daemon(overlay):
-        _logger.warning("%s is too old (no --daemon, needs 0.3.0 or later): no overlay",
+        _logger.warning("%s is too old (no --daemon, needs 0.2.8 or later): no overlay",
                         OVERLAY_COMMAND)
         return None
     try:
