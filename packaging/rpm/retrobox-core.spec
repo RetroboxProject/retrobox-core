@@ -13,6 +13,7 @@ License:        GPL-2.0-only
 URL:            https://github.com/RetroboxProject/retrobox-core
 BuildArch:      noarch
 Conflicts:      retrobox
+Conflicts:      retrobox-overlay < 0.3.0
 Requires(post): shadow-utils
 @REQUIRES@
 Recommends:     retrobox-emulationstation

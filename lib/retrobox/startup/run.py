@@ -77,6 +77,28 @@ OVERLAY_COMMAND = "retrobox-overlay"
 """The overlay, a separate package: its daemon only runs once installed."""
 OVERLAY_STOP_TIMEOUT = 2.0
 """Seconds the overlay's daemon has to stop before it is killed."""
+OVERLAY_PROBE_TIMEOUT = 2.0
+"""Seconds ``retrobox-overlay --help`` has to answer."""
+
+
+def overlay_has_daemon(overlay: str) -> bool:
+    """Whether the installed overlay has a daemon (0.3.0 and later).
+
+    An older one takes ``--daemon`` for a plain start, finds no game and
+    exits, while Retrobox no longer binds the overlay to the hotkey: it would
+    never open. Its help names the flag when it has it.
+    """
+    try:
+        result = subprocess.run(
+            [overlay, "--help"],
+            capture_output=True,
+            text=True,
+            timeout=OVERLAY_PROBE_TIMEOUT,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    return "--daemon" in result.stdout
 
 
 def start_overlay_daemon(env: dict[str, str]) -> subprocess.Popen[bytes] | None:
@@ -88,6 +110,10 @@ def start_overlay_daemon(env: dict[str, str]) -> subprocess.Popen[bytes] | None:
     overlay = shutil.which(OVERLAY_COMMAND)
     if overlay is None:
         _logger.info("%s is not installed: no overlay", OVERLAY_COMMAND)
+        return None
+    if not overlay_has_daemon(overlay):
+        _logger.warning("%s is too old (no --daemon, needs 0.3.0 or later): no overlay",
+                        OVERLAY_COMMAND)
         return None
     try:
         # pylint: disable-next=consider-using-with  # stopped by stop_overlay_daemon()
