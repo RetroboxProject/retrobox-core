@@ -2,3 +2,8 @@
 # forzando a SDL a caer a evdev (bus real) en vez de HIDAPI.
 KERNEL=="hidraw*", ATTRS{idVendor}=="057e", ATTRS{idProduct}=="2009", TAG-="uaccess", MODE="0600", GROUP="root"
 KERNEL=="hidraw*", KERNELS=="*057E:2009*", TAG-="uaccess", MODE="0600", GROUP="root"
+
+# The overlay's brightness slider writes the built-in panel's backlight
+# directly (the video group: the desktop user), without a program per step;
+# without it, it goes through logind.
+ACTION=="add", SUBSYSTEM=="backlight", RUN+="/bin/chgrp video $sys$devpath/brightness", RUN+="/bin/chmod g+w $sys$devpath/brightness"
