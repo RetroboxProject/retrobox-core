@@ -4,6 +4,12 @@ Kodi reads the controllers through its ``peripheral.joystick`` add-on, which
 keeps one button map (XML) per device in the userdata folder. The button maps
 written here follow EmulationStation's layout, so the pads behave in Kodi's
 menus as they do in EmulationStation.
+
+Kodi matches a button map to a pad by provider, kernel device name and counts.
+Its udev driver files the maps under the "linux" provider (the folder Kodi
+itself writes to and ships its own maps in), and names the pad as the kernel
+does, which is not always SDL's name: a PDP pad driven by xone is
+"Microsoft Xbox Controller" for Kodi but "PDP Xbox One Arctic White" for SDL.
 """
 
 # The module name is the one the generator importer uses.
@@ -12,8 +18,10 @@ menus as they do in EmulationStation.
 from __future__ import annotations
 
 import hashlib
+import os
 import subprocess
 import xml.etree.ElementTree as ET
+from pathlib import Path
 from typing import TYPE_CHECKING, Final
 
 from retrobox.configgen.exceptions import RetroboxException
@@ -27,8 +35,6 @@ from retrobox.paths import (
 from retrobox.utils.es_settings import confirm_is_east, read_es_settings
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
     from ...controller import Controller, Controllers
 
 # What ``retrobox-kodi --which`` prints, and where each Kodi keeps its userdata.
@@ -38,6 +44,16 @@ _KODI_USERDATA: Final = {
 }
 
 KODI_LAUNCHER: Final = RETROBOX_ROOTDIR / "bin" / "retrobox-kodi"
+
+# The provider Kodi's udev driver files its button maps under, and the one
+# older versions of this module wrote to (Kodi ignores it).
+_PROVIDER: Final = "linux"
+_STALE_PROVIDER: Final = "udev"
+
+# EmulationStation's analog triggers: Kodi needs to know they rest at -1.
+_TRIGGERS: Final = ("l2", "r2")
+
+_SYSFS_INPUT: Final = Path("/sys/class/input")
 
 # The hat values of es_input.cfg (SDL's) and the direction they mean.
 _HAT_DIRECTIONS: Final = {1: "up", 2: "right", 4: "down", 8: "left"}
@@ -99,6 +115,21 @@ def _vid_pid(guid: str) -> tuple[str, str]:
     return guid[10:12] + guid[8:10], guid[18:20] + guid[16:18]
 
 
+def _kernel_name(controller: Controller) -> str:
+    """The pad's name as the kernel (and so Kodi) gives it; SDL's as a fallback."""
+    for device_path in (controller.physical_device_path, controller.device_path):
+        if not device_path:
+            continue
+        name_file = _SYSFS_INPUT / os.path.basename(device_path) / "device" / "name"
+        try:
+            name = name_file.read_text(encoding="utf-8").strip()
+        except OSError:
+            continue
+        if name:
+            return name
+    return controller.real_name
+
+
 def _signed(axis_id: str, positive: bool) -> str:
     return f"{'+' if positive else '-'}{axis_id}"
 
@@ -122,11 +153,11 @@ def _add_stick_axis(sticks: dict[str, ET.Element], input_name: str, axis_id: str
     _stick_element(sticks, stick, _OPPOSITE_DIRECTIONS[direction], axis_id, value < 0)
 
 
-def _hat_feature(controller: Controller, hat_value: int) -> ET.Element:
-    """A d-pad direction of a hat: Kodi sees a hat as two axes after the real ones."""
+def _hat_feature(controller: Controller, hat_id: int, hat_value: int) -> ET.Element:
+    """A d-pad direction of a hat: Kodi sees each hat as two axes after the real ones."""
     direction = _HAT_DIRECTIONS[hat_value]
     horizontal = direction in ("left", "right")
-    axis = controller.axis_count if horizontal else controller.axis_count + 1
+    axis = controller.axis_count + 2 * hat_id + (0 if horizontal else 1)
     return ET.Element("feature", {
         "name": direction,
         "axis": _signed(str(axis), direction in ("down", "right")),
@@ -151,7 +182,7 @@ def _controller_element(controller: Controller, features: dict[str, str]) -> ET.
                     "name": features[pad_input.name], "button": str(int(pad_input.id)),
                 }))
         elif pad_input.type == "hat" and int(pad_input.value) in _HAT_DIRECTIONS:
-            element.append(_hat_feature(controller, int(pad_input.value)))
+            element.append(_hat_feature(controller, int(pad_input.id), int(pad_input.value)))
         elif pad_input.type == "axis":
             element.append(ET.Element("feature", {
                 "name": features[pad_input.name],
@@ -162,15 +193,28 @@ def _controller_element(controller: Controller, features: dict[str, str]) -> ET.
     return element
 
 
+def _configuration_element(controller: Controller) -> ET.Element:
+    """The ``configuration`` element: the analog triggers rest at -1, not at 0."""
+    element = ET.Element("configuration")
+    trigger_axes = sorted({
+        int(pad_input.id) for pad_input in controller.inputs.values()
+        if pad_input.name in _TRIGGERS and pad_input.type == "axis"
+    })
+    for axis in trigger_axes:
+        ET.SubElement(element, "axis", {"index": str(axis), "center": "-1", "range": "2"})
+    return element
+
+
 def _device_element(controller: Controller, provider: str, features: dict[str, str]) -> ET.Element:
     """The ``device`` element of a controller's button map."""
-    attributes = {"name": controller.real_name, "provider": provider}
+    attributes = {"name": _kernel_name(controller), "provider": provider}
     if provider == "udev":
         attributes["vid"], attributes["pid"] = _vid_pid(controller.guid)
     attributes["buttoncount"] = str(controller.button_count)
     attributes["axiscount"] = str(2 * controller.hat_count + controller.axis_count)
 
     device = ET.Element("device", attributes)
+    device.append(_configuration_element(controller))
     device.append(_controller_element(controller, features))
     return device
 
@@ -194,14 +238,15 @@ def write_kodi_configs(
     done: set[str] = set()
     for controller in controllers:
         # one file per name: a pad is repeated when several are the same model
-        if controller.real_name in done:
+        name = _kernel_name(controller)
+        if name in done:
             continue
-        done.add(controller.real_name)
+        done.add(name)
 
         # the name hash is because 2 pads with a different name sometimes have the
         # same vid/pid; the "batocera_" prefix is kept so that the files of older
         # versions are overwritten, not duplicated
-        digest = hashlib.md5(controller.real_name.encode("utf-8")).hexdigest()
+        digest = hashlib.md5(name.encode("utf-8")).hexdigest()
         path = template.with_name(template.name.format(f"{controller.guid}_{digest}"))
 
         root = ET.Element("buttonmap")
@@ -226,14 +271,15 @@ def write_kodi_config(controllers: Controllers, userdata: Path | None = None) ->
     if userdata is None:
         userdata = kodi_userdata()
 
-    provider = "udev"
-    buttonmaps = (
-        userdata / "addon_data" / "peripheral.joystick" / "resources" / "buttonmaps" / "xml"
-        / provider / "batocera_{}.xml"
-    )
+    xml_dir = userdata / "addon_data" / "peripheral.joystick" / "resources" / "buttonmaps" / "xml"
+    # the maps of older versions, in a folder Kodi does not read
+    for stale in (xml_dir / _STALE_PROVIDER).glob("batocera_*.xml"):
+        stale.unlink(missing_ok=True)
+
+    buttonmaps = xml_dir / _PROVIDER / "batocera_{}.xml"
     mkdir_if_not_exists(buttonmaps.parent)
     write_kodi_configs(
-        buttonmaps, controllers, provider,
+        buttonmaps, controllers, _PROVIDER,
         confirm_east=confirm_is_east(read_es_settings(ES_SETTINGS_CFG)),
     )
 
