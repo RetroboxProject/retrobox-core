@@ -49,22 +49,16 @@ case "${1:-}" in
 esac
 
 kind="$(find_kodi)" || { echo "retrobox-kodi: Kodi not found (Flatpak ${FLATPAK_ID} or native kodi)" >&2; exit 127; }
-
-# Close the descriptors inherited from the session: labwc leaks pipes to the
-# programs it starts (EmulationStation, and through it this script), and
-# "flatpak run" blocks forever reading one of them.
-close_inherited_fds() {
-    local fd_path fd
-    for fd_path in "/proc/$$/fd"/*; do
-        fd="${fd_path##*/}"
-        if [[ "${fd}" =~ ^[0-9]+$ ]] && (( fd > 2 )); then
-            eval "exec ${fd}>&-" 2>/dev/null || true
-        fi
-    done
-}
-close_inherited_fds
+# Kodi must not inherit capabilities: the session can hand ambient ones down
+# (CAP_WAKE_ALARM has been seen), and Flatpak's bwrap, which is not setuid,
+# then refuses to start ("Unexpected capabilities but not setuid") while
+# "flatpak run" waits for it forever. setpriv (util-linux) clears them.
+no_caps=()
+if command -v setpriv >/dev/null 2>&1; then
+    no_caps=(setpriv --inh-caps=-all --ambient-caps=-all --)
+fi
 
 if [[ "${kind}" == flatpak ]]; then
-    exec flatpak run "${FLATPAK_ID}" "$@"
+    exec "${no_caps[@]}" flatpak run "${FLATPAK_ID}" "$@"
 fi
-exec "$(native_kodi)" "$@"
+exec "${no_caps[@]}" "$(native_kodi)" "$@"
