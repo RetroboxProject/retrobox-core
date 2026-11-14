@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+# retrobox-kodi: start the right Kodi. It only launches it: the controller
+# configuration is written beforehand by configgen (generators/kodi), which
+# also asks this script which Kodi is installed.
+#
+#   retrobox-kodi [kodi args...]   start Kodi (the Flatpak first, then a native one)
+#   retrobox-kodi --which          print "flatpak" or "native"; exit 1 if none
+#   retrobox-kodi --check          the same, without output (EmulationStation's menu)
+#
+# RETROBOX_KODI=flatpak|native forces one of them.
+set -u
+
+FLATPAK_ID="tv.kodi.Kodi"
+
+has_flatpak() {
+    command -v flatpak >/dev/null 2>&1 && flatpak info "${FLATPAK_ID}" >/dev/null 2>&1
+}
+
+native_kodi() {
+    local candidate
+    command -v kodi 2>/dev/null && return 0
+    for candidate in /usr/bin/kodi /usr/local/bin/kodi "${HOME}/.local/bin/kodi"; do
+        if [[ -x "${candidate}" ]]; then
+            echo "${candidate}"
+            return 0
+        fi
+    done
+    return 1
+}
+
+# Prints "flatpak" or "native"
+find_kodi() {
+    case "${RETROBOX_KODI:-auto}" in
+        flatpak) has_flatpak && { echo flatpak; return 0; }; return 1 ;;
+        native)  native_kodi >/dev/null && { echo native; return 0; }; return 1 ;;
+    esac
+    if has_flatpak; then
+        echo flatpak
+    elif native_kodi >/dev/null; then
+        echo native
+    else
+        return 1
+    fi
+}
+
+case "${1:-}" in
+    --which) find_kodi; exit $? ;;
+    --check) find_kodi >/dev/null; exit $? ;;
+esac
+
+kind="$(find_kodi)" || { echo "retrobox-kodi: Kodi not found (Flatpak ${FLATPAK_ID} or native kodi)" >&2; exit 127; }
+if [[ "${kind}" == flatpak ]]; then
+    exec flatpak run "${FLATPAK_ID}" "$@"
+fi
+exec "$(native_kodi)" "$@"

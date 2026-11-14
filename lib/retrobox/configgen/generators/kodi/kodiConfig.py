@@ -1,156 +1,249 @@
+"""Kodi's controller configuration and the lookup of the Kodi to start.
+
+Kodi reads the controllers through its ``peripheral.joystick`` add-on, which
+keeps one button map (XML) per device in the userdata folder. The button maps
+written here follow EmulationStation's layout, so the pads behave in Kodi's
+menus as they do in EmulationStation.
+"""
+
+# The module name is the one the generator importer uses.
+# pylint: disable=invalid-name
+
 from __future__ import annotations
 
 import hashlib
+import subprocess
+import xml.etree.ElementTree as ET
 from typing import TYPE_CHECKING, Final
-from xml.dom import minidom
 
-from retrobox.paths import _USER_HOME, ensure_parents_and_open, mkdir_if_not_exists
+from retrobox.configgen.exceptions import RetroboxException
+from retrobox.paths import (
+    _USER_HOME,
+    ES_SETTINGS_CFG,
+    RETROBOX_ROOTDIR,
+    ensure_parents_and_open,
+    mkdir_if_not_exists,
+)
+from retrobox.utils.es_settings import confirm_is_east, read_es_settings
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from ...controller import Controllers
+    from ...controller import Controller, Controllers
 
-_KODI_USERDATA: Final = _USER_HOME / '.kodi' / 'userdata'
+# What ``retrobox-kodi --which`` prints, and where each Kodi keeps its userdata.
+_KODI_USERDATA: Final = {
+    "native": _USER_HOME / ".kodi" / "userdata",
+    "flatpak": _USER_HOME / ".var" / "app" / "tv.kodi.Kodi" / "data" / "userdata",
+}
 
-def writeKodiConfigs(kodiJoystick: Path, currentControllers: Controllers, provider: str):
-    kodihatspositions    = {1: 'up', 2: 'right', 4: 'down', 8: 'left'}
-    kodireversepositions = {'joystick1up': 'joystick1down', 'joystick1left': 'joystick1right', 'joystick2up': 'joystick2down', 'joystick2left': 'joystick2right' }
+KODI_LAUNCHER: Final = RETROBOX_ROOTDIR / "bin" / "retrobox-kodi"
 
-    kodimapping = {
-        # buttons
-        "a": "b", "b": "a", "x": "y", "y": "x",
-        "hotkey": "guide", "select": "back", "start": "start",
-        "pageup": "leftbumper", "l2": "lefttrigger", "pagedown": "rightbumper", "r2": "righttrigger",
+# The hat values of es_input.cfg (SDL's) and the direction they mean.
+_HAT_DIRECTIONS: Final = {1: "up", 2: "right", 4: "down", 8: "left"}
 
-        # hats or axis
-        "up": "up", "down": "down", "left": "left", "right": "right",
-    }
+# EmulationStation's names (SNES layout) -> the features of Kodi's default
+# controller (Xbox layout), by position: ES "b" is the south button, Kodi's "a".
+# "hotkey" is left out on purpose: in Retrobox it is a modifier (gamepadly reads
+# it), and Kodi's "guide" would jump to its home screen.
+_FEATURES: Final = {
+    "a": "b", "b": "a", "x": "y", "y": "x",
+    "select": "back", "start": "start",
+    "pageup": "leftbumper", "pagedown": "rightbumper",
+    "l2": "lefttrigger", "r2": "righttrigger",
+    "l3": "leftthumb", "r3": "rightthumb",
+    "up": "up", "down": "down", "left": "left", "right": "right",
+}
 
-    kodiaxismapping = {
-        # axes
-        "joystick1up":    { "name": "leftstick",  "sens": "up"    },
-        "joystick1down":  { "name": "leftstick",  "sens": "down"  },
-        "joystick1left":  { "name": "leftstick",  "sens": "left"  },
-        "joystick1right": { "name": "leftstick",  "sens": "right" },
-        "joystick2up":    { "name": "rightstick", "sens": "up"    },
-        "joystick2down":  { "name": "rightstick", "sens": "down"  },
-        "joystick2left":  { "name": "rightstick", "sens": "left"  },
-        "joystick2right": { "name": "rightstick", "sens": "right" }
-    }
+# EmulationStation's stick axes -> (Kodi's stick, direction). EmulationStation
+# only names the "up" and "left" ones; the opposite direction is derived.
+_STICKS: Final = {
+    "joystick1up": ("leftstick", "up"),
+    "joystick1left": ("leftstick", "left"),
+    "joystick2up": ("rightstick", "up"),
+    "joystick2left": ("rightstick", "left"),
+}
+_OPPOSITE_DIRECTIONS: Final = {"up": "down", "down": "up", "left": "right", "right": "left"}
 
-    controllersDone = {}
 
-    for cur in currentControllers:
-        # skip duplicates
-        if cur.real_name in controllersDone:
+def kodi_install() -> str:
+    """Tell which Kodi retrobox-kodi starts.
+
+    Returns:
+        "flatpak" or "native".
+
+    Raises:
+        RetroboxException: if there is no Kodi, or retrobox-kodi cannot run.
+    """
+    try:
+        result = subprocess.run(
+            [str(KODI_LAUNCHER), "--which"], capture_output=True, text=True, check=False
+        )
+    except OSError as err:
+        raise RetroboxException(f"Cannot run {KODI_LAUNCHER}: {err}") from err
+    kind = result.stdout.strip()
+    if result.returncode != 0 or kind not in _KODI_USERDATA:
+        raise RetroboxException(
+            "Kodi not found (neither the tv.kodi.Kodi Flatpak nor a native kodi)"
+        )
+    return kind
+
+
+def kodi_userdata() -> Path:
+    """Return the userdata folder of the Kodi retrobox-kodi starts."""
+    return _KODI_USERDATA[kodi_install()]
+
+
+def _vid_pid(guid: str) -> tuple[str, str]:
+    """Vendor and product ids of an SDL GUID, as Kodi's udev provider writes them."""
+    return guid[10:12] + guid[8:10], guid[18:20] + guid[16:18]
+
+
+def _signed(axis_id: str, positive: bool) -> str:
+    return f"{'+' if positive else '-'}{axis_id}"
+
+
+def _stick_element(sticks: dict[str, ET.Element], name: str, direction: str, axis_id: str,
+                   positive: bool) -> None:
+    """Add to the Kodi stick ``name`` the element of a direction, creating the stick."""
+    stick = sticks.get(name)
+    if stick is None:
+        stick = sticks[name] = ET.Element("feature", {"name": name})
+    ET.SubElement(stick, direction, {"axis": _signed(axis_id, positive)})
+
+
+def _add_stick_axis(sticks: dict[str, ET.Element], input_name: str, axis_id: str,
+                    value: int) -> None:
+    """Map one stick axis of EmulationStation, and the opposite direction."""
+    stick, direction = _STICKS[input_name]
+    # the axis moves towards the direction in the sense EmulationStation recorded
+    # (its value) and towards the opposite one in the other sense
+    _stick_element(sticks, stick, direction, axis_id, value >= 0)
+    _stick_element(sticks, stick, _OPPOSITE_DIRECTIONS[direction], axis_id, value < 0)
+
+
+def _hat_feature(controller: Controller, hat_value: int) -> ET.Element:
+    """A d-pad direction of a hat: Kodi sees a hat as two axes after the real ones."""
+    direction = _HAT_DIRECTIONS[hat_value]
+    horizontal = direction in ("left", "right")
+    axis = controller.axis_count if horizontal else controller.axis_count + 1
+    return ET.Element("feature", {
+        "name": direction,
+        "axis": _signed(str(axis), direction in ("down", "right")),
+    })
+
+
+def _controller_element(controller: Controller, features: dict[str, str]) -> ET.Element:
+    """The ``controller`` element (the features) of a device's button map."""
+    element = ET.Element("controller", {"id": "game.controller.default"})
+    sticks: dict[str, ET.Element] = {}
+    buttons_done: set[int] = set()
+
+    for pad_input in controller.inputs.values():
+        if pad_input.type == "axis" and pad_input.name in _STICKS:
+            _add_stick_axis(sticks, pad_input.name, pad_input.id, int(pad_input.value))
+        elif pad_input.name not in features:
             continue
-        controllersDone[cur.real_name] = True
+        elif pad_input.type == "button":
+            if int(pad_input.id) not in buttons_done:
+                buttons_done.add(int(pad_input.id))
+                element.append(ET.Element("feature", {
+                    "name": features[pad_input.name], "button": str(int(pad_input.id)),
+                }))
+        elif pad_input.type == "hat" and int(pad_input.value) in _HAT_DIRECTIONS:
+            element.append(_hat_feature(controller, int(pad_input.value)))
+        elif pad_input.type == "axis":
+            element.append(ET.Element("feature", {
+                "name": features[pad_input.name],
+                "axis": _signed(pad_input.id, int(pad_input.value) >= 0),
+            }))
 
-        # initialized the file
-        kodiJoy = kodiJoystick.with_name(kodiJoystick.name.format(f"{cur.guid}_{hashlib.md5(cur.real_name.encode('utf-8')).hexdigest()}")).open("w") # because 2 pads with a different name have sometimes the same vid/pid...
-        config = minidom.Document()
-        xmlbuttonmap = config.createElement('buttonmap')
-        config.appendChild(xmlbuttonmap)
+    element.extend(sticks.values())
+    return element
 
-        xmldevice = config.createElement('device')
-        xmldevice.attributes["name"] = cur.real_name
-        xmldevice.attributes["provider"] = provider
 
-        if provider == "udev":
-            xmldevice.attributes["vid"], xmldevice.attributes["pid"] = vidpid(cur.guid)
+def _device_element(controller: Controller, provider: str, features: dict[str, str]) -> ET.Element:
+    """The ``device`` element of a controller's button map."""
+    attributes = {"name": controller.real_name, "provider": provider}
+    if provider == "udev":
+        attributes["vid"], attributes["pid"] = _vid_pid(controller.guid)
+    attributes["buttoncount"] = str(controller.button_count)
+    attributes["axiscount"] = str(2 * controller.hat_count + controller.axis_count)
 
-        xmldevice.attributes["buttoncount"] = f'{cur.button_count}'
-        xmldevice.attributes["axiscount"] = f'{2*cur.hat_count + cur.axis_count}'
-        xmlbuttonmap.appendChild(xmldevice)
-        xmlcontroller = config.createElement('controller')
-        xmlcontroller.attributes["id"] = "game.controller.default"
+    device = ET.Element("device", attributes)
+    device.append(_controller_element(controller, features))
+    return device
 
-        sticksNode: dict[str, minidom.Element] = {}
 
-        alreadyset = {}
-        for input in cur.inputs.values():
-            if input.type == 'axis' and input.name in kodiaxismapping:
-                mapping = kodiaxismapping[input.name]
-                if mapping["name"] not in sticksNode:
-                    sticksNode[mapping["name"]] = config.createElement('feature')
-                    sticksNode[mapping["name"]].attributes["name"] = mapping["name"]
-                for sens in [input.name, kodireversepositions[input.name]]:
-                    xmlsens = config.createElement(kodiaxismapping[sens]["sens"])
-                    val = input.id
-                    if (int(input.value) >= 0 and sens == input.name) or (int(input.value) < 0 and sens != input.name):
-                        val =  f"+{val}"
-                    else:
-                        val =  f"-{val}"
-                    xmlsens.attributes["axis"] = val
-                    sticksNode[kodiaxismapping[sens]["name"]].appendChild(xmlsens)
-            elif input.name in kodimapping:
-                if input.type == 'button':
-                    if f"btn_{int(input.id)}" not in alreadyset:
-                        xmlbutton = config.createElement('feature')
-                        xmlbutton.attributes["name"] = kodimapping[input.name]
-                        xmlbutton.attributes["button"] = str(int(input.id))
-                        xmlcontroller.appendChild(xmlbutton)
-                        alreadyset[f"btn_{int(input.id)}"] = True
+def write_kodi_configs(
+    template: Path, controllers: Controllers, provider: str, confirm_east: bool = False
+) -> None:
+    """Write a button map for each of the controllers.
 
-                elif input.type == 'hat' and int(input.value) in kodihatspositions:
-                    xmlhat = config.createElement('feature')
-                    if kodihatspositions[int(input.value)] == "left" or kodihatspositions[int(input.value)] == "right":
-                        val = f'{cur.axis_count}'
-                    else:
-                        val = f'{cur.axis_count+1}'
-                    if kodihatspositions[int(input.value)] == "down" or kodihatspositions[int(input.value)] == "right":
-                        xmlhat.attributes["axis"] = f"+{val}"
-                    else:
-                        xmlhat.attributes["axis"] = f"-{val}"
-                    xmlhat.attributes["name"] = kodihatspositions[int(input.value)]
-                    xmlcontroller.appendChild(xmlhat)
+    Arguments:
+        template: path of the files, with a ``{}`` in the name for the controller.
+        controllers: the players' controllers.
+        provider: the provider Kodi's peripheral.joystick reads them with.
+        confirm_east: whether EmulationStation confirms with the east button.
+    """
+    features = dict(_FEATURES)
+    if confirm_east:
+        # Kodi's menus confirm with its "a": follow EmulationStation's button
+        features["a"], features["b"] = "a", "b"
 
-                elif input.type == 'axis':
-                    xmlaxis = config.createElement('feature')
-                    val = input.id
-                    if int(input.value) >= 0:
-                        val =  f"+{val}"
-                    else:
-                        val =  f"-{val}"
-                    xmlaxis.attributes["axis"] = val
-                    xmlaxis.attributes["name"] = kodimapping[input.name]
-                    xmlcontroller.appendChild(xmlaxis)
+    done: set[str] = set()
+    for controller in controllers:
+        # one file per name: a pad is repeated when several are the same model
+        if controller.real_name in done:
+            continue
+        done.add(controller.real_name)
 
-        for node in sticksNode:
-            xmlcontroller.appendChild(sticksNode[node])
-        xmldevice.appendChild(xmlcontroller)
-        kodiJoy.write(config.toprettyxml())
-        kodiJoy.close()
+        # the name hash is because 2 pads with a different name sometimes have the
+        # same vid/pid; the "batocera_" prefix is kept so that the files of older
+        # versions are overwritten, not duplicated
+        digest = hashlib.md5(controller.real_name.encode("utf-8")).hexdigest()
+        path = template.with_name(template.name.format(f"{controller.guid}_{digest}"))
 
-def writeKodiConfig(controllersFromES: Controllers) -> None:
-    # if there is no controller, don't remove the current generated one
+        root = ET.Element("buttonmap")
+        root.append(_device_element(controller, provider, features))
+        ET.indent(root)
+        ET.ElementTree(root).write(path, encoding="utf-8", xml_declaration=True)
+
+
+def write_kodi_config(controllers: Controllers, userdata: Path | None = None) -> None:
+    """Write Kodi's controller configuration into its userdata folder.
+
+    Arguments:
+        controllers: the players' controllers.
+        userdata: Kodi's userdata folder; by default the one of the Kodi that
+            retrobox-kodi starts (the Flatpak first).
+    """
+    # if there is no controller, don't remove the current generated one:
     # it allows people to start kodi at startup when having only bluetooth joysticks
     # or this allows people to plug the last used joystick
-    if not controllersFromES:
+    if not controllers:
         return
-    #provider = "linux"
+    if userdata is None:
+        userdata = kodi_userdata()
+
     provider = "udev"
-    kodiJoystick = _KODI_USERDATA / 'addon_data' / 'peripheral.joystick' / 'resources' / 'buttonmaps' / 'xml' / provider / 'batocera_{}.xml'
-    mkdir_if_not_exists(kodiJoystick.parent)
-    writeKodiConfigs(kodiJoystick, controllersFromES, provider)
+    buttonmaps = (
+        userdata / "addon_data" / "peripheral.joystick" / "resources" / "buttonmaps" / "xml"
+        / provider / "batocera_{}.xml"
+    )
+    mkdir_if_not_exists(buttonmaps.parent)
+    write_kodi_configs(
+        buttonmaps, controllers, provider,
+        confirm_east=confirm_is_east(read_es_settings(ES_SETTINGS_CFG)),
+    )
 
     # force the udev plugin
-    with ensure_parents_and_open(_KODI_USERDATA / "addon_data" / "peripheral.joystick" / "settings.xml", "w") as f:
-        f.write("<settings version=\"2\">")
-
-        if provider == "linux":
-            f.write("<setting id=\"driver_linux\">0</setting>")
-        if provider == "udev":
-            f.write("<setting id=\"driver_linux\">1</setting>")
-
-        f.write("</settings>")
+    settings = userdata / "addon_data" / "peripheral.joystick" / "settings.xml"
+    with ensure_parents_and_open(settings, "w") as file:
+        file.write('<settings version="2"><setting id="driver_linux">1</setting></settings>')
 
     # disable the kodi splash by default (nicer integration)
-    advxml = _KODI_USERDATA / "advancedsettings.xml"
-    if not advxml.exists():
-        with ensure_parents_and_open(advxml, "w") as f:
-            f.write("<advancedsettings><splash>false</splash></advancedsettings>")
-
-def vidpid(guid: str) -> tuple[str, str]:
-    return guid[10:12]+guid[8:10], guid[18:20]+guid[16:18]
+    advanced = userdata / "advancedsettings.xml"
+    if not advanced.exists():
+        with ensure_parents_and_open(advanced, "w") as file:
+            file.write("<advancedsettings><splash>false</splash></advancedsettings>")

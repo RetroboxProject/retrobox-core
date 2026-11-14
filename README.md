@@ -172,6 +172,8 @@ When a game needs an emulator that has an installer in `tools/emulators/` but is
 
 An `apps` system with app-like shortcuts to web streaming services (opened in Chrome or Firefox kiosk mode, so one of them must be installed) and Kodi (which needs Kodi).
 
+**Kodi** is started through `bin/retrobox-kodi`, which only launches it: the Flatpak (`tv.kodi.Kodi`) if installed, else a native `kodi` (`RETROBOX_KODI=flatpak|native` forces one; `--which` prints the one it would start). Before that, configgen writes the controllers' button maps for Kodi's `peripheral.joystick` add-on into the userdata folder of that Kodi (`~/.var/app/tv.kodi.Kodi/data/userdata` or `~/.kodi/userdata`), mirroring EmulationStation's layout (the buttons by position, L3/R3 included; with *Switch confirm & cancel buttons* the east button confirms, as in EmulationStation). The hotkey is not mapped, because it is a modifier in Retrobox. A native Kodi needs the `peripheral.joystick` add-on, which some distributions package separately. EmulationStation's *Kodi media center* menu entry shows when `retrobox-kodi --check` succeeds and goes through the same path (`retrobox-launch -system apps -emulator kodi -rom config`). Kodi uses its own gamepad handling, so its `apps.kodi.keys` gamepadly profile is empty (it only gets the standard hotkeys, such as Hotkey+Start to leave).
+
 `gamepadly` maps the player 1 gamepad so the web pages can be used without a mouse (`share/pad2key/profiles/apps.keys`; buttons in SNES layout):
 
 | Input | Action |

@@ -1,6 +1,10 @@
+"""Kodi: configgen writes its controllers; bin/retrobox-kodi starts it."""
+
+# The method and argument names are the interface every generator implements.
+# pylint: disable=invalid-name,unused-argument,too-many-arguments,too-many-positional-arguments
+
 from __future__ import annotations
 
-import os
 from pathlib import Path
 
 from retrobox.configgen.exceptions import RetroboxException
@@ -10,30 +14,21 @@ from ..Generator import Generator
 from . import kodiConfig
 
 
-def _find_kodi_binary() -> str:
-    candidates = [
-        "/usr/bin/kodi",
-        "/usr/local/bin/kodi",
-        str(Path.home() / ".local/bin/kodi"),
-        "kodi",
-    ]
-    for c in candidates:
-        if os.path.isfile(c) and os.access(c, os.X_OK):
-            return c
-    return "kodi"
-
 class KodiGenerator(Generator):
+    """Kodi: writes its controller configuration; bin/retrobox-kodi only starts it."""
 
     # Main entry of the module
     # Configure kodi inputs and return the command to run
     def generate(self, system, rom, playersControllers, metadata, guns, wheels, gameResolution):
-        with rom.open() as f:
-            lines = f.read().splitlines()
-        if lines:
-            first_line = lines[0].strip()
-            if first_line != "kodi":
-                raise RetroboxException(f'Invalid launcher for kodi')
+        # EmulationStation's Kodi menu entry has no game: it passes "-rom config"
+        if rom != Path("config"):
+            with rom.open() as f:
+                lines = f.read().splitlines()
+            if lines:
+                first_line = lines[0].strip()
+                if first_line != "kodi":
+                    raise RetroboxException('Invalid launcher for kodi')
 
-        kodiConfig.writeKodiConfig(playersControllers)
-        commandArray = [f"{_find_kodi_binary()}"]
-        return Command.Command(array=commandArray)
+        # raises when there is no Kodi; Flatpak is preferred over a native one
+        kodiConfig.write_kodi_config(playersControllers)
+        return Command.Command(array=[kodiConfig.KODI_LAUNCHER])
