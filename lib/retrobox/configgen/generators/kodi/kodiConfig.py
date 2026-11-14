@@ -6,10 +6,12 @@ written here follow EmulationStation's layout, so the pads behave in Kodi's
 menus as they do in EmulationStation.
 
 Kodi matches a button map to a pad by provider, kernel device name and counts.
-Its udev driver files the maps under the "linux" provider (the folder Kodi
-itself writes to and ships its own maps in), and names the pad as the kernel
-does, which is not always SDL's name: a PDP pad driven by xone is
-"Microsoft Xbox Controller" for Kodi but "PDP Xbox One Arctic White" for SDL.
+Its udev driver gives a pad the "udev" provider (with vid/pid) when it can read
+the vendor and product, and the "linux" one (without them) when it cannot, as
+with the pads of xone, which hang from its GIP bus. Each map is written for both
+providers, as Kodi only reads the one it gave the pad. The name is the kernel's,
+which is not always SDL's: a PDP pad driven by xone is "Microsoft Xbox
+Controller" for Kodi but "PDP Xbox One Arctic White" for SDL.
 """
 
 # The module name is the one the generator importer uses.
@@ -45,10 +47,8 @@ _KODI_USERDATA: Final = {
 
 KODI_LAUNCHER: Final = RETROBOX_ROOTDIR / "bin" / "retrobox-kodi"
 
-# The provider Kodi's udev driver files its button maps under, and the one
-# older versions of this module wrote to (Kodi ignores it).
-_PROVIDER: Final = "linux"
-_STALE_PROVIDER: Final = "udev"
+# The providers Kodi's udev driver gives a pad: with vid/pid, or without them.
+_PROVIDERS: Final = ("udev", "linux")
 
 # EmulationStation's analog triggers: Kodi needs to know they rest at -1.
 _TRIGGERS: Final = ("l2", "r2")
@@ -112,7 +112,7 @@ def kodi_userdata() -> Path:
 
 def _vid_pid(guid: str) -> tuple[str, str]:
     """Vendor and product ids of an SDL GUID, as Kodi's udev provider writes them."""
-    return guid[10:12] + guid[8:10], guid[18:20] + guid[16:18]
+    return (guid[10:12] + guid[8:10]).upper(), (guid[18:20] + guid[16:18]).upper()
 
 
 def _kernel_name(controller: Controller) -> str:
@@ -272,16 +272,11 @@ def write_kodi_config(controllers: Controllers, userdata: Path | None = None) ->
         userdata = kodi_userdata()
 
     xml_dir = userdata / "addon_data" / "peripheral.joystick" / "resources" / "buttonmaps" / "xml"
-    # the maps of older versions, in a folder Kodi does not read
-    for stale in (xml_dir / _STALE_PROVIDER).glob("batocera_*.xml"):
-        stale.unlink(missing_ok=True)
-
-    buttonmaps = xml_dir / _PROVIDER / "batocera_{}.xml"
-    mkdir_if_not_exists(buttonmaps.parent)
-    write_kodi_configs(
-        buttonmaps, controllers, _PROVIDER,
-        confirm_east=confirm_is_east(read_es_settings(ES_SETTINGS_CFG)),
-    )
+    confirm_east = confirm_is_east(read_es_settings(ES_SETTINGS_CFG))
+    for provider in _PROVIDERS:
+        buttonmaps = xml_dir / provider / "batocera_{}.xml"
+        mkdir_if_not_exists(buttonmaps.parent)
+        write_kodi_configs(buttonmaps, controllers, provider, confirm_east=confirm_east)
 
     # force the udev plugin
     settings = userdata / "addon_data" / "peripheral.joystick" / "settings.xml"
