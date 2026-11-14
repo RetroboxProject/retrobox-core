@@ -230,12 +230,11 @@ The core is modular. EmulationStation ([`retrobox-emulationstation`](https://git
 
 `retrobox` warns at startup if EmulationStation is missing; without the patched MangoHud it falls back to a system-wide `mangohud`.
 
-### From a checkout
+### Running from the repo (development)
 
-1. Clone this repo and install the dependencies listed in `tools/deps/*.list` with apt or dnf, plus the udev rules in `system/udev/` (copy them to `/etc/udev/rules.d/` and reload). The simplest way to get all of it is `install.sh`, which does it for you; gamepadly is installed separately with its own `install.sh` or `python3-gamepadly`.
-2. EmulationStation, MangoHud and the themes (e.g. *iconic*) are separate components: install their packages, or their `install.sh` into the checkout (`install.sh --with ...` does it for a normal install). Without any theme, *iconic* is downloaded on the first start (see above).
+Retrobox keeps the *operational* part (this tree: code, `share/`, `libexec/`, installed at `/opt/retrobox` by the packages and `install.sh`) apart from the *mutable* part (ROMs, BIOS, saves, themes, music, emulators... under `~/.local/share/retrobox`, `~/.local/state/retrobox` and `~/.config/retrobox`, see *Paths*). The tree is never written to at runtime, and a checkout holds no such content either, so it is not an install method: install with a package or `install.sh`.
 
-Python dependencies for a virtualenv: `pip install -r requirements.txt`.
+For debugging, `bin/retrobox` also runs straight from a clone, using the same user directories as an installed Retrobox. You need the dependencies of `tools/deps/*.list` (and `pip install -r requirements.txt` for a virtualenv), the udev rules of `system/udev/` and, as components, EmulationStation, MangoHud and gamepadly (their packages, or `install.sh --with ...`, which installs them next to the core).
 
 ### Building the packages
 
