@@ -60,6 +60,7 @@ from retrobox.paths import (
 )
 from retrobox.configgen.utils.logger import setup_logging
 from retrobox.launcher.hooks import call_retrohook
+from retrobox.startup.frontend_conf.audio_settings import ensure_audio_mixer
 from retrobox.startup.frontend_conf.es_ini_generator import (
     ensure_ini_directories,
     generate_emulationstation_ini,
@@ -230,6 +231,9 @@ def setup_emulationstation_config() -> None:
     generate_emulationstation_ini()
     generate_es_systems()
     generate_es_features()
+    # EmulationStation changes the volume through an ALSA mixer: make it the
+    # sound server's one (it must be done before ES starts, it rewrites the file).
+    ensure_audio_mixer()
 
 
 def download_before_start(updates: frozenset[str]) -> None:

@@ -9,3 +9,6 @@ wl-clipboard
 xclip
 # settings window (retrobox --settings)
 python3-pyside6
+# volume of EmulationStation: its ALSA mixer must be the sound server's one (ALSA "pulse" plugin)
+alsa-plugins-pulseaudio
+pipewire-pulseaudio

@@ -6,3 +6,6 @@ wl-clipboard
 xclip
 # settings window (retrobox --settings): PySide6, or PyQt6 where there is none (Debian 12)
 python3-pyside6.qtwidgets | python3-pyqt6
+# volume of EmulationStation: its ALSA mixer must be the sound server's one (ALSA "pulse" plugin)
+libasound2-plugins
+pipewire-pulse | pulseaudio
