@@ -4,23 +4,10 @@
 # there's no shebang and no `set -euo pipefail` here: those would leak into
 # whatever sources this file. Callers are expected to check return codes.
 # Exposes:
-# full_setup                 -> runs platform setup + git submodules (only
-#                               needed for a git checkout: packages and
-#                               install.sh bring their own dependencies)
 # setup_emulator <name>      -> builds tools/emulators/<name>.sh from
 #                               source, auto-detecting which flag it wants
 # list_available_emulators   -> prints every tools/emulators/*.sh found,
 #                               with the flag each would be called with
-# setup_util <name>          -> runs tools/utils/<name>.sh, auto-detecting
-#                               which flag it wants (same convention as
-#                               setup_emulator)
-# list_available_utils       -> prints every tools/utils/*.sh found, with
-#                               the flag each would be called with
-# setup_music <name>         -> runs tools/music/<name>.sh, auto-detecting
-#                               which flag it wants (same convention as
-#                               setup_emulator)
-# list_available_music       -> prints every tools/music/*.sh found, with
-#                               the flag each would be called with
 # setup_bezeles <name>         -> runs tools/decorations/<name>.sh, auto-detecting
 #                                which flag it wants (same convention as
 #                                setup_emulator)
@@ -88,70 +75,6 @@ function _fallback_install_flag() {
     return 1
 }
 
-function detect_distro_family() {
-    if [[ -r /etc/os-release ]]; then
-        # shellcheck disable=SC1091
-        source /etc/os-release
-        local ids="${ID:-} ${ID_LIKE:-}"
-        if grep -qiE '(^|[[:space:]])fedora([[:space:]]|$)' <<<"${ids}"; then
-             echo "fedora"
-             return
-         fi
-         if grep -qiE '(^|[[:space:]])debian([[:space:]]|$)' <<<"${ids}"; then
-             echo "debian"
-             return
-         fi
-     fi
-     if command -v dnf &>/dev/null; then
-         echo "fedora"
-     elif command -v apt-get &>/dev/null; then
-         echo "debian"
-     else
-         echo "unknown"
-     fi
-}
-
-function init_submodules() {
-    if [[ ! -f "${RETROBOX_ROOTDIR}/.gitmodules" ]]; then
-        log_info "No .gitmodules found, skipping git submodule init."
-        return 0
-    fi
-    if ! command -v git &>/dev/null; then
-        log_warn "git not found on PATH, cannot initialize submodules."
-        return 0
-    fi
-    log_info "Initializing git submodules..."
-    if (cd "${RETROBOX_ROOTDIR}" && git submodule update --init --recursive); then
-        log_ok "Git submodules ready."
-    else
-        log_err "Failed to initialize git submodules."
-        return 1
-    fi
-}
-
-function run_platform_setup() {
-    local family="$1"
-    if [[ ! -f "${TOOLS_DIR}/setup-debian.sh" && ! -f "${TOOLS_DIR}/setup-fedora.sh" ]]; then
-        log_info "This is a packaged install: the dependencies come from your package manager."
-        return 0
-    fi
-    case "${family}" in
-        debian)
-            log_info "Detected a Debian-based system."
-            bash "${TOOLS_DIR}/setup-debian.sh"
-            ;;
-        fedora)
-            log_info "Detected a Fedora-based system."
-            bash "${TOOLS_DIR}/setup-fedora.sh"
-            ;;
-        *)
-            log_err "Could not detect a supported distro family (Debian- or Fedora-based). Skipping platform setup."
-            log_warn "You can still install individual emulators with: retrobox --setup-emulator <name>"
-            return 1
-            ;;
-    esac
-}
-
 function _run_installer() {
     local kind="$1" script="$2" name="$3"
     local flag
@@ -182,32 +105,6 @@ function setup_emulator() {
         return 1
     fi
     _run_installer "emulator" "${script}" "${name}"
-}
-
-function setup_util() {
-    local name="$1"
-    local script="${TOOLS_DIR}/utils/${name}.sh"
-    if [[ "${name}" == "labwc-config" ]]; then
-        log_err "The labwc gaming session moved to its own component, retrobox-labwc"
-        log_err "(https://github.com/RetroboxProject/retrobox-labwc): install its package,"
-        log_err "or run install.sh --with labwc, then run retrobox-labwc-setup as your user."
-        return 1
-    fi
-    if [[ ! -f "${script}" ]]; then
-        log_err "No installer found for utility '${name}' (expected ${script})."
-        return 1
-    fi
-    _run_installer "utility" "${script}" "${name}"
-}
-
-function setup_music() {
-    local name="$1"
-    local script="${TOOLS_DIR}/music/${name}.sh"
-    if [[ ! -f "${script}" ]]; then
-        log_err "No installer found for music pack '${name}' (expected ${script})."
-        return 1
-    fi
-    _run_installer "music" "${script}" "${name}"
 }
 
 function setup_bezeles() {
@@ -247,27 +144,6 @@ function list_available_emulators() {
     _list_available_installers "${TOOLS_DIR}/emulators" "emulator"
 }
 
-function list_available_utils() {
-    _list_available_installers "${TOOLS_DIR}/utils" "utility"
-}
-
-function list_available_music() {
-    _list_available_installers "${TOOLS_DIR}/music" "music"
-}
-
 function list_available_bezels() {
     _list_available_installers "${TOOLS_DIR}/decorations" "bezel"
-}
-
-function full_setup() {
-    local family status=0
-    family="$(detect_distro_family)"
-    run_platform_setup "${family}" || status=1
-    init_submodules || status=1
-    if [[ "${status}" -eq 0 ]]; then
-        log_ok "Retrobox setup complete."
-    else
-        log_err "Retrobox setup finished with errors."
-    fi
-    return "${status}"
 }

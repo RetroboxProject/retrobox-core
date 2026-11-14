@@ -47,7 +47,6 @@ group.media_folders: Media en extra's
 group.pcgames_sync: Games synchroniseren
 group.pcgames_sync.help: Voegt de geïnstalleerde games van elke launcher bij elke start van Retrobox toe aan het bijbehorende systeem.
 group.steam: Steam
-group.labwc: Gamesessie (labwc)
 group.environ: Omgevingsvariabelen
 group.environ.help: Ingesteld voor alle processen van Retrobox (API-sleutels, emulatoropties…). Een variabele die al in de omgeving staat, heeft voorrang.
 
@@ -79,8 +78,6 @@ environ.OVERLAYS_DIR: Overlays
 environ.STEAM_LIBRARY_DIR: "Steam-bibliotheken"
 environ.STEAM_LIBRARY_DIR.help: "Naast de gebruikelijke Steam-installaties (en alle bibliotheken die ze vermelden). Voeg elke map met games toe: een bibliotheek, een Steam-installatie of de steamapps-map ervan."
 
-advanced.labwc_tty: Virtuele terminal
-advanced.labwc_tty.help: De terminal (TTY) waarop de labwc-gamesessie draait, als die geïnstalleerd is.
 
 choice.none: Niet synchroniseren
 choice.on-base-dir: In de gegevensmap

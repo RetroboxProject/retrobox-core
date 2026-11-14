@@ -1,6 +1,6 @@
 # retrobox-core
 
-A port of the [batocera](https://github.com/batocera-linux/batocera.linux) backend stack to a standard Linux desktop (Debian, Ubuntu or Fedora; KDE Plasma, labwc or X11), using `batocera-configgen` as a base.
+A port of the [batocera](https://github.com/batocera-linux/batocera.linux) backend stack to a standard Linux desktop (Debian, Ubuntu or Fedora; KDE Plasma or X11), using `batocera-configgen` as a base.
 
 The goal is to have a batocera/Retrobat-like experience if paired with [retrobox-emulationstation](https://github.com/RetroboxProject/retrobox-emulationstation), a build of batocera-emulationstation, featuring automatic emulator configuration, bezels, shaders, controller mapping — without having to reboot to other OS.
 
@@ -86,7 +86,7 @@ Emulators that keep their binary and their config together (redream, supermodel,
 
 batocera ships several system-specific binaries that don't exist on a standard Linux install. Replacements (in `libexec/stubs/`):
 
-- **`batocera-resolution`**: bash wrapper over `kscreen-doctor` (KDE Wayland), `wlr-randr` (labwc and other wlroots compositors) or `xrandr` (X11)
+- **`batocera-resolution`**: bash wrapper over `kscreen-doctor` (KDE Wayland), `wlr-randr` (wlroots compositors) or `xrandr` (X11)
 - **`batocera-vulkan`**: reimplemented with `vulkaninfo`
 - **`batocera-keyboard`**, **`getLocalXDisplay`**: minimal replacements for the configgen calls that expect them
 
@@ -216,10 +216,10 @@ It installs the same layout as the package: `/opt/retrobox` (or `/var/opt/retrob
 
 ### Components
 
-The core is modular. EmulationStation ([`retrobox-emulationstation`](https://github.com/RetroboxProject/retrobox-emulationstation)), the patched MangoHud ([`retrobox-mangohud`](https://github.com/RetroboxProject/retrobox-mangohud)) and the labwc gaming session on its own TTY ([`retrobox-labwc`](https://github.com/RetroboxProject/retrobox-labwc)) are separate projects; [`gamepadly`](https://github.com/RetroboxProject/gamepadly) (pad-to-keyboard mapper, a regular Python package) is too. `retrobox-core` ships no frontend, no MangoHud, no theme and compiles nothing. If EmulationStation finds no theme at all (neither in `<install dir>/frontend/themes` nor in `<data dir>/themes`), `retrobox` downloads the latest commit of [*es-theme-iconic*](https://github.com/manu-creative-411/es-theme-iconic) into `<data dir>/themes` before starting; `retrobox --update-default-theme` downloads it again (update, or reinstall if it was removed) and then starts. The [RetroBat bezels](https://github.com/RetroBat-Official/retrobat-bezels) (the default decorations) are downloaded the same way into `<data dir>/decorations-default`, and [Retrobox's shaders](https://github.com/RetroboxProject/retrobox-shaders) into the shaders folder (`<data dir>/shaders`, or `SHADERS_DIR`), but only on the first start (the bezels, only if their folder holds no files yet); `retrobox --update-default-bezels` / `--update-default-shaders` get them again. The bezels replace their folder, which belongs to Retrobox; the shaders are merged into theirs, so your own shaders there are kept. All these downloads show their progress on the setup screen (see *Emulator setup screen*), can be cancelled with B / Esc, never replace a working copy with a broken one, and if they fail Retrobox says so and starts anyway.
+The core is modular. EmulationStation ([`retrobox-emulationstation`](https://github.com/RetroboxProject/retrobox-emulationstation)) and the patched MangoHud ([`retrobox-mangohud`](https://github.com/RetroboxProject/retrobox-mangohud)) are separate projects; [`gamepadly`](https://github.com/RetroboxProject/gamepadly) (pad-to-keyboard mapper, a regular Python package) is too. `retrobox-core` ships no frontend, no MangoHud, no theme and compiles nothing. If EmulationStation finds no theme at all (neither in `<install dir>/frontend/themes` nor in `<data dir>/themes`), `retrobox` downloads the latest commit of [*es-theme-iconic*](https://github.com/manu-creative-411/es-theme-iconic) into `<data dir>/themes` before starting; `retrobox --update-default-theme` downloads it again (update, or reinstall if it was removed) and then starts. The [RetroBat bezels](https://github.com/RetroBat-Official/retrobat-bezels) (the default decorations) are downloaded the same way into `<data dir>/decorations-default`, and [Retrobox's shaders](https://github.com/RetroboxProject/retrobox-shaders) into the shaders folder (`<data dir>/shaders`, or `SHADERS_DIR`), but only on the first start (the bezels, only if their folder holds no files yet); `retrobox --update-default-bezels` / `--update-default-shaders` get them again. The bezels replace their folder, which belongs to Retrobox; the shaders are merged into theirs, so your own shaders there are kept. All these downloads show their progress on the setup screen (see *Emulator setup screen*), can be cancelled with B / Esc, never replace a working copy with a broken one, and if they fail Retrobox says so and starts anyway.
 
-- **Packages (.deb/.rpm):** `retrobox-core` only *recommends* `retrobox-emulationstation`, `retrobox-mangohud` and `python3-gamepadly` (and *suggests* `retrobox-labwc`); install them with the package manager. Those packages are built per architecture (amd64, arm64); the core is architecture-independent (`_all.deb`, `noarch.rpm`).
-- **install.sh:** `--with emulationstation` / `--with mangohud` / `--with labwc` downloads the component's own `install.sh` (the one at the root of its repository, or `--with NAME=<URL or local path>`) and runs it:
+- **Packages (.deb/.rpm):** `retrobox-core` only *recommends* `retrobox-emulationstation`, `retrobox-mangohud` and `python3-gamepadly`; install them with the package manager. Those packages are built per architecture (amd64, arm64); the core is architecture-independent (`_all.deb`, `noarch.rpm`).
+- **install.sh:** `--with emulationstation` / `--with mangohud` downloads the component's own `install.sh` (the one at the root of its repository, or `--with NAME=<URL or local path>`) and runs it:
 
   ```
   install.sh --prefix DIR --bin-dir DIR [--no-deps] [--user]
@@ -232,7 +232,7 @@ The core is modular. EmulationStation ([`retrobox-emulationstation`](https://git
 
 ### From a checkout
 
-1. Clone this repo and run `retrobox --setup` (installs the dependencies from `tools/deps/` with apt or dnf and the udev rules; gamepadly is installed separately with its own `install.sh` or `python3-gamepadly`).
+1. Clone this repo and install the dependencies listed in `tools/deps/*.list` with apt or dnf, plus the udev rules in `system/udev/` (copy them to `/etc/udev/rules.d/` and reload). The simplest way to get all of it is `install.sh`, which does it for you; gamepadly is installed separately with its own `install.sh` or `python3-gamepadly`.
 2. EmulationStation, MangoHud and the themes (e.g. *iconic*) are separate components: install their packages, or their `install.sh` into the checkout (`install.sh --with ...` does it for a normal install). Without any theme, *iconic* is downloaded on the first start (see above).
 
 Python dependencies for a virtualenv: `pip install -r requirements.txt`.
@@ -258,7 +258,7 @@ Install directory (read-only):
 │   └── retrobox/              # the Python package: paths, startup, launcher, configgen, utils
 ├── libexec/                   # internal helpers: emuconfig/ (per-emulator config launchers), stubs/, mangohud/ (from the retrobox-mangohud component)
 ├── share/                     # read-only defaults (the lowest config layer): systems_config/, emu_features/, configgen/, hooks/, pad2key/...
-├── tools/                     # installers (emulators/, music/, decorations/), deps/*.list, setup scripts
+├── tools/                     # installers (emulators/, decorations/), deps/*.list, setup.sh
 ├── frontend/                  # EmulationStation seed config (the retrobox-emulationstation component installs here)
 ├── VERSION                    # (packages only)
 └── venv/                      # (install.sh on immutable systems only)

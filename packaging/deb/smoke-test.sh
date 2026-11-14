@@ -81,7 +81,7 @@ grep -q retroarch <<<"${listing}" \
 
 echo "--- the package ships nothing but what runs"
 for gone in LICENSE README.md requirements.txt install.sh .gitmodules system dev packaging \
-            tools/deps tools/setup-debian.sh tools/setup-fedora.sh tools/lib/deps.sh; do
+            tools/deps tools/lib/deps.sh; do
     [[ ! -e "/opt/retrobox/${gone}" ]] || fail "/opt/retrobox/${gone} must not be shipped"
 done
 stray="$(find /opt/retrobox \( -name README -o -name 'README.md' -o -name 'install*.sh' -o -name 'uninstall*' \
@@ -91,19 +91,17 @@ stray="$(find /opt/retrobox \( -name README -o -name 'README.md' -o -name 'insta
 hidden="$(find /opt/retrobox -name '.*' ! -name . ! -name .emulationstation)"
 [[ -z "${hidden}" ]] || fail "hidden files in /opt/retrobox: ${hidden}"
 [[ -z "${stray}" ]] || fail "stray files in /opt/retrobox: ${stray}"
-setup_out="$(as_user retrobox --setup 2>&1 || true)"
-grep -q "packaged install" <<<"${setup_out}" || fail "retrobox --setup does not say dependencies come from the package manager"
 
 echo "--- layered configuration: /etc and ~/.config overrides"
 as_user mkdir -p "${user_home}/.config/retrobox/retrobox.ini.d"
-echo -e "[advanced]\nlabwc_tty = 7" > /etc/retrobox/retrobox.ini
+echo -e "[core]\nignore_systems = gba" > /etc/retrobox/retrobox.ini
 got="$(runuser -u nobody -- env -i HOME="${user_home}" PATH="${PATH}" PYTHONPATH=/opt/retrobox/lib \
-    python3 -m retrobox.paths --get advanced.labwc_tty)"
-[[ "${got}" == "7" ]] || fail "/etc/retrobox/retrobox.ini was not honoured (got '${got}')"
-echo -e "[advanced]\nlabwc_tty = 9" > "${user_home}/.config/retrobox/retrobox.ini.d/50-test.ini"
+    python3 -m retrobox.paths --get core.ignore_systems)"
+[[ "${got}" == "gba" ]] || fail "/etc/retrobox/retrobox.ini was not honoured (got '${got}')"
+echo -e "[core]\nignore_systems = snes" > "${user_home}/.config/retrobox/retrobox.ini.d/50-test.ini"
 got="$(runuser -u nobody -- env -i HOME="${user_home}" PATH="${PATH}" PYTHONPATH=/opt/retrobox/lib \
-    python3 -m retrobox.paths --get advanced.labwc_tty)"
-[[ "${got}" == "9" ]] || fail "the user's retrobox.ini.d drop-in did not override /etc (got '${got}')"
+    python3 -m retrobox.paths --get core.ignore_systems)"
+[[ "${got}" == "snes" ]] || fail "the user's retrobox.ini.d drop-in did not override /etc (got '${got}')"
 rm -f "${user_home}/.config/retrobox/retrobox.ini.d/50-test.ini"
 
 echo "--- /opt/retrobox must not have been written to"

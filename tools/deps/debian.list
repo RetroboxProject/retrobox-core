@@ -1,5 +1,5 @@
 # Runtime dependencies for Debian, Ubuntu and derivatives (apt package names).
-# Single source: setup-debian.sh installs them, the .deb's Depends is built
+# Single source: the .deb's Depends is built
 # from them and install.sh uses them. One package per line; "a | b" = either.
 python3
 python3-yaml

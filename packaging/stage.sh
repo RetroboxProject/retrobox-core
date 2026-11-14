@@ -42,9 +42,9 @@ SYSCONF_DIR="${SYSCONF_DIR:-/etc/retrobox}"
 # What does NOT go into /opt/retrobox. The packages ship what runs, nothing
 # else: no docs, no build/dev files, no installer-only material (the
 # dependency lists and requirements.txt are only needed by install.sh, which
-# gets them through the tarball's extras/; setup-debian/fedora.sh are for git
-# checkouts; the udev rules are installed into /usr/lib/udev below).
-EXCLUDE_RE='^(\.vscode/|\.github/|packaging/|dev/|system/|LICENSE$|install\.sh$|\.gitmodules$|tools/setup-(debian|fedora)\.sh$|tools/deps/|tools/lib/deps\.sh$)|(^|/)(README(\.md)?|requirements\.txt|\.gitignore|\.gitattributes|\.gitkeep)$'
+# gets them through the tarball's extras/; the udev rules are installed into
+# /usr/lib/udev below).
+EXCLUDE_RE='^(\.vscode/|\.github/|packaging/|dev/|system/|LICENSE$|install\.sh$|\.gitmodules$|tools/deps/|tools/lib/deps\.sh$)|(^|/)(README(\.md)?|requirements\.txt|\.gitignore|\.gitattributes|\.gitkeep)$'
 
 ROOT_IN_PKG="${DESTDIR}${INSTALL_ROOT}"
 
@@ -100,10 +100,6 @@ cat > "${DESTDIR}${SYSCONF_DIR}/retrobox.ini" <<'EOF'
 #roms_dir  = /srv/games/roms
 #saves_dir = /srv/games/saves
 #bios_dir  = /srv/games/bios
-
-#[advanced]
-## Virtual terminal of the labwc gaming session (retrobox-labwc component)
-#labwc_tty = 1
 
 #[environ]
 ## Literal environment variables for every Retrobox process.

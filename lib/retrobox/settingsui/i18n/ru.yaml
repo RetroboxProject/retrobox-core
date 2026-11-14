@@ -47,7 +47,6 @@ group.media_folders: Медиа и дополнения
 group.pcgames_sync: Синхронизация игр
 group.pcgames_sync.help: При каждом запуске Retrobox добавляет установленные игры каждого лаунчера в его систему.
 group.steam: Steam
-group.labwc: Игровой сеанс (labwc)
 group.environ: Переменные окружения
 group.environ.help: Задаются для всех процессов Retrobox (ключи API, параметры эмуляторов…). Переменная, уже заданная в окружении, имеет приоритет.
 
@@ -79,8 +78,6 @@ environ.OVERLAYS_DIR: Оверлеи
 environ.STEAM_LIBRARY_DIR: "Библиотеки Steam"
 environ.STEAM_LIBRARY_DIR.help: "Помимо обычных установок Steam (и всех библиотек, которые в них указаны). Добавьте каждую папку с играми: библиотеку, установку Steam или её папку steamapps."
 
-advanced.labwc_tty: Виртуальный терминал
-advanced.labwc_tty.help: Терминал (TTY), на котором работает игровой сеанс labwc, если он установлен.
 
 choice.none: Не синхронизировать
 choice.on-base-dir: В папку данных

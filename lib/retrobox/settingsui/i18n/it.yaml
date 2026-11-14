@@ -47,7 +47,6 @@ group.media_folders: Multimedia ed extra
 group.pcgames_sync: Sincronizzazione dei giochi
 group.pcgames_sync.help: Aggiunge i giochi installati di ogni launcher al suo sistema a ogni avvio di Retrobox.
 group.steam: Steam
-group.labwc: Sessione di gioco (labwc)
 group.environ: Variabili d'ambiente
 group.environ.help: Impostate per tutti i processi di Retrobox (chiavi API, opzioni degli emulatori…). Una variabile già presente nell'ambiente ha la precedenza.
 
@@ -79,8 +78,6 @@ environ.OVERLAYS_DIR: Overlay
 environ.STEAM_LIBRARY_DIR: "Librerie di Steam"
 environ.STEAM_LIBRARY_DIR.help: "Oltre alle installazioni abituali di Steam (e a tutte le librerie che elencano). Aggiungi ogni cartella con dei giochi: una libreria, un'installazione di Steam o la sua cartella steamapps."
 
-advanced.labwc_tty: Terminale virtuale
-advanced.labwc_tty.help: Il terminale (TTY) su cui gira la sessione di gioco di labwc, se installata.
 
 choice.none: Non sincronizzare
 choice.on-base-dir: Nella cartella dei dati

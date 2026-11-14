@@ -1,10 +1,10 @@
 #!/bin/bash
-# batocera-resolution: wrapper for Fedora (KDE Plasma Wayland / labwc / X11)
+# batocera-resolution: wrapper for Fedora (KDE Plasma Wayland / wlroots compositors / X11)
 # Implements only the subcommands used by configgen.
 #
 # Backend selection:
 #   Wayland, KDE session      -> kscreen-doctor (wlr-randr as a fallback)
-#   Wayland, anything else    -> wlr-randr (labwc, sway and other wlroots compositors)
+#   Wayland, anything else    -> wlr-randr (sway and other wlroots compositors)
 #   No Wayland session (X11)  -> xrandr
 # xrandr is NEVER used inside a Wayland session, not even through XWayland,
 # because it would only see the fake XWayland outputs.
@@ -150,7 +150,7 @@ _extract_all_modes() {
 }
 
 # ---------------------------------------------------------------------------
-# wlr-randr (labwc and other wlroots compositors)
+# wlr-randr (wlroots compositors)
 # ---------------------------------------------------------------------------
 
 # Parse the text output of wlr-randr and print, for the FIRST ENABLED output:

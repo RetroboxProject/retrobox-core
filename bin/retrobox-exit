@@ -1,6 +1,6 @@
 #!/bin/bash
 
-PROCS=$(ps -aux | grep retrobox | grep -v grep | grep -v labwc | grep -v retrobox_run.py | awk '{print $2}')
+PROCS=$(ps -aux | grep retrobox | grep -v grep | grep -v retrobox_run.py | awk '{print $2}')
 for i in $PROCS; do
 	kill -15 $i || kill -9 $i
 done

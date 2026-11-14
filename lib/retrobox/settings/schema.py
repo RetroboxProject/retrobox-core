@@ -153,15 +153,6 @@ PAGES: Final[tuple[Page, ...]] = (
         "advanced",
         "preferences-other",
         (
-            Group(
-                "labwc",
-                (
-                    Setting(
-                        "advanced", "labwc_tty", Kind.CHOICE, default="1",
-                        choices=tuple(str(tty) for tty in range(1, 13)),
-                    ),
-                ),
-            ),
             Group("environ", custom_environ=True),
         ),
     ),

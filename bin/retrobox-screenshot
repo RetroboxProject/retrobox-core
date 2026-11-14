@@ -22,7 +22,7 @@ OUTPUT="${SCREENSHOT_DIR}/${NAME}_$(date +%Y%m%d-%H%M%S).png"
 # Pick the screenshot tool:
 #   - RETROBOX_SCREENSHOT_TOOL can force one (spectacle, grim or scrot)
 #   - KDE Plasma (Wayland or X11) -> spectacle
-#   - other Wayland compositors (wayfire, labwc...) -> grim
+#   - other Wayland compositors (wayfire...) -> grim
 #   - other X11 WMs/DEs (openbox, xfce...) -> scrot
 detect_tool() {
     if [[ -n "${RETROBOX_SCREENSHOT_TOOL:-}" ]]; then
