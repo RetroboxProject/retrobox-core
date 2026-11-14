@@ -8,6 +8,14 @@ Shared features listed in ``everyEmulator`` (in ``_global_config.yaml``) are
 added to every emulator, so they show in every system's and game's options
 without each emulator file listing them.
 
+An emulator file can give features to some of its cores, without a file for
+each of them, with ``core_features`` (a feature, then the cores that have it)::
+
+    core_features:
+      cheevos: [snes9x, mesen-s]
+
+A core listed there that has no feature file of its own gets a bare entry.
+
 The groups and submenus of the menu follow one vocabulary, declared in the
 ``vocabulary`` section of ``_global_config.yaml``. It is checked for the
 emulators it lists in ``enforce`` (or for all of them with ``enforce: all``,
@@ -41,7 +49,15 @@ _GENERAL_GROUP = "GENERAL"  # the features of this group have no "group" attribu
 _NO_SUBMENU = "NONE"
 # keys of the YAML that are not attributes of the element they describe
 _LAUNCHER_KEYS = ("core_option", "core_options", "retroarch_option")  # read by the launcher only
-_STRUCTURE_KEYS = ("emulator_name", "core_name", "features", "sharedFeatures", "systems", "groups")
+_STRUCTURE_KEYS = (
+    "emulator_name",
+    "core_name",
+    "features",
+    "sharedFeatures",
+    "systems",
+    "groups",
+    "core_features",
+)
 
 
 @dataclass(frozen=True)
@@ -221,6 +237,37 @@ def _append_systems(parent: ET.Element, systems: Any, context: _Context) -> None
         _append_features(system, system_data, context)
 
 
+def _feature_names(features: Any) -> list[str]:
+    """The names of a ``features`` value, which is a list or a comma separated string."""
+    if not features:
+        return []
+    if isinstance(features, list):
+        return [str(name) for name in features]
+    return [name.strip() for name in str(features).split(",") if name.strip()]
+
+
+def _cores_with_features(
+    data: Mapping[str, Any], cores: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    """The cores of an emulator, with the features its ``core_features`` give them.
+
+    Args:
+        data: The emulator's YAML.
+        cores: The cores that have a file of their own.
+
+    Returns:
+        The cores in their order, then the ones only ``core_features`` names.
+    """
+    by_name = {str(core.get("core_name")): dict(core) for core in cores}
+    for feature, names in (data.get("core_features") or {}).items():
+        for name in map(str, names or []):
+            core = by_name.setdefault(name, {"core_name": name})
+            features = _feature_names(core.get("features"))
+            if str(feature) not in features:
+                core["features"] = [*features, str(feature)]
+    return list(by_name.values())
+
+
 def _append_emulator(  # pylint: disable=too-many-arguments,too-many-positional-arguments
     root: ET.Element,
     name: str,
@@ -244,6 +291,7 @@ def _append_emulator(  # pylint: disable=too-many-arguments,too-many-positional-
             _append_shared_feature(emulator, entry, context)
     _append_systems(emulator, data.get("systems"), context)
 
+    cores = _cores_with_features(data, cores)
     if not cores:
         return
     container = ET.SubElement(emulator, "cores")

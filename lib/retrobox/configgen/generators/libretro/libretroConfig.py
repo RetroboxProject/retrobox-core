@@ -26,6 +26,7 @@ from ... import controllersConfig
 from ...settings.unixSettings import UnixSettings
 from ...utils import metadata as metadata_utils
 from ...utils.performance import gamemode_value
+from . import libretro_achievements, libretro_netplay
 from .libretro_bezel import BezelRequest, write_bezel_config
 from .libretro_core_options import (
     apply_core_features,
@@ -603,6 +604,28 @@ def _apply_video_and_misc_settings(config: dict[str, object], launch: LibretroLa
     return drop_bezel
 
 
+def _apply_achievements_settings(config: dict[str, object], system: Emulator) -> None:
+    """Set the RetroAchievements options (see ``libretro_achievements``).
+
+    Hardcore mode takes away what RetroArch would only refuse with a message:
+    rewind, and loading a state when the game starts.
+    """
+    cheevos = libretro_achievements.settings(system.config)
+    config.update(cheevos)
+    if cheevos[libretro_achievements.HARDCORE_SETTING] == "true":
+        config["rewind_enable"] = "false"
+        config["savestate_auto_load"] = "false"
+
+
+def _apply_netplay_settings(config: dict[str, object], system: Emulator) -> None:
+    """Set the netplay options when the game hosts or joins a room.
+
+    Written after the achievements ones: netplay turns hardcore mode off.
+    """
+    if request := libretro_netplay.from_config(system.config):
+        config.update(libretro_netplay.settings(request))
+
+
 def _apply_bezel_settings(
     config: dict[str, object], launch: LibretroLaunch, drop_bezel: bool
 ) -> None:
@@ -669,6 +692,8 @@ def create_libretro_config(launch: LibretroLaunch, /) -> dict[str, object]:
     core_settings.write()
 
     drop_bezel = _apply_video_and_misc_settings(config, launch)
+    _apply_achievements_settings(config, system)
+    _apply_netplay_settings(config, system)
     _apply_bezel_settings(config, launch, drop_bezel)
 
     config.update(system.config.items(starts_with="retroarch."))

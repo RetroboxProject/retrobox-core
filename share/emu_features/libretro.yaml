@@ -1,48 +1,118 @@
 emulator_name: libretro
-# cores that can host or join a netplay room (EmulationStation shows netplay
-# only for these). Same set as batocera, with retrobox's core names.
-netplay_cores:
-  - "81"
-  - mednafen_lynx
-  - mednafen_ngp
-  - pce
-  - pce_fast
-  - mednafen_pce
-  - mednafen_pce_fast
-  - pcfx
-  - mednafen_saturn
-  - mednafen_supergrafx
-  - mednafen_vb
-  - mednafen_wswan
-  - bsnes
-  - bsnes_hd
-  - cap32
-  - desmume
-  - fbneo
-  - fceumm
-  - fmsx
-  - genesis_plus_gx
-  - genesis_plus_gx-wide
-  - handy
-  - mame
-  - mame078plus
-  - mesen
-  - mesen-s
-  - mrboom
-  - nestopia
-  - opera
-  - quasi88
-  - np2kai
-  - picodrive
-  - same_cdi
-  - sameduck
-  - snes9x
-  - snes9x_next
-  - stella
-  - tgbdual
-  - theodore
-  - vircon32
-  - wasm4
+# cores that can earn RetroAchievements: EmulationStation gives them the
+# "cheevos" feature, which is what makes it offer the achievements (the
+# RETROACHIEVEMENTS entries, the game hashes) for their games and warn about the
+# cores that cannot. RetroArch itself runs them in any core, so this list is only
+# what the RetroAchievements project supports (docs.retroachievements.org,
+# "Emulator Support and Issues"), left out on purpose: mame*, blastem, nestopia,
+# quasi88, atari800 / a5200 (loading files from the menu bypasses the hashing),
+# the cores that are not on that list, and the ones with only partial support.
+# Add a core here, or in a file of the same name in the user's emu_features
+# folder, to offer them for it too.
+core_features:
+  # cores that can host or join a netplay room (EmulationStation offers netplay
+  # only for these). Same set as batocera, with retrobox's core names.
+  netplay:
+    - "81"
+    - mednafen_lynx
+    - mednafen_ngp
+    - pce
+    - pce_fast
+    - mednafen_pce
+    - mednafen_pce_fast
+    - pcfx
+    - mednafen_saturn
+    - mednafen_supergrafx
+    - mednafen_vb
+    - mednafen_wswan
+    - bsnes
+    - bsnes_hd
+    - cap32
+    - desmume
+    - fbneo
+    - fceumm
+    - fmsx
+    - genesis_plus_gx
+    - genesis_plus_gx-wide
+    - handy
+    - mame
+    - mame078plus
+    - mesen
+    - mesen-s
+    - mrboom
+    - nestopia
+    - opera
+    - quasi88
+    - np2kai
+    - picodrive
+    - same_cdi
+    - sameduck
+    - snes9x
+    - snes9x_next
+    - stella
+    - tgbdual
+    - theodore
+    - vircon32
+    - wasm4
+  cheevos:
+    # Sega
+    - genesis_plus_gx
+    - genesis_plus_gx-wide
+    - picodrive
+    - gearsystem
+    - smsplus
+    - mednafen_saturn
+    - flycast
+    # Nintendo
+    - fceumm
+    - mesen
+    - snes9x
+    - bsnes
+    - mesen-s
+    - mupen64plus_next
+    - parallel_n64
+    - gambatte
+    - mgba
+    - vba-m
+    - desmume
+    - melonds
+    - pokemini
+    - mednafen_vb
+    # Sony
+    - mednafen_psx
+    - mednafen_psx_hw
+    - pcsx_rearmed
+    - swanstation
+    - ppsspp
+    # NEC, SNK, Bandai
+    - mednafen_pce_fast
+    - pce_fast
+    - mednafen_supergrafx
+    - pcfx
+    - mednafen_ngp
+    - neocd
+    - mednafen_wswan
+    # Atari, Arcade
+    - stella
+    - prosystem
+    - virtualjaguar
+    - handy
+    - mednafen_lynx
+    - holani
+    - fbneo
+    # others
+    - opera
+    - bluemsx
+    - o2em
+    - vecx
+    - freechaf
+    - potator
+    - sameduck
+    - cap32
+    - uzem
+    - arduous
+    - wasm4
+    - tic80
 sharedFeatures:
   - power_profile
   - tdp

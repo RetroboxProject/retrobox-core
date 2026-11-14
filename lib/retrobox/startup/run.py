@@ -3,6 +3,9 @@
 Manages arguments, prepares the environment, generates configurations,
 and launches the frontend (EmulationStation).
 
+The ROM folder of every system is created if it is missing, with an
+``_info.txt`` that says what goes in it (see retrobox.startup.frontend_conf.roms_dirs).
+
 Installed PC games (Steam, Heroic, Lutris) are synced into their
 EmulationStation ROM directories before startup as retrobox.ini says
 ([core] steam_sync, heroic_sync, lutris_sync: none, on-base-dir or
@@ -64,6 +67,7 @@ from retrobox.startup.frontend_conf.es_ini_generator import (
 from retrobox.startup.frontend_conf.features_list_generator import generate_es_features
 from retrobox.startup.frontend_conf.system_list_generator import generate_es_systems
 from retrobox.startup.frontend_conf.pcgames_utils import sync_pcgames
+from retrobox.startup.frontend_conf.roms_dirs import create_roms_dirs
 from retrobox.emusetup import EXIT_UNAVAILABLE
 from retrobox.emusetup.launch import run_screen
 from retrobox.startup.downloads import install_all, labels, pending
@@ -419,6 +423,8 @@ def _main() -> int:
         # Notification already sent by safe_mkdir; just exit cleanly.
         _logger.error("Aborting startup: %s", exc)
         return 1
+
+    create_roms_dirs()
 
     try:
         return run_emulationstation(args, updates=updates)

@@ -15,6 +15,7 @@ from retrobox.configgen.exceptions import MissingCore
 from retrobox.configgen.generators.Generator import Generator
 from retrobox.configgen.generators.libretro import (
     libretro_hotkeys,
+    libretro_netplay,
     libretroConfig,
     libretroControllers,
 )
@@ -258,6 +259,10 @@ class LibretroGenerator(Generator):
 
         if config_to_append := _extra_config_files(system, rom):
             args_array.extend(["--appendconfig", "|".join(str(path) for path in config_to_append)])
+
+        # host or join a netplay room (the settings are in retroarch.cfg, see libretroConfig)
+        if netplay := libretro_netplay.from_config(system.config):
+            args_array.extend(libretro_netplay.command_arguments(netplay))
 
         if not dont_append_rom:
             args_array.append(rom)

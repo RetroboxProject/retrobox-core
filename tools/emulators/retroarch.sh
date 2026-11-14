@@ -283,6 +283,7 @@ function install_source() {
       --prefix="${INSTALL_DIR}/app" \
       "${gl_flags[@]}" \
       --enable-vulkan --enable-pipewire --enable-alsa --enable-networking --enable-discord \
+      --enable-cheevos --enable-ssl \
       || exit 1
     make -j"$(nproc)" || exit 1
     make install || exit 1

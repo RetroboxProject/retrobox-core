@@ -1,8 +1,9 @@
 """Regenerate es_systems.cfg from the current systems_config directory tree."""
 import logging
 import os
+from collections.abc import Mapping
 from pathlib import Path
-from typing import Final
+from typing import Any, Final
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
 import yaml
@@ -95,12 +96,13 @@ def _system_yaml_files(base_path: Path | None) -> list[str]:
     return sorted(str(p) for p in Path(base_path).rglob("*.yaml"))
 
 
-def _load_system(yaml_path: str) -> tuple[str, dict] | None:
+def _load_system(yaml_path: str, log_skipped: bool = True) -> tuple[str, dict] | None:
     """
     Read one system definition.
 
     Args:
         yaml_path: The system's YAML file.
+        log_skipped: Whether to log a system listed in [core] ignore_systems.
 
     Returns:
         (system name, its settings), or None if the file is invalid, empty
@@ -120,20 +122,56 @@ def _load_system(yaml_path: str) -> tuple[str, dict] | None:
     if not isinstance(sys_content, dict):
         return None
     if sys_name.lower() in IGNORED_SYSTEMS:
-        _logger.info(
-            "Skipping '%s' (listed in [core] ignore_systems): %s", sys_name, yaml_path
-        )
+        if log_skipped:
+            _logger.info(
+                "Skipping '%s' (listed in [core] ignore_systems): %s", sys_name, yaml_path
+            )
         return None
     return sys_name, sys_content
 
 
-def _append_system(root: ET.Element, sys_name: str, sys_content: dict) -> None:
-    """Append the <system> node of one system to `root`, filling in defaults."""
+def load_systems(base_path: Path | None = None) -> list[tuple[str, dict]]:
+    """Every system definition that is not ignored, in the order of es_systems.cfg.
+
+    Args:
+        base_path: Directory of the system YAML files; None (default) merges
+            systems_config/ across the configuration layers.
+
+    Returns:
+        (system name, its settings) of each one. The settings are what the YAML
+        says: no defaults are filled in.
+
+    Raises:
+        FileNotFoundError: If there is no systems_config.
+        NotADirectoryError: If `base_path` exists but isn't a directory.
+    """
+    loaded = (
+        _load_system(yaml_path, log_skipped=False) for yaml_path in _system_yaml_files(base_path)
+    )
+    return [system for system in loaded if system is not None]
+
+
+def system_roms_path(sys_name: str, sys_content: Mapping[str, Any]) -> Path:
+    """The folder EmulationStation reads a system's games from (its ``path``).
+
+    Args:
+        sys_name: The system's name.
+        sys_content: The settings of the system, as its YAML has them.
+
+    Returns:
+        The PC-games folder of the store systems (where their sync writes), the
+        ``path`` of the YAML if it has one, else ``<roms_dir>/<system>``.
+    """
     if sys_name in PCGAMES_SYSTEMS:
         # Must match where the PC-games sync writes ([core] <system>_sync).
-        sys_content["path"] = str(pcgames_roms_dir(sys_name))
-    else:
-        sys_content.setdefault("path", str(ROMS / sys_name))
+        return pcgames_roms_dir(sys_name)
+    return Path(str(sys_content.get("path") or ROMS / sys_name))
+
+
+def _append_system(root: ET.Element, sys_name: str, sys_content: dict) -> None:
+    """Append the <system> node of one system to `root`, filling in defaults."""
+    if sys_name in PCGAMES_SYSTEMS or "path" not in sys_content:
+        sys_content["path"] = str(system_roms_path(sys_name, sys_content))
     sys_content.setdefault("command", " ".join(DEFAULT_COMMAND))
 
     system_elem = ET.SubElement(root, "system")

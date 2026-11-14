@@ -55,7 +55,7 @@ Configuration is layered, read-only code and writable user data are separate, an
 
 `$XDG_CONFIG_HOME`, `$XDG_DATA_HOME` and `$XDG_STATE_HOME` are honoured. The data and state directories can also be set from `[paths]` in `retrobox.ini` (`data_dir`, `state_dir`; the environment variables win), and `roms`, `saves` and `bios` can be moved on their own (`roms_dir`, `saves_dir`, `bios_dir`); the last layer that sets a key wins. A value may be quoted and may end in ` # comment`. If a configured `roms_dir`/`saves_dir`/`bios_dir` is not a readable directory, Retrobox warns on stderr and uses the default one (unless `autocorrect_paths = false`).
 
-Other `[core]` keys: `ignore_systems` (systems hidden from the menu, e.g. `gba,psp`) and `steam_sync`, `heroic_sync`, `lutris_sync`: on every start, add the games installed in that launcher to its system (`.steam`, `.heroic`, `.lynx` entries). Each one takes:
+Other `[core]` keys: `create_rom_folders` (`true` by default: see below), `ignore_systems` (systems hidden from the menu, e.g. `gba,psp`) and `steam_sync`, `heroic_sync`, `lutris_sync`: on every start, add the games installed in that launcher to its system (`.steam`, `.heroic`, `.lynx` entries). Each one takes:
 
 | Value | Entries go to (and the ES system reads from) |
 |---|---|
@@ -64,6 +64,8 @@ Other `[core]` keys: `ignore_systems` (systems hidden from the menu, e.g. `gba,p
 | `follow-roms-dir` | `<roms_dir>/<launcher>` (which may be `<data dir>/roms` or anywhere else) |
 
 They replace the old `--pcgames-sync` flag, which is now ignored with a warning; the `true`/`false` values of v0.0.25 still work (as `follow-roms-dir`/`none`), with a warning.
+
+**ROM folders.** On every start, each system gets `<roms_dir>/<system>` if it does not exist yet, with an `_info.txt` as in batocera: the file extensions the system accepts, its emulators and cores (and the extensions some cores do not take) and a few tips, in English (`lib/retrobox/startup/frontend_conf/roms_dirs.py`). An `_info.txt` that already exists is never rewritten (edit or delete it freely; delete it and it comes back on the next start), it holds no paths of this machine, and an existing folder is not touched otherwise. Not created: the systems with a `path` of their own in their YAML (Retrobox's own entries, or one you moved), the PC-games stores (`steam_sync` and friends manage those) and the groups. Nothing is created if the `roms_dir` itself is missing (an unmounted drive, say), and `create_rom_folders = false` turns it all off.
 
 `lib/retrobox/paths` is the single place where all of this is resolved. Shell scripts get the result as `RETROBOX_*` variables (`PYTHONPATH=<install dir>/lib python3 -m retrobox.paths` prints them, `--get section.key` reads a merged ini value; `tools/lib/paths.sh` loads them).
 
@@ -135,7 +137,16 @@ A bezel is looked up in this order, in your `decorations/<set>` first and then i
 
 ### Netplay
 
-EmulationStation's lobby and *Netplay settings* menu work as in batocera and RetroArch's cores do the rest: the launcher turns `-netplaymode host|client|spectator` (plus `-netplayip`, `-netplayport`, `-netplaysession` and `-netplaypass`) into RetroArch's `--host`, `--connect`, `--port`, `--mitm-session` and `--nick`, and writes the matching `netplay_*` options of `retroarch.cfg` on every launch: nickname, port, the relay server (`nyc`, `madrid`, `montreal`, `saopaulo`, a community one or a custom address), public announce for hosts, spectator mode and the room password. Hardcore RetroAchievements mode is turned off while a room is open, because it disables the savestates netplay is built on. EmulationStation only offers netplay for the cores listed in `netplay_cores` of `share/emu_features/libretro.yaml` (the same set as batocera), and it has to be turned on in its menu (`global.netplay`). The code is in `lib/retrobox/configgen/generators/libretro/libretro_netplay.py`.
+EmulationStation's lobby and *Netplay settings* menu work as in batocera and RetroArch's cores do the rest: the launcher turns `-netplaymode host|client|spectator` (plus `-netplayip`, `-netplayport`, `-netplaysession` and `-netplaypass`) into RetroArch's `--host`, `--connect`, `--port`, `--mitm-session` and `--nick`, and writes the matching `netplay_*` options of `retroarch.cfg` on every launch: nickname, port, the relay server (`nyc`, `madrid`, `montreal`, `saopaulo`, a community one or a custom address), public announce for hosts, spectator mode and the room password. Hardcore RetroAchievements mode is turned off while a room is open, because it disables the savestates netplay is built on. EmulationStation only offers netplay for the cores listed in `core_features: netplay:` of `share/emu_features/libretro.yaml` (it gives them the `netplay` feature, which is what EmulationStation checks) (the same set as batocera), and it has to be turned on in its menu (`global.netplay`). The code is in `lib/retrobox/configgen/generators/libretro/libretro_netplay.py`.
+
+### RetroAchievements
+
+EmulationStation's *RetroAchievements settings* menu (account, hardcore mode, leaderboards, rich presence, encore mode, screenshots, challenge indicators, unofficial achievements, unlock sound) drives RetroArch: on every launch the `cheevos_*` options of `retroarch.cfg` are written from it (`lib/retrobox/configgen/generators/libretro/libretro_achievements.py`), all of them, so what one game turned on never leaks into the next. They are managed from EmulationStation, not from RetroArch's own menu: a login or option set there is overwritten on the next launch (an `retroarch.cheevos_*` line in the game's settings still wins). The login token that EmulationStation gets when the account is validated is used; the password is only used when there is no token, and RetroArch then swaps it for one.
+
+- **Hardcore mode** turns off rewind and the automatic loading of a state, and is off while a netplay room is open (it disables the savestates netplay is built on). Leaderboards only count together with hardcore, as the menu says.
+- **Unlock sound:** the `.ogg` files of `<data dir>/retroachievements-sounds/` (and of `/usr/share/libretro/assets/sounds/`) are the ones the menu offers.
+- **Which cores:** RetroArch decides what a core can do, but EmulationStation only offers achievements (the entries, the game hashing, the warning "current core is not compatible") for the cores marked with the `cheevos` feature. The list is `core_features: cheevos:` of `share/emu_features/libretro.yaml`, taken from the RetroAchievements project's supported cores. `mame*`, `blastem`, `nestopia` and `quasi88` are left out on purpose. To offer it for another core, add it to that list (or to a file of the same name in `~/.config/retrobox/emu_features/`).
+- **RetroArch built from source** (`tools/emulators/retroarch.sh`) is configured with `--enable-cheevos --enable-ssl`, so it fails to build instead of silently lacking achievements or the TLS they log in with.
 
 ### Content downloader
 
