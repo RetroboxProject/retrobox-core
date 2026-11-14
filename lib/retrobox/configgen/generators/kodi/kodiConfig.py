@@ -55,6 +55,9 @@ _TRIGGERS: Final = ("l2", "r2")
 
 _SYSFS_INPUT: Final = Path("/sys/class/input")
 
+# What older versions wrote to advancedsettings.xml to hide Kodi's splash.
+_OLD_ADVANCED_SETTINGS: Final = "<advancedsettings><splash>false</splash></advancedsettings>"
+
 # The hat values of es_input.cfg (SDL's) and the direction they mean.
 _HAT_DIRECTIONS: Final = {1: "up", 2: "right", 4: "down", 8: "left"}
 
@@ -283,8 +286,12 @@ def write_kodi_config(controllers: Controllers, userdata: Path | None = None) ->
     with ensure_parents_and_open(settings, "w") as file:
         file.write('<settings version="2"><setting id="driver_linux">1</setting></settings>')
 
-    # disable the kodi splash by default (nicer integration)
+    # Kodi's splash stays: Kodi only looks for pads once its skin is loaded,
+    # so without it the menu shows up seconds before the pads work. Older
+    # versions disabled it; their file goes, a file edited by hand stays.
     advanced = userdata / "advancedsettings.xml"
-    if not advanced.exists():
-        with ensure_parents_and_open(advanced, "w") as file:
-            file.write("<advancedsettings><splash>false</splash></advancedsettings>")
+    try:
+        if advanced.read_text(encoding="utf-8").strip() == _OLD_ADVANCED_SETTINGS:
+            advanced.unlink()
+    except OSError:
+        pass
