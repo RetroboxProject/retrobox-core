@@ -1,6 +1,6 @@
-"""Identification of the Model 2 set a ROM archive holds, from sm2-emu's games.xml.
+"""Identification of the Model 2 set a ROM archive holds, from Keisho's games.xml.
 
-sm2-emu identifies a set by the CRC32 of the chips in the archive, whatever
+Keisho identifies a set by the CRC32 of the chips in the archive, whatever
 the archive is called. Retrobox does the same for the family of the game
 (what the per-game button layout and the volume are keyed by): first from the
 name of the archive, and else from the CRCs of a zip archive.
@@ -16,7 +16,7 @@ from dataclasses import dataclass, field
 from functools import cache
 from typing import TYPE_CHECKING, Final
 
-from .sm2emu_paths import SM2EMU_GAMES_DB
+from .keisho_paths import KEISHO_GAMES_DB
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -49,9 +49,9 @@ class GamesDatabase:
 def games_database() -> GamesDatabase:
     """Read games.xml once; an empty database when it cannot be read."""
     try:
-        text = SM2EMU_GAMES_DB.read_text(encoding="utf-8")
+        text = KEISHO_GAMES_DB.read_text(encoding="utf-8")
     except OSError as error:
-        _logger.debug("cannot read %s: %s", SM2EMU_GAMES_DB, error)
+        _logger.debug("cannot read %s: %s", KEISHO_GAMES_DB, error)
         return GamesDatabase()
 
     families: dict[str, str] = {}
@@ -100,5 +100,5 @@ def game_family(rom: Path) -> str | None:
     if (family := _family_from_chips(rom)) is not None:
         _logger.debug("%s identified as the %s family from its chips", rom.name, family)
         return family
-    _logger.info("%s is not a set sm2-emu knows: no per-game settings", rom.name)
+    _logger.info("%s is not a set Keisho knows: no per-game settings", rom.name)
     return None

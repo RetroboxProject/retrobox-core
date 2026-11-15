@@ -1,16 +1,16 @@
-"""Per-game gamepad button layout of sm2-emu.
+"""Per-game gamepad button layout of Keisho.
 
-sm2-emu reads the pads through SDL3 and binds each cabinet control (Button 1-4,
+Keisho reads the pads through SDL3 and binds each cabinet control (Button 1-4,
 directions, Start, Coin, gears) to an SDL gamepad button, that is a POSITION
 (south, east, west, north...). Retrobox gives SDL the EmulationStation mapping
 of every pad (SDL_GAMECONTROLLERCONFIG), so the positions already follow it:
 the layouts here only choose which control sits on which position, and never
-touch the raw buttons of a pad. Wheels are not concerned (see sm2emu_config).
+touch the raw buttons of a pad. Wheels are not concerned (see keisho_config).
 
-The layouts live in ``configgen/data/sm2emu/button_layouts.yaml`` (taken from
-RetroBat) and are written to the ``[gamepad]`` keys of sm2-emu.ini, the layout
+The layouts live in ``configgen/data/keisho/button_layouts.yaml`` (taken from
+RetroBat) and are written to the ``[gamepad]`` keys of keisho.ini, the layout
 of every game. A ``[<family>]`` section the user saved from the overlay of
-sm2-emu still replaces it for that game, as sm2-emu does.
+Keisho still replaces it for that game, as Keisho does.
 """
 
 from __future__ import annotations
@@ -29,12 +29,12 @@ if TYPE_CHECKING:
 
 _logger = logging.getLogger(__name__)
 
-_LAYOUTS_RELPATH: Final = "configgen/data/sm2emu/button_layouts.yaml"
+_LAYOUTS_RELPATH: Final = "configgen/data/keisho/button_layouts.yaml"
 
-# the values of the sm2_button_layout option
+# the values of the keisho_button_layout option
 LAYOUT_GAME: Final = "auto"  # the layout of the game, on a gamepad
-LAYOUT_EMULATOR: Final = "emulator"  # sm2-emu's own default layout
-LAYOUT_KEEP: Final = "custom"  # whatever was set in the overlay of sm2-emu
+LAYOUT_EMULATOR: Final = "emulator"  # Keisho's own default layout
+LAYOUT_KEEP: Final = "custom"  # whatever was set in the overlay of Keisho
 PANEL_LAYOUTS: Final = ("modern8", "8alternative", "6alternative")
 
 # SDL_GamepadButton of each position; a trigger is 100 + its SDL_GamepadAxis
@@ -57,7 +57,7 @@ _SDL_BUTTONS: Final[Mapping[str, int]] = {
     "r2": 105,
 }
 
-# controls of the YAML file -> sm2-emu pad roles, in sm2-emu's order
+# controls of the YAML file -> Keisho pad roles, in Keisho's order
 _ROLES: Final[Mapping[str, str]] = {
     "button1": "button1",
     "button2": "button2",
@@ -73,7 +73,7 @@ _ROLES: Final[Mapping[str, str]] = {
     "geardown": "gear_down",
 }
 
-# sm2-emu's own layout (Config::PadLayout): the d-pad, Start, Back as Coin,
+# Keisho's own layout (Config::PadLayout): the d-pad, Start, Back as Coin,
 # the shoulders as gears and the face buttons from south to north
 _EMULATOR_DEFAULTS: Final[Mapping[str, int]] = {
     "button1": 0,
@@ -94,7 +94,7 @@ _ALWAYS_MAPPED: Final[Mapping[str, int]] = {
     role: button for role, button in _EMULATOR_DEFAULTS.items() if not role.startswith("button")
 }
 
-# analogue roles of sm2-emu; -1 keeps its defaults: aim and steering on the
+# analogue roles of Keisho; -1 keeps its defaults: aim and steering on the
 # left stick, accelerator on the right trigger, brake on the left trigger and
 # the right lever of Virtual On on the right stick
 _AXES: Final = ("aim_x", "aim_y", "accel", "brake", "lever_x", "lever_y")
@@ -109,14 +109,14 @@ def _load_layouts() -> dict[str, dict[str, str]]:
 
     Returns:
         Every section, as {position: controls}, or nothing when the file is
-        missing or broken (sm2-emu then gets the default layout).
+        missing or broken (Keisho then gets the default layout).
     """
     path = layered_file(_LAYOUTS_RELPATH) or SHARE_DIR / _LAYOUTS_RELPATH
     try:
         with path.open(encoding="utf-8") as stream:
             data = yaml.safe_load(stream)
     except (OSError, yaml.YAMLError) as error:
-        _logger.warning("cannot read the sm2-emu button layouts %s: %s", path, error)
+        _logger.warning("cannot read the Keisho button layouts %s: %s", path, error)
         return {}
     if not isinstance(data, dict):
         return {}
@@ -139,16 +139,16 @@ def _apply_section(roles: dict[str, int], section: Mapping[str, str], name: str)
     set_here: set[str] = set()
     for position, controls in section.items():
         if (button := _SDL_BUTTONS.get(position)) is None:
-            _logger.warning("sm2-emu layout %s: unknown button position '%s'", name, position)
+            _logger.warning("Keisho layout %s: unknown button position '%s'", name, position)
             continue
         for control in (c.strip() for c in controls.split(",")):
             if not control:
                 continue
             if (role := _ROLES.get(control.lower())) is None:
-                _logger.warning("sm2-emu layout %s: unknown control '%s'", name, control)
+                _logger.warning("Keisho layout %s: unknown control '%s'", name, control)
             elif role in set_here:
                 _logger.warning(
-                    "sm2-emu layout %s: '%s' bound twice, '%s' ignored", name, control, position
+                    "Keisho layout %s: '%s' bound twice, '%s' ignored", name, control, position
                 )
             else:
                 roles[role] = button
@@ -158,7 +158,7 @@ def _apply_section(roles: dict[str, int], section: Mapping[str, str], name: str)
 def game_roles(
     game_set: str | None, family: str | None, panel: str | None = None
 ) -> dict[str, int]:
-    """Return the SDL button of every sm2-emu role for a game.
+    """Return the SDL button of every Keisho role for a game.
 
     Args:
         game_set: The set of the game (``vf2a``), when the archive is named after it.
@@ -169,10 +169,10 @@ def game_roles(
     layouts = _load_layouts()
     for name in _section_names(game_set, family, panel):
         if (section := layouts.get(name)) is not None:
-            _logger.debug("sm2-emu button layout: %s", name)
+            _logger.debug("Keisho button layout: %s", name)
             _apply_section(roles, section, name)
             return roles
-    # no file: sm2-emu's own face buttons
+    # no file: Keisho's own face buttons
     return dict(_EMULATOR_DEFAULTS)
 
 
@@ -197,11 +197,11 @@ def layout_settings(
 ) -> dict[str, str]:
     """Return the [gamepad] layout keys to write for the game.
 
-    The ``sm2_button_layout`` option picks the layout of the game on a gamepad
-    (the default), an arcade panel layout, sm2-emu's own one, or none at all to
-    keep the layout set in the overlay of sm2-emu.
+    The ``keisho_button_layout`` option picks the layout of the game on a gamepad
+    (the default), an arcade panel layout, Keisho's own one, or none at all to
+    keep the layout set in the overlay of Keisho.
     """
-    choice = config.get_str("sm2_button_layout", LAYOUT_GAME)
+    choice = config.get_str("keisho_button_layout", LAYOUT_GAME)
     if choice == LAYOUT_KEEP:
         return {}
     if choice == LAYOUT_EMULATOR:

@@ -13,7 +13,7 @@ This project brings the parts that matter most to a desktop Linux installation:
 - `batocera-configgen` writing emulator configs automatically on game launch
 - Bezels: RetroArch draws them itself; the other emulators get them through a patched MangoHud build, the same approach batocera uses.
 - Shaders on RetroArch and ares.
-- Controller autoconfiguration for RetroArch, ares, Azahar, Cemu, Dolphin, Eden, Flycast, MAME, melonDS, PCSX2, PPSSPP, Redream, RPCS3, Ryujinx, ScummVM and sm2-emu (Model 2).
+- Controller autoconfiguration for RetroArch, ares, Azahar, Cemu, Dolphin, Eden, Flycast, MAME, melonDS, PCSX2, PPSSPP, Redream, RPCS3, Ryujinx, ScummVM and Keisho (Model 2).
 - Gamepad hotkeys (Hotkey+Start to exit, etc.) on every emulator through [gamepadly](https://github.com/RetroboxProject/gamepadly).
 
 ## Architecture

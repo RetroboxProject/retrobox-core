@@ -68,14 +68,14 @@
 		<region>wr</region>
 	</game>
 	<game>
-		<path>./sm2-emu.menu</path>
-		<name>sm2-emu (Model 2)</name>
-		<desc>Run sm2-emu (Model 2): its game picker and settings menu.</desc>
+		<path>./keisho.menu</path>
+		<name>Keisho (Model 2)</name>
+		<desc>Run Keisho (Model 2): its game picker and settings menu.</desc>
 		<genre>Emulator</genre>
-		<image>./media/sm2-emu-logo.png</image>
-		<marquee>./media/sm2-emu-logo.png</marquee>
+		<image>./media/keisho-logo.png</image>
+		<marquee>./media/keisho-logo.png</marquee>
 		<developer>Daniel Martin (dmanlfc)</developer>
-		<publisher>sm2-emu contributors</publisher>
+		<publisher>Keisho contributors</publisher>
 		<lang>en</lang>
 		<region>wr</region>
 	</game>

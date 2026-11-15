@@ -1,7 +1,7 @@
-"""Generator of the sm2-emu (Sega Model 2) command.
+"""Generator of the Keisho (Sega Model 2) command.
 
-sm2-emu is a native Model 2 emulator (https://github.com/dmanlfc/sm2-emu),
-installed with ``retrobox --setup-emulator sm2-emu``.
+Keisho is a native Model 2 emulator (https://github.com/Keisho-Emu/Keisho),
+installed with ``retrobox --setup-emulator keisho``.
 """
 
 # the module name follows the <emulator>Generator convention of generators/importer.py
@@ -17,13 +17,14 @@ from ... import Command
 from ...controller import generate_sdl_game_controller_config
 from ...exceptions import RetroboxException
 from ..Generator import Generator
-from . import sm2emu_config
-from .sm2emu_games import game_set
-from .sm2emu_paths import (
-    SM2EMU_BIN,
-    SM2EMU_CFGDIR,
-    SM2EMU_NVRAM,
-    SM2EMU_SCREENSHOTS,
+from . import keisho_config
+from .keisho_games import game_set
+from .keisho_paths import (
+    KEISHO_BIN,
+    KEISHO_CFGDIR,
+    KEISHO_NVRAM,
+    KEISHO_SCREENSHOTS,
+    migrate_legacy_data,
 )
 
 if TYPE_CHECKING:
@@ -32,23 +33,23 @@ if TYPE_CHECKING:
     from ...config import SystemConfig
 
 
-class Sm2EmuGenerator(Generator):
-    """Generates the sm2-emu command and its configuration."""
+class KeishoGenerator(Generator):
+    """Generates the Keisho command and its configuration."""
 
     # the method names are fixed by the Generator interface
     # pylint: disable=invalid-name
 
     def usesOpenGLDirectPreload(self, config) -> bool:
         """MangoHud is preloaded unless the picture is drawn with Vulkan."""
-        return sm2emu_config.uses_opengl(config)
+        return keisho_config.uses_opengl(config)
 
     def allows_bezel(self, config: SystemConfig) -> bool:
         """A picture that is not 4:3 (16:9, square pixels, stretched) has no bezel."""
-        return sm2emu_config.bezel_fits(config)
+        return keisho_config.bezel_fits(config)
 
     def getInGameRatio(self, config, gameResolution, rom):
-        """Return the aspect ratio of the picture sm2-emu shows."""
-        return sm2emu_config.get_in_game_ratio(config, gameResolution)
+        """Return the aspect ratio of the picture Keisho shows."""
+        return keisho_config.get_in_game_ratio(config, gameResolution)
 
     # the signature is fixed by the Generator interface
     # pylint: disable-next=too-many-arguments,too-many-positional-arguments
@@ -62,21 +63,22 @@ class Sm2EmuGenerator(Generator):
         wheels,
         gameResolution,  # name fixed by the Generator interface
     ):
-        if not SM2EMU_BIN.exists():
+        if not KEISHO_BIN.exists():
             raise RetroboxException(
-                f"sm2-emu not found in {SM2EMU_BIN}: run 'retrobox --setup-emulator sm2-emu'"
+                f"keisho not found in {KEISHO_BIN}: run 'retrobox --setup-emulator keisho'"
             )
 
-        for directory in (SM2EMU_CFGDIR, SM2EMU_NVRAM, SM2EMU_SCREENSHOTS):
+        migrate_legacy_data()
+        for directory in (KEISHO_CFGDIR, KEISHO_NVRAM, KEISHO_SCREENSHOTS):
             mkdir_if_not_exists(directory)
 
-        # the configuration GUI is sm2-emu's own game picker, with its overlay (F10)
+        # the configuration GUI is Keisho's own game picker, with its overlay (F10)
         game = None if configure_emulator(rom) else rom
-        sm2emu_config.write_config(system, game, playersControllers, wheels, gameResolution)
+        keisho_config.write_config(system, game, playersControllers, wheels, gameResolution)
 
-        command: list[str | Path] = [SM2EMU_BIN, "--config", SM2EMU_CFGDIR]
+        command: list[str | Path] = [KEISHO_BIN, "--config", KEISHO_CFGDIR]
         if game is not None:
-            # A merged archive holds every revision of a game and sm2-emu would
+            # A merged archive holds every revision of a game and Keisho would
             # boot the first complete one it knows: the archive name picks it.
             if (named_set := game_set(game)) is not None:
                 command.extend(["--game", named_set])

@@ -84,7 +84,7 @@ _INSTALLABLE: Final[dict[str, Installable]] = {
     "rpcs3": Installable("rpcs3", "RPCS3", "rpcs3.rpcs3Paths", "RPCS3_BIN"),
     "ryujinx": _RYUJINX,
     "ryujinx-emu": _RYUJINX,
-    "sm2-emu": Installable("sm2-emu", "sm2-emu", "sm2emu.sm2emu_paths", "SM2EMU_BIN"),
+    "keisho": Installable("keisho", "Keisho", "keisho.keisho_paths", "KEISHO_BIN"),
     "supermodel": Installable(
         "supermodel3", "Supermodel", "supermodel.supermodel_paths", "SUPERMODEL_BIN",
         keep=("Config", "NVRAM", "Saves"),
