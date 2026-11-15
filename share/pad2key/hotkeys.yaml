@@ -35,9 +35,14 @@ pad:
   - {action: menu, trigger: [hotkey, b]}
   - {action: save_state, trigger: [hotkey, y]}
   - {action: load_state, trigger: [hotkey, x]}
-  # the on-screen keyboard shares Hotkey+X with load_state: an emulator binds
-  # one or the other (apps that list the "osk" feature cannot load states)
-  - {action: osk, trigger: [hotkey, x]}
+  # Where two lines share a combination, the first one the emulator can
+  # perform wins: Hotkey+X is a screenshot where there is no state to load
+  # (the apps: web browsers and the like), as the on-screen keyboard takes
+  # Hotkey+Y where there is no state to save. Exit, screenshot and the
+  # on-screen keyboard also win over the combinations of an app's own
+  # gamepad profile.
+  - {action: screenshot, trigger: [hotkey, x]}
+  - {action: osk, trigger: [hotkey, y]}
   - {action: slot_prev, trigger: [hotkey, up]}
   - {action: slot_next, trigger: [hotkey, down]}
   - {action: rewind, trigger: [hotkey, left]}

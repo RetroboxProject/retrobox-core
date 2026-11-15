@@ -9,11 +9,6 @@
             "acceleration": 1.5
         },
         {
-            "trigger": ["hotkey", "start"],
-            "type": "key",
-            "target": ["KEY_LEFTALT", "KEY_F4"]
-        },
-        {
             "trigger": "b",
             "type": "key",
             "target": "BTN_LEFT"
@@ -21,35 +16,40 @@
         {
             "trigger": "a",
             "type": "key",
-            "target": ["KEY_LEFTALT", "KEY_LEFT"]
+            "target": [
+                "KEY_LEFTALT",
+                "KEY_LEFT"
+            ]
         },
         {
-            "trigger": ["hotkey", "y"],
-            "type": "key",
-            "target": ["KEY_LEFTMETA", "KEY_O"]
-        },
-        {
-            "trigger": ["hotkey", "x"],
-            "type": "key",
-            "target": ["KEY_LEFTMETA", "KEY_SYSRQ"]
-        },
-        {
-            "trigger": ["hotkey", "up"],
+            "trigger": [
+                "hotkey",
+                "up"
+            ],
             "type": "key",
             "target": "KEY_VOLUMEUP"
         },
         {
-            "trigger": ["hotkey", "down"],
+            "trigger": [
+                "hotkey",
+                "down"
+            ],
             "type": "key",
             "target": "KEY_VOLUMEDOWN"
         },
         {
-            "trigger": ["hotkey", "pageup"],
+            "trigger": [
+                "hotkey",
+                "pageup"
+            ],
             "type": "key",
             "target": "KEY_PREVIOUSSONG"
         },
         {
-            "trigger": ["hotkey", "pagedown"],
+            "trigger": [
+                "hotkey",
+                "pagedown"
+            ],
             "type": "key",
             "target": "KEY_NEXTSONG"
         },
@@ -97,7 +97,7 @@
             "trigger": "joystick2up",
             "type": "scroll",
             "speed": 8,
-            "deadzone": 0.20,
+            "deadzone": 0.2,
             "acceleration": 1.2,
             "description": "Scroll vertical con stick derecho"
         }

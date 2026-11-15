@@ -32,6 +32,7 @@ from retrobox.configgen.hotkeys import (
     HotkeyAction,
     Keys,
     Native,
+    UNIVERSAL_ACTIONS,
     common_bindings,
     load_table,
 )
@@ -65,6 +66,7 @@ def hotkey_mappings(
     ``Native`` bindings get none: the emulator reads those combinations itself.
     """
     mappings: list[dict[str, Any]] = []
+    taken: set[_ComboKey] = set()
     for entry in table:
         binding = bindings.get(entry.action)
         if isinstance(binding, Keys):
@@ -76,6 +78,10 @@ def hotkey_mappings(
         mapping = {"trigger": list(entry.trigger), **mapping, "description": entry.action.value}
         if entry.tap:
             mapping["tap"] = True
+        # a combination two lines share goes to the first the emulator can perform
+        if _combo_key(mapping) in taken:
+            continue
+        taken.add(_combo_key(mapping))
         mappings.append(mapping)
     return mappings
 
@@ -134,19 +140,20 @@ def _read_base(base: Path | None) -> dict[str, Any]:
 def _merge(own: list[Any], hotkeys: list[dict[str, Any]]) -> tuple[list[Any], int]:
     """The profile's mappings plus the hotkeys whose combination they leave free.
 
-    The on-screen keyboard is the exception: only emulators whose feature
-    file lists ``osk`` get it, and it takes its combination from the profile
-    (the apps' profile maps Hotkey+X to a screenshot of its own).
+    The universal commands (leave, screenshot, on-screen keyboard) are the
+    exception: they take their combination from the profile, which would
+    otherwise keep Hotkey+Start for an Alt+F4 that closes nothing, say.
     """
-    keyboard = {
+    universal = {action.value for action in UNIVERSAL_ACTIONS}
+    commands = {
         _combo_key(mapping)
         for mapping in hotkeys
-        if mapping.get("description") == HotkeyAction.OSK.value
+        if mapping.get("description") in universal and mapping.get("type") == "exec"
     }
     own = [
         mapping
         for mapping in own
-        if not (isinstance(mapping, dict) and _combo_key(mapping) in keyboard)
+        if not (isinstance(mapping, dict) and _combo_key(mapping) in commands)
     ]
     taken = {_combo_key(mapping) for mapping in own if isinstance(mapping, dict)}
     added = [mapping for mapping in hotkeys if _combo_key(mapping) not in taken]

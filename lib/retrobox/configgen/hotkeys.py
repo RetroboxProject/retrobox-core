@@ -168,6 +168,12 @@ def common_bindings(system: Emulator | None = None) -> dict[HotkeyAction, Bindin
     return bindings
 
 
+UNIVERSAL_ACTIONS: frozenset[HotkeyAction] = frozenset(
+    {HotkeyAction.EXIT, HotkeyAction.SCREENSHOT, HotkeyAction.OSK}
+)
+"""The commands that mean the same everywhere: they take their combination from
+a gamepad profile that maps it to something else (an app's Alt+F4, say)."""
+
 OVERLAY_COMMAND = "retrobox-overlay"
 """The overlay's command, found through ``PATH``."""
 
