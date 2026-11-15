@@ -27,19 +27,6 @@
 		<region>wr</region>
 	</game>
 	<game>
-		<path>./eka2l1.menu</path>
-		<name>EKA2L1 (Symbian OS/N-Gage emulator)</name>
-		<desc>Run EKA2L1 (Symbian OS/N-Gage emulator).</desc>
-		<genre>Emulator</genre>
-		<image>./media/eka2l1-logo.png</image>
-		<marquee>./media/eka2l1-logo.png</marquee>
-		<rating>0</rating>
-		<developer>EKA2L1 Team</developer>
-		<publisher>EKA2L1 Team</publisher>
-		<lang>en</lang>
-		<region>wr</region>
-	</game>
-	<game>
 		<path>./dosbox.menu</path>
 		<name>DOSBox (MS-DOS, Windows 3.x, Windows 95)</name>
 		<desc>Run DOSBox (MS-DOS, Windows 3.x, Windows 95).</desc>
@@ -53,24 +40,9 @@
 		<region>wr</region>
 	</game>
 	<game>
-		<path>./m2emulator.menu</path>
-		<name>M2Emulator (Model 2)</name>
-		<desc>Run M2Emulator (Model 2).</desc>
-		<genre>Emulator</genre>
-		<image>./media/m2emulator-logo.png</image>
-		<marquee>./media/m2emulator-logo.png</marquee>
-		<developer>Nebula Team</developer>
-		<publisher>Nebula Team</publisher>
-		<playcount />
-		<lastplayed />
-		<gametime />
-		<lang>en</lang>
-		<region>wr</region>
-	</game>
-	<game>
 		<path>./keisho.menu</path>
-		<name>Keisho (Model 2)</name>
-		<desc>Run Keisho (Model 2): its game picker and settings menu.</desc>
+		<name>Keisho (Model 1, 2 &amp; 3)</name>
+		<desc>Run Keisho (Sega Model 1, 2 &amp; 3): its game picker and settings menu.</desc>
 		<genre>Emulator</genre>
 		<image>./media/keisho-logo.png</image>
 		<marquee>./media/keisho-logo.png</marquee>

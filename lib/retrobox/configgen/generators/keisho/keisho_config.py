@@ -24,8 +24,8 @@ from .keisho_games import game_family, game_set
 from .keisho_paths import (
     KEISHO_BUILD_INFO,
     KEISHO_CFG,
-    KEISHO_NVRAM,
     KEISHO_SCREENSHOTS,
+    nvram_dir,
 )
 
 if TYPE_CHECKING:
@@ -51,7 +51,7 @@ _NATIVE_WIDTH: Final = 496  # the picture of the hardware, in square pixels
 _NATIVE_HEIGHT: Final = 384
 
 _MAX_VOLUME: Final = 150  # Keisho caps the volume of a game family at 150 %
-_PLAYERS: Final = 2  # Model 2 cabinets have at most two players
+_PLAYERS: Final = 2  # Model 1, 2 and 3 cabinets have at most two players
 
 # The keys Keisho ships with. They are written every time because the
 # gamepad profile (share/pad2key/profiles/keisho.keys) presses them: a key
@@ -365,15 +365,21 @@ def _input_settings(
 # ---------------------------------------------------------------------------
 
 
-def _system_settings(config: SystemConfig) -> dict[str, str]:
-    """Return the [system] and [paths] keys."""
+def _system_settings(config: SystemConfig, system_name: str) -> dict[str, str]:
+    """Return the [system], [audio] and [paths] keys of the Model 1, 2 and 3 settings."""
     return {
         "rewind": _ini_bool(config.get_bool("rewind", False)),
         "rewind_buffer_mb": config.get_str("keisho_rewind_memory", "128"),
         "software_async": _ini_bool(config.get_bool("keisho_software_async", True)),
+        "model3_async": _ini_bool(config.get_bool("keisho_model3_async", True)),
+        # four channels for the four-speaker Model 3 cabinets; the other games are stereo
+        "surround": _ini_bool(config.get_bool("keisho_surround", False)),
         "throttle": "true",
-        "rom_dir": str(ROMS / "model2"),
-        "nvram_dir": str(KEISHO_NVRAM),
+        # the folder of each system, so the picker of Keisho lists them all
+        "model1_rom_dir": str(ROMS / "model1"),
+        "model2_rom_dir": str(ROMS / "model2"),
+        "model3_rom_dir": str(ROMS / "model3"),
+        "nvram_dir": str(nvram_dir(system_name)),
         "screenshot_dir": str(KEISHO_SCREENSHOTS),
     }
 
@@ -456,7 +462,7 @@ def write_config(
         **_audio_settings(config, rom),
         **_input_settings(config, rom, controllers, wheels),
         **_wheel_settings(config, controllers, wheels),
-        **_system_settings(config),
+        **_system_settings(config, system.name),
     }
 
     existing = KEISHO_CFG.read_text(encoding="utf-8") if KEISHO_CFG.exists() else ""

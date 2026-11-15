@@ -73,7 +73,7 @@ cat > "${DESTDIR}${SYSCONF_DIR}/retrobox.ini" <<'EOF'
 # this file. Nothing is written here by Retrobox; everything below is optional
 # and shows the default.
 #
-# The same layering applies to share/ (systems_config/, emu_features/,
+# The same layering applies to share/ (systems/, emulator_options/,
 # hooks/retrohook.d/...): a file under /etc/retrobox/<same relative path>, or
 # under ~/.config/retrobox/<same relative path>, replaces the shipped one.
 

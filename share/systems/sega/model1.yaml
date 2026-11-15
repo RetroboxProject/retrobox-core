@@ -1,0 +1,23 @@
+model1:
+  fullname: Model 1
+  manufacturer: Sega
+  release: 1992
+  hardware: arcade
+  extension:
+  - .zip
+  - .7z
+  platform:
+  - model1
+  - arcade
+  theme: model1
+  emulators:
+    keisho:
+      cores:
+        keisho:
+          default: true
+    libretro:
+      cores:
+        mame: {}
+    mame:
+      cores:
+        mame: {}

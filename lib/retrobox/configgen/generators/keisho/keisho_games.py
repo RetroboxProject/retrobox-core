@@ -1,4 +1,4 @@
-"""Identification of the Model 2 set a ROM archive holds, from Keisho's games.xml.
+"""Identification of the Model 1, 2 or 3 set a ROM archive holds, from Keisho's games.xml.
 
 Keisho identifies a set by the CRC32 of the chips in the archive, whatever
 the archive is called. Retrobox does the same for the family of the game

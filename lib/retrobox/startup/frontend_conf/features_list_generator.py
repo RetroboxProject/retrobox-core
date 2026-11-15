@@ -428,11 +428,11 @@ def _feature_yaml_files(yaml_dir: Path | None) -> list[Path]:
     if yaml_dir is None:
         found = {
             rel: path
-            for rel, path in layered_files("emu_features", "*.yaml").items()
+            for rel, path in layered_files("emulator_options", "*.yaml").items()
             if "/" not in rel
         }
         if not found:
-            raise FileNotFoundError("No emu_features found in any configuration layer")
+            raise FileNotFoundError("No emulator_options found in any configuration layer")
         return list(found.values())
     if not yaml_dir.exists():
         raise FileNotFoundError(f"Features dir not found: {yaml_dir}")
@@ -446,7 +446,7 @@ def generate_es_features(yaml_dir: Path | None = None, output_path: Path = ES_FE
 
     Args:
         yaml_dir: Directory holding the per-emulator/core feature YAML files.
-            None (default) merges emu_features/ across the configuration layers.
+            None (default) merges emulator_options/ across the configuration layers.
         output_path: Where to write the generated es_features.cfg.
 
     Raises:

@@ -1,6 +1,6 @@
-"""Generator of the Keisho (Sega Model 2) command.
+"""Generator of the Keisho (Sega Model 1, 2 and 3) command.
 
-Keisho is a native Model 2 emulator (https://github.com/Keisho-Emu/Keisho),
+Keisho is a native Sega Model 1, 2 and 3 emulator (https://github.com/Keisho-Emu/Keisho),
 installed with ``retrobox --setup-emulator keisho``.
 """
 
@@ -22,9 +22,9 @@ from .keisho_games import game_set
 from .keisho_paths import (
     KEISHO_BIN,
     KEISHO_CFGDIR,
-    KEISHO_NVRAM,
     KEISHO_SCREENSHOTS,
     migrate_legacy_data,
+    nvram_dir,
 )
 
 if TYPE_CHECKING:
@@ -69,7 +69,7 @@ class KeishoGenerator(Generator):
             )
 
         migrate_legacy_data()
-        for directory in (KEISHO_CFGDIR, KEISHO_NVRAM, KEISHO_SCREENSHOTS):
+        for directory in (KEISHO_CFGDIR, nvram_dir(system.name), KEISHO_SCREENSHOTS):
             mkdir_if_not_exists(directory)
 
         # the configuration GUI is Keisho's own game picker, with its overlay (F10)

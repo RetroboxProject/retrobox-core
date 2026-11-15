@@ -13,7 +13,7 @@ This project brings the parts that matter most to a desktop Linux installation:
 - `batocera-configgen` writing emulator configs automatically on game launch
 - Bezels: RetroArch draws them itself; the other emulators get them through a patched MangoHud build, the same approach batocera uses.
 - Shaders on RetroArch and ares.
-- Controller autoconfiguration for RetroArch, ares, Azahar, Cemu, Dolphin, Eden, Flycast, MAME, melonDS, PCSX2, PPSSPP, Redream, RPCS3, Ryujinx, ScummVM and Keisho (Model 2).
+- Controller autoconfiguration for RetroArch, ares, Azahar, Cemu, Dolphin, Eden, Flycast, MAME, melonDS, PCSX2, PPSSPP, Redream, RPCS3, Ryujinx, ScummVM, shadPS4, Vita3K, Kodi and Keisho (Sega Model 1, 2 and 3).
 - Gamepad hotkeys (Hotkey+Start to exit, etc.) on every emulator through [gamepadly](https://github.com/RetroboxProject/gamepadly).
 
 ## Architecture
@@ -37,7 +37,7 @@ Configuration is layered, read-only code and writable user data are separate, an
 
 **Read-only install** (`/opt/retrobox`, the `install.sh` prefix, or a checkout) is never written to.
 
-**Configuration layers**, lowest priority first. Each mirrors the `share/` tree (`systems_config/`, `emu_features/`, `hooks/retrohook.d/`, ...) and a file with the same relative path replaces the one below it; extra files add systems/features/hooks:
+**Configuration layers**, lowest priority first. Each mirrors the `share/` tree (`systems/`, `emulator_options/`, `hooks/retrohook.d/`, ...) and a file with the same relative path replaces the one below it; extra files add systems, emulator options or hooks (the first two folders were called `systems_config/` and `emu_features/` in earlier versions: move any override you keep under the old names):
 
 1. `<install dir>/share` — shipped defaults
 2. `/etc/retrobox` — administrator (optional; `RETROBOX_SYSCONFDIR`)
@@ -80,7 +80,16 @@ Compared with batocera:
 | `/usr/share/batocera` | `<install dir>/share` |
 | `/usr/share/batocera/evmapy` | `<install dir>/share/pad2key/profiles` (user profiles: `~/.config/retrobox/pad2key/profiles`) |
 
-Emulators that keep their binary and their config together (redream, supermodel, model2emu) still use `~/.local/share/retrobox/emulators/<emu>`.
+Emulators that keep their binary and their config together (redream, supermodel) still use `~/.local/share/retrobox/emulators/<emu>`.
+
+### Systems and emulator options
+
+Two folders of `share/` describe what EmulationStation offers; both are layered (see above), so a file of the same name in `/etc/retrobox` or `~/.config/retrobox` replaces the shipped one and a new file adds to it:
+
+- `share/systems/<manufacturer>/<system>.yaml`: one system per file (the key is the system name and must match the file name): full name, ROM extensions, theme and the emulators and cores that can run it, with the default one. `share/systems/defaults.yml` holds the options every system starts from. `retrobox` turns the tree into EmulationStation's `es_systems.cfg` at every start.
+- `share/emulator_options/<emulator>[_<core>].yaml`: the options menu of an emulator or of one of its cores (the `emulator_name` and `core_name` keys), with the shared ones listed in `_global_config.yaml`. An emulator file can also hold a `systems:` block with options for one system only. They become `es_features.cfg`.
+
+Arcade coverage is deliberately small: `mame` (with the older `mame2003` and `mame2010`), `fbneo`, `dice`, Sega `model1`, `model2`, `model3`, `naomi`, `atomiswave` and `systemsp`, and `triforce`. Game-specific engines (fantasy consoles, the Quake, Doom 3 and Cave Story ports...) are not shipped, except `prboom`; drop a system file in your configuration layer to add one.
 
 ### Stubs for batocera-only binaries
 
@@ -137,7 +146,7 @@ A bezel is looked up in this order, in your `decorations/<set>` first and then i
 
 ### Netplay
 
-EmulationStation's lobby and *Netplay settings* menu work as in batocera and RetroArch's cores do the rest: the launcher turns `-netplaymode host|client|spectator` (plus `-netplayip`, `-netplayport`, `-netplaysession` and `-netplaypass`) into RetroArch's `--host`, `--connect`, `--port`, `--mitm-session` and `--nick`, and writes the matching `netplay_*` options of `retroarch.cfg` on every launch: nickname, port, the relay server (`nyc`, `madrid`, `montreal`, `saopaulo`, a community one or a custom address), public announce for hosts, spectator mode and the room password. Hardcore RetroAchievements mode is turned off while a room is open, because it disables the savestates netplay is built on. EmulationStation only offers netplay for the cores listed in `core_features: netplay:` of `share/emu_features/libretro.yaml` (it gives them the `netplay` feature, which is what EmulationStation checks) (the same set as batocera), and it has to be turned on in its menu (`global.netplay`). The code is in `lib/retrobox/configgen/generators/libretro/libretro_netplay.py`.
+EmulationStation's lobby and *Netplay settings* menu work as in batocera and RetroArch's cores do the rest: the launcher turns `-netplaymode host|client|spectator` (plus `-netplayip`, `-netplayport`, `-netplaysession` and `-netplaypass`) into RetroArch's `--host`, `--connect`, `--port`, `--mitm-session` and `--nick`, and writes the matching `netplay_*` options of `retroarch.cfg` on every launch: nickname, port, the relay server (`nyc`, `madrid`, `montreal`, `saopaulo`, a community one or a custom address), public announce for hosts, spectator mode and the room password. Hardcore RetroAchievements mode is turned off while a room is open, because it disables the savestates netplay is built on. EmulationStation only offers netplay for the cores listed in `core_features: netplay:` of `share/emulator_options/libretro.yaml` (it gives them the `netplay` feature, which is what EmulationStation checks) (the same set as batocera), and it has to be turned on in its menu (`global.netplay`). The code is in `lib/retrobox/configgen/generators/libretro/libretro_netplay.py`.
 
 ### RetroAchievements
 
@@ -145,7 +154,7 @@ EmulationStation's *RetroAchievements settings* menu (account, hardcore mode, le
 
 - **Hardcore mode** turns off rewind and the automatic loading of a state, and is off while a netplay room is open (it disables the savestates netplay is built on). Leaderboards only count together with hardcore, as the menu says.
 - **Unlock sound:** the `.ogg` files of `<data dir>/retroachievements-sounds/` (and of `/usr/share/libretro/assets/sounds/`) are the ones the menu offers.
-- **Which cores:** RetroArch decides what a core can do, but EmulationStation only offers achievements (the entries, the game hashing, the warning "current core is not compatible") for the cores marked with the `cheevos` feature. The list is `core_features: cheevos:` of `share/emu_features/libretro.yaml`, taken from the RetroAchievements project's supported cores. `mame*`, `blastem`, `nestopia` and `quasi88` are left out on purpose. To offer it for another core, add it to that list (or to a file of the same name in `~/.config/retrobox/emu_features/`).
+- **Which cores:** RetroArch decides what a core can do, but EmulationStation only offers achievements (the entries, the game hashing, the warning "current core is not compatible") for the cores marked with the `cheevos` feature. The list is `core_features: cheevos:` of `share/emulator_options/libretro.yaml`, taken from the RetroAchievements project's supported cores. `mame*`, `blastem`, `nestopia` and `quasi88` are left out on purpose. To offer it for another core, add it to that list (or to a file of the same name in `~/.config/retrobox/emulator_options/`).
 - **RetroArch built from source** (`tools/emulators/retroarch.sh`) is configured with `--enable-cheevos --enable-ssl`, so it fails to build instead of silently lacking achievements or the TLS they log in with.
 
 ### Content downloader
@@ -168,11 +177,20 @@ When a game needs an emulator that has an installer in `tools/emulators/` but is
 
 **Updating an emulator:** hold the **hotkey** while a game starts (the hotkey button of any controller, as mapped in EmulationStation, or **Shift** on a keyboard) and the same screen offers to install that game's emulator again, to get its latest version. The installer then works in a separate folder (`<data dir>/emulators/.update-<name>/`) and the installed emulator is only replaced once the new one is complete: its configuration and data are carried over (the `config` folder, files the new version doesn't ship, and a few known files such as Redream's `redream.cfg` or Supermodel's `NVRAM`), and if anything fails, or the screen is closed halfway, the installed version is left untouched. Either way the game starts afterwards. Keep it held until the screen appears. Controllers are read through SDL, with the button numbers of `es_input.cfg`; keyboards are read from their evdev devices, which needs the `input` group (the packages and `install.sh` add you to it); `RETROBOX_REINSTALL_EMULATOR=1` in the environment has the same effect.
 
+### Sega arcade (Keisho)
+
+[Keisho](https://github.com/Keisho-Emu/Keisho) (formerly sm2-emu) is a native emulator of the Sega Model 1, 2 and 3 boards. Install it with `retrobox --setup-emulator keisho` (the upstream release for x86_64 and aarch64, or a build from source with `tools/emulators/keisho.sh -s`). It is the default emulator of `model1` and `model2`; `model3` keeps Supermodel as its default and lists Keisho next to it, and MAME is listed on all three. The Wine-based Model 2 Emulator is gone.
+
+- **ROMs:** `roms/model1`, `roms/model2` and `roms/model3`. Keisho identifies a game by the CRC32 of its chips, not by the archive name, so a merged archive can hold several revisions and the archive name picks one (`vf2o.zip`). The *Keisho* entry of the emulator menu opens its own game picker, which lists the three folders.
+- **Saves and configuration:** NVRAM, save states and screenshots go to `saves/<system>/keisho` (and `screenshots/keisho`), the configuration to `~/.config/retrobox/emulators/keisho/keisho.ini`. On every launch Retrobox rewrites only the keys it manages (renderer, scaling, audio, pads, wheels, ROM folders), so what you set in Keisho's overlay (F10) stays, such as a pad layout saved for a game. Data of sm2-emu is moved to the new names the first time Keisho runs.
+- **Options:** renderer (OpenGL, Vulkan or software), render scale up to 8x, aspect ratio, scaling, texture filtering, 2D upscale, CRT filter, rewind, rumble and wheel force feedback. Translucency and the extended draw distance only apply to Model 1 and 2; on `model3` there are two more: *Speakers* (stereo or surround, for the four-speaker cabinets) and *Threaded frame building*.
+- **Pad layout:** per game for the Model 2 games (taken from RetroBat); Model 1 and 3 games use the default layout, or one of the arcade panel layouts, from *Button layout*.
+
 ### Apps
 
 An `apps` system with app-like shortcuts to web streaming services (opened in Chrome or Firefox kiosk mode, so one of them must be installed) and Kodi (which needs Kodi).
 
-**Kodi** is started through `bin/retrobox-kodi`, which only launches it: the Flatpak (`tv.kodi.Kodi`) if installed, else a native `kodi` (`RETROBOX_KODI=flatpak|native` forces one; `--which` prints the one it would start). Before that, configgen writes the controllers' button maps for Kodi's `peripheral.joystick` add-on into the userdata folder of that Kodi (`~/.var/app/tv.kodi.Kodi/data/userdata` or `~/.kodi/userdata`), mirroring EmulationStation's layout (the buttons by position, L3/R3 included; with *Switch confirm & cancel buttons* the east button confirms, as in EmulationStation). The hotkey is not mapped, because it is a modifier in Retrobox. A native Kodi needs the `peripheral.joystick` add-on, which some distributions package separately. EmulationStation's *Kodi media center* menu entry shows when `retrobox-kodi --check` succeeds and goes through the same path (`retrobox-launch -system apps -emulator kodi -rom config`). Kodi uses its own gamepad handling, so its `apps.kodi.keys` gamepadly profile is empty (it only gets the standard hotkeys, such as Hotkey+Start to leave).
+**Kodi** is started through `bin/retrobox-kodi`, which only launches it: the Flatpak (`tv.kodi.Kodi`) if installed, else a native `kodi` (`RETROBOX_KODI=flatpak|native` forces one; `--which` prints the one it would start). Before that, configgen writes the controllers' button maps for Kodi's `peripheral.joystick` add-on into the userdata folder of that Kodi (`~/.var/app/tv.kodi.Kodi/data/userdata` or `~/.kodi/userdata`), mirroring EmulationStation's layout (the buttons by position, L3/R3 included; with *Switch confirm & cancel buttons* the east button confirms, as in EmulationStation). The hotkey is not mapped, because it is a modifier in Retrobox. A native Kodi needs the `peripheral.joystick` add-on, which some distributions package separately. If neither Kodi is installed, configgen stops before anything starts with a `RetroboxException` ("Kodi is not installed: install the tv.kodi.Kodi Flatpak or the kodi package"), also when no controller is connected. EmulationStation's *Kodi media center* menu entry shows when `retrobox-kodi --check` succeeds and goes through the same path (`retrobox-launch -system apps -emulator kodi -rom config`). Kodi uses its own gamepad handling, so its `apps.kodi.keys` gamepadly profile is empty (it only gets the standard hotkeys, such as Hotkey+Start to leave).
 
 `gamepadly` maps the player 1 gamepad so the web pages can be used without a mouse (`share/pad2key/profiles/apps.keys`; buttons in SNES layout):
 
@@ -258,7 +276,7 @@ Install directory (read-only):
 ├── lib/
 │   └── retrobox/              # the Python package: paths, startup, launcher, configgen, utils
 ├── libexec/                   # internal helpers: emuconfig/ (per-emulator config launchers), stubs/, mangohud/ (from the retrobox-mangohud component)
-├── share/                     # read-only defaults (the lowest config layer): systems_config/, emu_features/, configgen/, hooks/, pad2key/...
+├── share/                     # read-only defaults (the lowest config layer): systems/, emulator_options/, configgen/, hooks/, pad2key/...
 ├── tools/                     # installers (emulators/, decorations/), deps/*.list, setup.sh
 ├── frontend/                  # EmulationStation seed config (the retrobox-emulationstation component installs here)
 ├── VERSION                    # (packages only)

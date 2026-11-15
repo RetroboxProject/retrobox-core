@@ -14,7 +14,6 @@ _GENERATOR_MAP: Final[dict[str, tuple[str, str]]] = {
     'dolphin-emu': ('dolphin.dolphinGenerator', 'DolphinGenerator'),
     'dosbox': ('dosbox.dosboxGenerator', 'DosBoxGenerator'),
     'melonds': ('melonds.melondsGenerator', 'MelonDSGenerator'),
-    'model2emu': ('model2emu.model2emuGenerator', 'Model2EmuGenerator'),
     'ppsspp': ('ppsspp.ppssppGenerator', 'PPSSPPGenerator'),
     'keisho': ('keisho.keishoGenerator', 'KeishoGenerator'),
     'scummvm': ('scummvm.scummvmGenerator', 'ScummVMGenerator'),

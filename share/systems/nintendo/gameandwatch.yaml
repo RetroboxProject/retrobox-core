@@ -1,0 +1,23 @@
+gameandwatch:
+  fullname: Game and Watch
+  manufacturer: Nintendo
+  release: 1980
+  hardware: portable
+  extension:
+  - .mgw
+  - .zip
+  - .7z
+  platform:
+  - gameandwatch
+  theme: gameandwatch
+  emulators:
+    libretro:
+      cores:
+        gw:
+          default: true
+        mame: {}
+    mame:
+      cores:
+        mame:
+          incompatible_extensions:
+          - .mgw

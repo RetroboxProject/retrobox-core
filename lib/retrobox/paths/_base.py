@@ -248,7 +248,7 @@ def get_configured_path(key: str, default: Path) -> Path:
 def get_ignored_systems() -> frozenset[str]:
     """
     Read [core] ignore_systems: a comma-separated list of system names
-    (the top-level key of each systems_config *.yaml, e.g. "gba", "psp")
+    (the top-level key of each systems *.yaml, e.g. "gba", "psp")
     that are skipped when generating es_systems.cfg.
     """
     raw = _PATHS_CONFIG.get("core", "ignore_systems", fallback="")
@@ -270,7 +270,7 @@ def get_ini_value(section: str, key: str, default: str = "") -> str:
 # given...). It is read-only: nothing is ever written there.
 #
 # The configuration is layered. Each layer mirrors the directory structure of
-# share/ (systems_config/, emu_features/, hooks/...) and a file in a later
+# share/ (systems/, emulator_options/, hooks/...) and a file in a later
 # layer replaces the same file of an earlier one:
 #
 #   1. $RETROBOX_ROOTDIR/share     shipped defaults (read-only)

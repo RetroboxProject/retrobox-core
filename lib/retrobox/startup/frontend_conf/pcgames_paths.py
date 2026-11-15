@@ -78,7 +78,7 @@ class SyncMode(str, Enum):
     FOLLOW_ROMS_DIR = "follow-roms-dir"
 
 
-# ES system name (top-level key of its systems_config YAML) of each store.
+# ES system name (top-level key of its systems YAML) of each store.
 PCGAMES_SYSTEMS: Final[tuple[str, ...]] = ("steam", "lutris", "heroic")
 
 # The yes/no values these keys took in v0.0.25, mapped to the closest mode

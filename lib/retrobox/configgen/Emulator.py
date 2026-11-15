@@ -61,7 +61,7 @@ def _load_system_config(system_name: str, rom: Path) -> dict[str, Any]:
         return data
 
     # 1. Cargar las opciones globales desde defaults.yml si existe en _ES_SYSTEMS_DIR
-    defaults_path = layered_file("systems_config/defaults.yml")
+    defaults_path = layered_file("systems/defaults.yml")
     if defaults_path is not None:
         try:
             with open(defaults_path, 'r', encoding='utf-8') as f:
@@ -84,7 +84,7 @@ def _load_system_config(system_name: str, rom: Path) -> dict[str, Any]:
     # (the file of the highest-priority layer: user > /etc > shipped)
     sys_yaml_path = None
     for layer in reversed(CONFIG_LAYERS):
-        found = next((layer / "systems_config").glob(f"**/{system_name}.yaml"), None)
+        found = next((layer / "systems").glob(f"**/{system_name}.yaml"), None)
         if found is not None:
             sys_yaml_path = found
             break

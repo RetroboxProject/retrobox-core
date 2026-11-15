@@ -81,7 +81,7 @@ from ._configgen import (
     SQUASHFS_DIR,
     _DECORATIONS_DEF_DIR,
     _DECORATIONS_DIR,
-    EMU_FEATURES_DIR,
+    EMULATOR_OPTIONS_DIR,
     MANGOHUD_BIN,
     MANGOHUD_PREFIX_DIR,
     MANGOHUD_LEGACY_VULKAN_LAYER_DIR,
@@ -90,7 +90,7 @@ from ._configgen import (
     NVIDIA_POWERD_SCRIPT,
     _SHADERS_DIR,
     _SYSTEM_SCRIPTS,
-    SYSTEMS_CONF_DIR,
+    SYSTEMS_DIR,
     configure_emulator,
 )
 from ._frontend import (

@@ -102,8 +102,14 @@ def kodi_install() -> str:
         raise RetroboxException(f"Cannot run {KODI_LAUNCHER}: {err}") from err
     kind = result.stdout.strip()
     if result.returncode != 0 or kind not in _KODI_USERDATA:
+        forced = os.environ.get("RETROBOX_KODI", "auto")
+        if forced in _KODI_USERDATA:
+            raise RetroboxException(
+                f"Kodi not found: RETROBOX_KODI={forced} forces the {forced} Kodi and it is "
+                "not installed"
+            )
         raise RetroboxException(
-            "Kodi not found (neither the tv.kodi.Kodi Flatpak nor a native kodi)"
+            "Kodi is not installed: install the tv.kodi.Kodi Flatpak or the kodi package"
         )
     return kind
 

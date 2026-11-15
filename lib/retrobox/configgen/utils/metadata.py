@@ -13,20 +13,17 @@ _logger = logging.getLogger(__name__)
 _ARCADE_SYSTEMS: Final = {
     'lindbergh',
     'naomi',
-    'naomi2',
     'atomiswave',
     'fbneo',
     'mame',
     'neogeo',
     'triforce',
     'hypseus-singe',
+    'model1',
     'model2',
     'model3',
     'hikaru',
-    'gaelco',
-    'cave3rd',
     'namco2x6',
-    'namco22',
 }
 
 def _short_name_from_path(path: str | Path) -> str:

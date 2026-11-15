@@ -16,7 +16,7 @@ except AttributeError:  # PyYAML built without libyaml
 
 @dataclass(frozen=True, slots=True)
 class SystemInfo:
-    """One system of systems_config."""
+    """One system definition of the ``systems`` folder."""
 
     name: str  # what [core] ignore_systems lists
     fullname: str
@@ -24,13 +24,13 @@ class SystemInfo:
 
 
 def available_systems() -> list[SystemInfo]:
-    """Every system of the (layered) systems_config, sorted by full name.
+    """Every system of the (layered) systems, sorted by full name.
 
     A file that can't be read is skipped: it can't be listed in EmulationStation
     either.
     """
     found: dict[str, SystemInfo] = {}
-    for path in layered_files("systems_config", "*.yaml").values():
+    for path in layered_files("systems", "*.yaml").values():
         try:
             with path.open(encoding="utf-8") as handle:
                 data = yaml.load(handle, Loader=_Loader)

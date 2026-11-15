@@ -29,6 +29,8 @@ class KodiGenerator(Generator):
                 if first_line != "kodi":
                     raise RetroboxException('Invalid launcher for kodi')
 
-        # raises when there is no Kodi; Flatpak is preferred over a native one
-        kodiConfig.write_kodi_config(playersControllers)
+        # raises RetroboxException when no Kodi is installed (Flatpak or native), before
+        # anything is written or retrobox-kodi is started; the Flatpak is preferred
+        userdata = kodiConfig.kodi_userdata()
+        kodiConfig.write_kodi_config(playersControllers, userdata)
         return Command.Command(array=[kodiConfig.KODI_LAUNCHER])

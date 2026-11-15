@@ -182,8 +182,8 @@ OSK_FEATURE = "osk"
 
 
 def _has_osk_feature(emulator: str) -> bool:
-    """Whether the emulator's feature file (``emu_features/<emulator>.yaml``) lists ``osk``."""
-    path = layered_file(f"emu_features/{emulator}.yaml")
+    """Whether the emulator's feature file (``emulator_options/<emulator>.yaml``) lists ``osk``."""
+    path = layered_file(f"emulator_options/{emulator}.yaml")
     if path is None:
         return False
     try:

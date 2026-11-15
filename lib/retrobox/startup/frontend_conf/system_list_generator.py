@@ -1,4 +1,4 @@
-"""Regenerate es_systems.cfg from the current systems_config directory tree."""
+"""Regenerate es_systems.cfg from the current systems directory tree."""
 import logging
 import os
 from collections.abc import Mapping
@@ -85,9 +85,9 @@ def _system_yaml_files(base_path: Path | None) -> list[str]:
     same relative path, and extra files add systems.
     """
     if base_path is None:
-        found = layered_files("systems_config", "*.yaml")
+        found = layered_files("systems", "*.yaml")
         if not found:
-            raise FileNotFoundError("No systems_config found in any configuration layer")
+            raise FileNotFoundError("No systems found in any configuration layer")
         return [str(path) for path in found.values()]
     if not os.path.exists(base_path):
         raise FileNotFoundError(f"Systems dir not found: {base_path}")
@@ -135,14 +135,14 @@ def load_systems(base_path: Path | None = None) -> list[tuple[str, dict]]:
 
     Args:
         base_path: Directory of the system YAML files; None (default) merges
-            systems_config/ across the configuration layers.
+            systems/ across the configuration layers.
 
     Returns:
         (system name, its settings) of each one. The settings are what the YAML
         says: no defaults are filled in.
 
     Raises:
-        FileNotFoundError: If there is no systems_config.
+        FileNotFoundError: If there is no systems.
         NotADirectoryError: If `base_path` exists but isn't a directory.
     """
     loaded = (
@@ -207,7 +207,7 @@ def _unlink_if_present(path: Path) -> None:
 
 
 def generate_es_systems(base_path: Path | None = None, output_path: Path = ES_SYSTEMS_TMP):
-    """Rebuild es_systems.cfg from the (layered) systems_config YAML tree."""
+    """Rebuild es_systems.cfg from the (layered) systems YAML tree."""
     yaml_files = _system_yaml_files(base_path)
 
     _logger.debug("Generating %s", output_path)

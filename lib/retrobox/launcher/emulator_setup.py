@@ -70,12 +70,6 @@ _INSTALLABLE: Final[dict[str, Installable]] = {
     "eden": _EDEN,
     "eden-emu": _EDEN,
     "flycast": Installable("flycast", "Flycast", "flycast.flycastPaths", "FLYCAST_BIN"),
-    "model2emu": Installable(
-        "model2emu", "Model 2 Emulator", "model2emu.model2emuPaths", "M2EMU_EMUDIR",
-        "emulator_multicpu.exe",
-        # only the emulator inside the Wine prefix: the prefix itself stays
-        unit="model2emu/drive_c/model2emu", keep=("CFG", "EMULATOR.INI", "NVDATA"),
-    ),
     "pcsx2": Installable("pcsx2", "PCSX2", "pcsx2.pcsx2_paths", "PCSX2_BIN"),
     "ppsspp": Installable("ppsspp", "PPSSPP", "ppsspp.ppssppPaths", "PPSSPP_BIN"),
     "redream": Installable(

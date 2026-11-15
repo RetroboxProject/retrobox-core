@@ -1,0 +1,22 @@
+model2:
+  fullname: Model 2
+  manufacturer: Sega
+  release: 1993
+  hardware: arcade
+  extension:
+  - .zip
+  platform:
+  - model2
+  - arcade
+  theme: model2
+  emulators:
+    libretro:
+      cores:
+        mame: {}
+    mame:
+      cores:
+        mame: {}
+    keisho:
+      cores:
+        keisho:
+          default: true

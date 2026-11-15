@@ -25,7 +25,7 @@ can override them like any other option):
 
 Every key is written on every launch, enabled or not, so what one game turned
 on never leaks into the next one. Whether a core can earn achievements at all
-is up to RetroArch; ``cheevos_cores`` of ``share/emu_features/libretro.yaml``
+is up to RetroArch; ``cheevos_cores`` of ``share/emulator_options/libretro.yaml``
 only tells EmulationStation which ones to offer them for.
 """
 

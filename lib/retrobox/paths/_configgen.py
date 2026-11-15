@@ -19,8 +19,8 @@ from ._base import (
     get_configured_path,
 )
 
-EMU_FEATURES_DIR: Final = SHARE_DIR / "emu_features"
-SYSTEMS_CONF_DIR: Final = SHARE_DIR / "systems_config"
+EMULATOR_OPTIONS_DIR: Final = SHARE_DIR / "emulator_options"
+SYSTEMS_DIR: Final = SHARE_DIR / "systems"
 
 # Directories for emulator content
 #

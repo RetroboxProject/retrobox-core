@@ -54,7 +54,7 @@ _GLCORE_VENDORS = ("nvidia", "amd")
 # cores whose hardware renderer needs an OpenGL context: without a driver
 # chosen, they start the cascade at glcore / gl instead of vulkan
 _FORCE_GLCORE_CORES = ("kronos", "mupen64plus_next", "melonds", "beetle-psx-hw")
-_FORCE_GL_CORES = ("parallel_n64", "yabasanshiro", "boom3")
+_FORCE_GL_CORES = ("parallel_n64", "yabasanshiro")
 _AUTO_STATE_SUFFIX = ".auto"
 _AUTO_BACKEND = "auto"
 

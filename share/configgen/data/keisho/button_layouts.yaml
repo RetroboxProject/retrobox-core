@@ -1,4 +1,5 @@
-# Keisho: gamepad button layout of each Model 2 game.
+# Keisho: gamepad button layout of each game. The per-game layouts below are the
+# Model 2 ones; a Model 1 or Model 3 game takes the default layout of its kind.
 #
 # The per-game layouts come from RetroBat (system/resources/inputmapping/sm2emu.yml,
 # https://github.com/RetroBat-Official/retrobat), which carries over the layouts its

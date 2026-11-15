@@ -140,7 +140,7 @@ def _core_yaml_path(core: str, features_dir: Path | None = None) -> Path | None:
     for stem in (core, core.replace("_", "-")):
         name = f"libretro_{stem}.yaml"
         if features_dir is None:
-            candidate = layered_file(f"emu_features/{name}")
+            candidate = layered_file(f"emulator_options/{name}")
             if candidate is not None:
                 return candidate
         elif (features_dir / name).is_file():

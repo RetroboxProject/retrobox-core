@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # shellcheck source-path=SCRIPTDIR
-# Keisho (Sega Model 2) installer.
+# Keisho (Sega Model 1, 2 & 3) installer.
 # https://github.com/Keisho-Emu/Keisho
 #
 # Installs Keisho under ${RETROBOX_EMULATORS_DIR}/keisho/app, the prefix the

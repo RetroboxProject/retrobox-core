@@ -4,7 +4,7 @@ On every start, each system that EmulationStation lists gets
 ``<roms_dir>/<system>`` if the folder is missing, with an ``_info.txt`` (as in
 batocera) that says what goes in it: the file extensions the system accepts,
 the emulators and cores that will run them and a few tips. It is written from
-the system's YAML (see ``systems_config``), in English.
+the system's YAML (see ``systems``), in English.
 
 An ``_info.txt`` that already exists is never rewritten, whoever wrote it, and
 a folder that exists is not changed in any other way. The text holds no paths
@@ -195,7 +195,7 @@ def create_roms_dirs(base_path: Path | None = None) -> int:
 
     Args:
         base_path: Directory of the system YAML files; None (default) merges
-            systems_config/ across the configuration layers.
+            systems/ across the configuration layers.
 
     Returns:
         How many folders were created.
