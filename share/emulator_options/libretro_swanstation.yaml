@@ -37,7 +37,7 @@ groups:
         - name: CONTROLLER TYPE
           value: controller1_swanstation
           description: >-
-            Controller plugged into port 1. Standard has no analog sticks: the left stick of your pad drives the D-pad, which keeps working too. The DualShock and the analog joystick read both sticks; the DualShock also rumbles.
+            Controller plugged into port 1. Standard has no analog sticks: the left stick of your pad drives the D-pad, which keeps working too. The DualShock and the analog joystick read both sticks; the DualShock also rumbles. The mouse is a real one, plugged into the computer.
           core_option: false
           choices:
             - name: Standard (Default)
@@ -50,11 +50,13 @@ groups:
               value: '773'
             - name: neGcon Rumble
               value: '1029'
+            - name: Mouse
+              value: '258'
       PORT 2:
         - name: CONTROLLER TYPE
           value: controller2_swanstation
           description: >-
-            Controller plugged into port 2. Standard has no analog sticks: the left stick of your pad drives the D-pad, which keeps working too. The DualShock and the analog joystick read both sticks; the DualShock also rumbles.
+            Controller plugged into port 2. Standard has no analog sticks: the left stick of your pad drives the D-pad, which keeps working too. The DualShock and the analog joystick read both sticks; the DualShock also rumbles. The mouse is a real one, plugged into the computer.
           core_option: false
           choices:
             - name: Standard (Default)
@@ -67,3 +69,5 @@ groups:
               value: '773'
             - name: neGcon Rumble
               value: '1029'
+            - name: Mouse
+              value: '258'

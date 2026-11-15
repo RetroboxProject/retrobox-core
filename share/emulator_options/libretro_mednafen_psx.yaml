@@ -26,7 +26,7 @@ groups:
         - name: CONTROLLER TYPE
           value: controller1_mednafen_psx
           description: >-
-            Controller plugged into port 1. Standard has no analog sticks: the left stick of your pad drives the D-pad, which keeps working too. The analog controllers read both sticks; the DualShock and the neGcon Rumble also rumble.
+            Controller plugged into port 1. Standard has no analog sticks: the left stick of your pad drives the D-pad, which keeps working too. The analog controllers read both sticks; the DualShock and the neGcon Rumble also rumble. The mouse is a real one, plugged into the computer.
           core_option: false
           choices:
             - name: Standard (Default)
@@ -41,11 +41,13 @@ groups:
               value: '1029'
             - name: neGcon Rumble
               value: '1285'
+            - name: Mouse
+              value: '258'
       PORT 2:
         - name: CONTROLLER TYPE
           value: controller2_mednafen_psx
           description: >-
-            Controller plugged into port 2. Standard has no analog sticks: the left stick of your pad drives the D-pad, which keeps working too. The analog controllers read both sticks; the DualShock and the neGcon Rumble also rumble.
+            Controller plugged into port 2. Standard has no analog sticks: the left stick of your pad drives the D-pad, which keeps working too. The analog controllers read both sticks; the DualShock and the neGcon Rumble also rumble. The mouse is a real one, plugged into the computer.
           core_option: false
           choices:
             - name: Standard (Default)
@@ -60,3 +62,5 @@ groups:
               value: '1029'
             - name: neGcon Rumble
               value: '1285'
+            - name: Mouse
+              value: '258'

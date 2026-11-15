@@ -146,6 +146,7 @@ _MELONDSDS_BUTTONS = {"btn_r2": "15", "btn_r3": "13"}
 _PSX_CORES = ("mednafen_psx", "pcsx_rearmed", "swanstation")
 _PSX_PORTS = (1, 2)
 _PSX_STANDARD_PAD = "1"  # RETRO_DEVICE_JOYPAD: the standard pad of every PlayStation core
+_PSX_MOUSE = "258"  # RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_MOUSE, 0), the same in every core
 
 _LANGUAGE_FONTS = {
     "1": "/usr/share/fonts/truetype/noto/NotoSansJP-VF.ttf",
@@ -365,9 +366,15 @@ def _apply_psx_pads(config: dict[str, object], system: Emulator) -> None:
     on for it, and off for the controllers that read the sticks themselves.
     """
     core = system.config.core
+    mice = 0
     for player in _PSX_PORTS:
         device = _chosen(system.config, f"controller{player}_{core}", _PSX_STANDARD_PAD)
         _set_device(config, player, device, "1" if device == _PSX_STANDARD_PAD else "0")
+        if device == _PSX_MOUSE:
+            # a real mouse: the first one goes to the first port that has a mouse, whatever
+            # its number (RetroArch would give the second mouse to port 2)
+            config[f"input_player{player}_mouse_index"] = str(mice)
+            mice += 1
 
 
 def _apply_psx_inputs(config: dict[str, object], launch: LibretroLaunch) -> None:
