@@ -9,7 +9,7 @@ for its verdict. Without the overlay nothing is offered or installed (the
 emulators are then installed and updated by hand, ``retrobox --setup-emulator``)
 and the game is launched anyway.
 
-When the launcher asks for a reinstall (L1 and R1 held while the game starts),
+When the launcher asks for a reinstall (L1 and R1, or Ctrl and Shift, held while the game starts),
 the screen offers to install the emulator again even though it is there, to
 update it. That install goes through ``emulator_update``, which builds the
 new version in a separate folder and only replaces the installed one once it
@@ -132,7 +132,7 @@ def _reinstall(emulator: str) -> None:
     except ValueError:
         _logger.warning("%s is outside %s: it can't be reinstalled safely", binary, EMULATORS)
         return
-    _logger.info("reinstall of %s requested (L1 and R1 held)", entry.label)
+    _logger.info("reinstall of %s requested (chord held)", entry.label)
     status = run_task(
         entry.label,
         LOGS / f"emusetup-{entry.installer}.log",

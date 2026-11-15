@@ -8,7 +8,7 @@ the overlay installed nothing is run: whoever prefers that installs and
 updates the emulators and the default content by hand
 (``retrobox --setup-emulator NAME``, ``retrobox --update-default-theme``...).
 
-The overlay also tells whether L1 and R1 are held down (``--held``), which is
+The overlay also tells whether L1 and R1, or Ctrl and Shift, are held down (``--held``), which is
 how a game's start asks for its emulator to be installed again.
 
 Exit status of the screen: 0 done, 10 declined (or a download cancelled),
@@ -103,7 +103,7 @@ def run_task(  # pylint: disable=too-many-arguments
 
 
 def reinstall_requested() -> bool:
-    """True when L1 and R1 are held down (or the environment variable is set).
+    """True when L1 and R1, or Ctrl and Shift, are held (or the environment variable is set).
 
     The overlay reads the controllers' state from the kernel, nothing needs a
     window or the focus. Call it right away when a game starts, while the
@@ -120,8 +120,8 @@ def reinstall_requested() -> bool:
             [overlay, "--held"], check=False, timeout=_HELD_TIMEOUT_S, capture_output=True
         ).returncode == 0
     except (OSError, subprocess.TimeoutExpired):
-        _logger.debug("cannot ask the overlay whether L1 and R1 are held", exc_info=True)
+        _logger.debug("cannot ask the overlay whether the reinstall chord is held", exc_info=True)
         return False
     if held:
-        _logger.info("L1 and R1 are held: asking for a reinstall")
+        _logger.info("the reinstall chord is held: asking for a reinstall")
     return held

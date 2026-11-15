@@ -116,7 +116,7 @@ def start_rom(args: argparse.Namespace, max_players: int, rom: Path, original_ro
 
     player_controllers = Controller.load_for_players(max_players, args)
     # read right away, while the button that launched the game is likely still
-    # down: L1 and R1 held ask for the emulator to be installed again
+    # down: the chord (L1+R1, Ctrl+Shift) held asks for the emulator to be installed again
     args.reinstall_emulator = reinstall_requested()
     monitor = ControllerMonitor(player_controllers)
 

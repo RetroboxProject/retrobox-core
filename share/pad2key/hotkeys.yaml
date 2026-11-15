@@ -15,7 +15,7 @@
 #
 # The overlay is not here: retrobox-overlay's daemon opens it everywhere in
 # Retrobox (EmulationStation too) with Hotkey+B on every controller, when a
-# dedicated hotkey (Home/Guide) is held for a moment, or on Shift+F7 (see its
+# dedicated hotkey (Home/Guide) is held for a moment, or on Ctrl+Shift+O or Shift+F7 (see its
 # overlay.ini, hold_ms). Where the hotkey is a button the game uses (Select),
 # holding it opens nothing. Save states and their slots are the overlay's too.
 #
@@ -23,7 +23,7 @@
 # modifiers count as the left-hand ones). Gamepadly watches every keyboard
 # without taking the keys from the game, so a chord also reaches the
 # emulator: these use keys emulators leave free (RetroArch's own Shift+key
-# hotkeys use F1-F4 and F9-F12, and P; Shift+F7 is the overlay's). Only
+# hotkeys use F1-F4 and F9-F12, and P; Ctrl+Shift+O and Shift+F7 are the overlay's). Only
 # commands (leaving the game) are bound to the keyboard; an emulator that reads the chord itself
 # (RetroArch's Shift+Esc) is left alone.
 #
