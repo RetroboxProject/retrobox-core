@@ -1,3 +1,4 @@
 emulator_name: chrome
 features:
   - padtokeyboard
+  - osk

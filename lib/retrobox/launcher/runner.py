@@ -13,7 +13,7 @@ from retrobox.configgen.controller import Controller
 from retrobox.configgen.Emulator import Emulator
 from retrobox.configgen.generators import get_generator
 from retrobox.configgen.gun import Guns
-from retrobox.configgen.hotkeys import overlay_enabled
+from retrobox.configgen.hotkeys import osk_enabled, overlay_enabled
 from retrobox.configgen.utils import metadata, videoMode, wheelsUtils
 from retrobox.configgen.utils.overlayfs import mount_overlayfs
 from retrobox.configgen.utils.squashfs import mount_squashfs
@@ -283,6 +283,7 @@ def _publish_state(
                 control=description,
                 savestates=savestates,
                 overlay=overlay_enabled(system),
+                osk=osk_enabled(system),
             )
         )
 
@@ -296,6 +297,7 @@ def _control(session: GameSession, cmd: Command) -> control_channel.Control:
     slot = savestates.get("slot", 0)
     return control_channel.Control(
         bindings=effective_bindings(session.generator, system),
+        osk=osk_enabled(system),
         pipe=cmd.stdin_fifo,
         pipe_commands=session.generator.pipe_commands(system),
         slot=slot if isinstance(slot, int) else 0,

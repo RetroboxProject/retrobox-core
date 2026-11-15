@@ -79,6 +79,7 @@ class GameState:  # pylint: disable=too-many-instance-attributes
     control: dict[str, object] | None = None
     savestates: dict[str, object] | None = None
     overlay: bool = True
+    osk: bool = False
     version: int = SESSION_VERSION
 
     def is_alive(self) -> bool:

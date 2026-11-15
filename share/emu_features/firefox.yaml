@@ -1,3 +1,4 @@
 emulator_name: firefox
 features:
   - padtokeyboard
+  - osk

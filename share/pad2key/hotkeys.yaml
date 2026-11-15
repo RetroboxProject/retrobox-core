@@ -35,6 +35,9 @@ pad:
   - {action: menu, trigger: [hotkey, b]}
   - {action: save_state, trigger: [hotkey, y]}
   - {action: load_state, trigger: [hotkey, x]}
+  # the on-screen keyboard shares Hotkey+X with load_state: an emulator binds
+  # one or the other (apps that list the "osk" feature cannot load states)
+  - {action: osk, trigger: [hotkey, x]}
   - {action: slot_prev, trigger: [hotkey, up]}
   - {action: slot_next, trigger: [hotkey, down]}
   - {action: rewind, trigger: [hotkey, left]}

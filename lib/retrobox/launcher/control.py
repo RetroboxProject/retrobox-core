@@ -4,6 +4,7 @@ While the game runs, the launcher serves a Unix socket (``CONTROL_SOCKET``,
 owner only). Each request is one line, answered with one line::
 
     pause | resume | do <action> | save_slot <n> | load_slot <n> | discs
+    | key down|up <KEY_NAME>
     -> ok [<answer>] | error <reason>
 
 ``discs`` answers ``ok <disc> <discs> open|closed`` for a game made of
@@ -20,6 +21,11 @@ Every request is carried out the best way the emulator allows:
    keyboard the launcher creates when the game starts (so it is known to the
    compositor and the emulator long before it is needed);
 3. else the binding's command line.
+
+``key`` presses or releases one key of the virtual keyboard, for the
+on-screen keyboard (``osk``): it follows the key being held, so the
+overlay decides how long a key stays down and when it repeats. Keys still
+down when the channel closes are released.
 
 ``pause`` leaves the game paused and ``resume`` leaves it running, whatever
 it was before. With a ``status`` pipe command (RetroArch's ``GET_STATUS``,
@@ -166,14 +172,16 @@ class Control:  # pylint: disable=too-many-instance-attributes
     slot: int = 0
     discs: Discs | None = None
     paused: bool = False
+    osk: bool = False
     _keyboard: object | None = None
+    _down: set[int] = field(default_factory=set)
     _status: str | None = None
     _status_ready: threading.Event = field(default_factory=threading.Event)
 
     def __post_init__(self) -> None:
         if self.pipe is None:
             self.pipe_commands = {}
-        if any(self._way(name).keys for name in self._names()):
+        if self.osk or any(self._way(name).keys for name in self._names()):
             self._keyboard = _create_keyboard()
 
     @staticmethod
@@ -247,6 +255,7 @@ class Control:  # pylint: disable=too-many-instance-attributes
             "save_slot": lambda: self._slot(verb, int(argument)),
             "load_slot": lambda: self._slot(verb, int(argument)),
             "discs": self._discs,
+            "key": lambda: self._key(argument),
         }
         handler = handlers.get(verb)
         if handler is None:
@@ -255,6 +264,38 @@ class Control:  # pylint: disable=too-many-instance-attributes
             return handler()
         except (ValueError, OSError) as err:
             return f"error {err}"
+
+    def _key(self, argument: str) -> str:
+        """``down|up <KEY_NAME>``: press or release one key of the virtual keyboard."""
+        # pylint: disable-next=import-outside-toplevel
+        from evdev import ecodes
+
+        state, _, name = argument.partition(" ")
+        code = ecodes.ecodes.get(name.strip())
+        if state not in ("down", "up") or not isinstance(code, int) or not 1 <= code <= _LAST_KEY:
+            return f"error bad key request {argument!r}"
+        if not self.osk or self._keyboard is None:
+            return "error no virtual keyboard"
+        pressed = state == "down"
+        self._keyboard.write(ecodes.EV_KEY, code, int(pressed))  # type: ignore[attr-defined]
+        self._keyboard.syn()  # type: ignore[attr-defined]
+        if pressed:
+            self._down.add(code)
+        else:
+            self._down.discard(code)
+        return "ok"
+
+    def _release_keys(self) -> None:
+        """Release the keys the on-screen keyboard left down (it died holding them)."""
+        if self._keyboard is None or not self._down:
+            return
+        # pylint: disable-next=import-outside-toplevel
+        from evdev import ecodes
+
+        for code in self._down:
+            self._keyboard.write(ecodes.EV_KEY, code, 0)  # type: ignore[attr-defined]
+        self._keyboard.syn()  # type: ignore[attr-defined]
+        self._down.clear()
 
     def _discs(self) -> str:
         return self.discs.answer() if self.discs else "error not a disc game"
@@ -358,7 +399,8 @@ class Control:  # pylint: disable=too-many-instance-attributes
         return "ok"
 
     def close(self) -> None:
-        """Remove the virtual keyboard."""
+        """Release what is held and remove the virtual keyboard."""
+        self._release_keys()
         if self._keyboard is not None:
             self._keyboard.close()  # type: ignore[attr-defined]
             self._keyboard = None
@@ -368,13 +410,13 @@ def _create_keyboard() -> object | None:
     """The virtual keyboard, or None (and a warning) without /dev/uinput."""
     try:
         # pylint: disable-next=import-outside-toplevel
-        from evdev import UInput, ecodes
+        from evdev import UInput, UInputError, ecodes
 
         return UInput(
             {ecodes.EV_KEY: list(range(1, _LAST_KEY + 1))},
             name=_KEYBOARD_NAME,
         )
-    except (ImportError, OSError) as err:
+    except (ImportError, OSError, UInputError) as err:
         _logger.warning("no virtual keyboard for the control channel: %s", err)
         return None
 
@@ -431,7 +473,7 @@ def main(argv: list[str] | None = None) -> int:
     words = sys.argv[1:] if argv is None else argv
     if not words:
         print("usage: retrobox-control pause|resume|do <action>|save_slot <n>|"
-              "load_slot <n>|discs", file=sys.stderr)
+              "load_slot <n>|discs|key down|up <KEY_NAME>", file=sys.stderr)
         return 2
     try:
         answer = send_request(" ".join(words))
