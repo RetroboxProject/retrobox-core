@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -147,6 +148,7 @@ _PSX_CORES = ("mednafen_psx", "pcsx_rearmed", "swanstation")
 _PSX_PORTS = (1, 2)
 _PSX_STANDARD_PAD = "1"  # RETRO_DEVICE_JOYPAD: the standard pad of every PlayStation core
 _PSX_MOUSE = "258"  # RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_MOUSE, 0), the same in every core
+_DEVICE_KEY = re.compile(r"input_libretro_device_p(?P<player>\d+)")
 
 _LANGUAGE_FONTS = {
     "1": "/usr/share/fonts/truetype/noto/NotoSansJP-VF.ttf",
@@ -393,6 +395,24 @@ def _apply_psx_inputs(config: dict[str, object], launch: LibretroLaunch) -> None
             negcon = launch.metadata.get("wheel_type") == "negcon"
             config[f"input_player{pad.player_number}_analog_dpad_mode"] = "1"
             config[f"input_libretro_device_p{pad.player_number}"] = 773 if negcon else 517
+
+
+def psx_device_arguments(launch: LibretroLaunch) -> list[str]:
+    """Return the ``--device`` arguments that plug the PlayStation controllers.
+
+    RetroArch only keeps the ``input_libretro_device_pN`` of retroarch.cfg when it
+    is not overridden: it resets them to the standard pad when the content is
+    loaded, unless the device was given on the command line. The cfg value is
+    still written (for the RetroArch menu), but this is what makes the core use it.
+    """
+    config: dict[str, object] = {}
+    _apply_psx_inputs(config, launch)
+    arguments: list[str] = []
+    for key, value in config.items():
+        match = _DEVICE_KEY.fullmatch(key)
+        if match and str(value) != _PSX_STANDARD_PAD:
+            arguments.extend(["--device", f"{match['player']}:{value}"])
+    return arguments
 
 
 def _apply_flycast_inputs(config: dict[str, object], launch: LibretroLaunch) -> None:

@@ -226,20 +226,20 @@ class LibretroGenerator(Generator):
         gfx_backend = gfx_backend_get(system)
         video_shader, shader_bezel = _resolve_shader(system, rom, gfx_backend)
 
+        launch = libretroConfig.LibretroLaunch(
+            generator=self,
+            system=system,
+            rom=rom,
+            resolution=gameResolution,
+            metadata=metadata,
+            inputs=libretroConfig.LibretroInputs(playersControllers, guns, wheels),
+            # force_no_bezel and the bezel option are resolved by bezel_policy
+            display=libretroConfig.LibretroDisplay(
+                configured_bezel(system.config), shader_bezel, gfx_backend, video_shader
+            ),
+        )
         if "configfile" not in system.config:
             system.config["configfile"] = str(RETROARCH_CFG)
-            launch = libretroConfig.LibretroLaunch(
-                generator=self,
-                system=system,
-                rom=rom,
-                resolution=gameResolution,
-                metadata=metadata,
-                inputs=libretroConfig.LibretroInputs(playersControllers, guns, wheels),
-                # force_no_bezel and the bezel option are resolved by bezel_policy
-                display=libretroConfig.LibretroDisplay(
-                    configured_bezel(system.config), shader_bezel, gfx_backend, video_shader
-                ),
-            )
             self._write_retroarch_cfg(launch)
 
         libretro_core = RETROARCH_CORES / f"{system.config.core}_libretro.so"
@@ -253,6 +253,9 @@ class LibretroGenerator(Generator):
         args_array: list[str | Path] = ["--config", RETROARCH_CFG]
         if not dont_append_rom:
             args_array = ["-L", libretro_core, *args_array]
+
+        # the devices must come from the command line, or RetroArch resets them to the pad
+        args_array.extend(libretroConfig.psx_device_arguments(launch))
 
         if video_shader is not None:
             args_array.extend(["--set-shader", video_shader])
