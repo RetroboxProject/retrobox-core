@@ -39,6 +39,15 @@ _GAMEPAD_MAPPING: list[tuple[str, str, str | None]] = [
     ("R-Right", "joystick2left", "/Hi"),
 ]
 
+# The left stick as a second binding of the D-pad, for the pads that have no sticks
+# in Ares (the PlayStation digital gamepad): label -> (internal name, direction)
+_STICK_AS_DPAD: dict[str, tuple[str, str]] = {
+    "Pad.Up": ("joystick1up", "/Lo"),
+    "Pad.Down": ("joystick1up", "/Hi"),
+    "Pad.Left": ("joystick1left", "/Lo"),
+    "Pad.Right": ("joystick1left", "/Hi"),
+}
+
 
 def _compute_guid_indices(players_controllers: Any) -> dict[int, int]:
     """Return, for each controller, its position among the pads that share its GUID.
@@ -100,18 +109,36 @@ def _ares_rumble_entry(guid: str, guid_index: int) -> str:
     return f"{guid}/{guid_index}/{_GROUP_BUTTON}/0/Rumble"
 
 
-def _ares_gen_gamepad_conf(pad_num: int, guid: str, guid_index: int, inputs: Any) -> str:
-    """Return the full VirtualPadN block of one controller."""
+def _ares_gen_gamepad_conf(
+    pad_num: int, guid: str, guid_index: int, inputs: Any, *, stick_as_dpad: bool = False
+) -> str:
+    """Return the full VirtualPadN block of one controller.
+
+    Ares keeps up to three bindings per input, separated by ";". With
+    `stick_as_dpad` the left stick is the second binding of the D-pad, which
+    keeps its own.
+    """
     lines = [f"VirtualPad{pad_num}"]
     for label, name, target_dir in _GAMEPAD_MAPPING:
         entry = _ares_get_ctrler_entry(name, guid, guid_index, inputs, target_dir)
-        lines.append(f"  {label}: {entry};;")
+        stick = ""
+        if stick_as_dpad and label in _STICK_AS_DPAD:
+            stick_name, stick_dir = _STICK_AS_DPAD[label]
+            stick = _ares_get_ctrler_entry(stick_name, guid, guid_index, inputs, stick_dir)
+        lines.append(f"  {label}: {entry};{stick};")
     lines.append(f"  Rumble: {_ares_rumble_entry(guid, guid_index)};;")
     return "\n".join(lines) + "\n"
 
 
-def _ares_create_pads_config(players_controllers: Any) -> str:
-    """Return the mapping of up to five controllers for the settings.bml of Ares."""
+def _ares_create_pads_config(
+    players_controllers: Any, stick_as_dpad_players: frozenset[int] = frozenset()
+) -> str:
+    """Return the mapping of up to five controllers for the settings.bml of Ares.
+
+    Args:
+        players_controllers: The controllers, in player order.
+        stick_as_dpad_players: The players (1-based) whose left stick also drives the D-pad.
+    """
     guid_indices = _compute_guid_indices(players_controllers)
 
     pads_config = ""
@@ -120,6 +147,10 @@ def _ares_create_pads_config(players_controllers: Any) -> str:
             break
         guid_index = guid_indices[id(controller)]
         pads_config += _ares_gen_gamepad_conf(
-            index + 1, controller.guid, guid_index, controller.inputs
+            index + 1,
+            controller.guid,
+            guid_index,
+            controller.inputs,
+            stick_as_dpad=index + 1 in stick_as_dpad_players,
         )
     return pads_config

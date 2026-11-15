@@ -40,10 +40,14 @@ _DEFAULT_PAK_SIZE = "32KiB (Default)"
 _DEFAULT_QUALITY = "SD"  # 1x native; HD is 2x and UHD is 4x
 _DEFAULT_REGION = "NTSC-U"
 _DEFAULT_PSX_PAD = "DualShock"  # the Digital Gamepad that Ares plugs in has no rumble
+_DIGITAL_PSX_PAD = "Digital Gamepad"
 _PAD_SECTION_PREFIX = "VirtualPad"
 
 # the controllers of the SNES ports Ares can remember: menu option -> Ares setting
 _SNES_PORTS = {"ares_snes_port1": "ControllerPort1", "ares_snes_port2": "ControllerPort2"}
+
+# the controllers of the PlayStation ports: menu option -> Ares setting
+_PSX_PORTS = {"ares_psx_port1": "ControllerPort1", "ares_psx_port2": "ControllerPort2"}
 
 Section = dict[str, object]
 
@@ -190,13 +194,29 @@ def _super_famicom_section(config: SystemConfig) -> Section:
     }
 
 
-def _playstation_section(config: SystemConfig) -> Section:
-    """Build the [PlayStation] section: the controller of both ports.
+def _psx_pad(config: SystemConfig, option: str) -> str:
+    """Return the controller of a PlayStation port.
 
-    Ares plugs a Digital Gamepad, which has no analog sticks and no rumble.
+    The old option of both ports (``ares_psx_pad``) still counts for a game that
+    has not picked the port.
     """
-    pad = _value(config, "ares_psx_pad", _DEFAULT_PSX_PAD)
-    return {"ControllerPort1": pad, "ControllerPort2": pad}
+    return _value(config, option, _value(config, "ares_psx_pad", _DEFAULT_PSX_PAD))
+
+
+def _playstation_section(config: SystemConfig) -> Section:
+    """Build the [PlayStation] section: the controller of each port."""
+    return {setting: _psx_pad(config, option) for option, setting in _PSX_PORTS.items()}
+
+
+def _stick_as_dpad_players(system: Emulator) -> frozenset[int]:
+    """Return the PlayStation players whose pad has no sticks, so the left one drives the D-pad."""
+    if system.name != "psx":
+        return frozenset()
+    return frozenset(
+        player
+        for player, option in enumerate(_PSX_PORTS, start=1)
+        if _psx_pad(system.config, option) == _DIGITAL_PSX_PAD
+    )
 
 
 def build_settings(config: SystemConfig, saves_path: str) -> dict[str, Section]:
@@ -250,6 +270,8 @@ def write_ares_config(system: Emulator, players_controllers) -> None:
 
     # the pads are rebuilt from the controllers of this game, never merged
     settings.remove_children(lambda name: name.startswith(_PAD_SECTION_PREFIX))
-    settings.replace_children(parse(_ares_create_pads_config(players_controllers)))
+    settings.replace_children(
+        parse(_ares_create_pads_config(players_controllers, _stick_as_dpad_players(system)))
+    )
 
     _ARES_CFG.write_text(render(settings), encoding="utf-8")

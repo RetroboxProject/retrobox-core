@@ -186,6 +186,10 @@ When a game needs an emulator that has an installer in `tools/emulators/` but is
 - **Options:** renderer (OpenGL, Vulkan or software), render scale up to 8x, aspect ratio, scaling, texture filtering, 2D upscale, CRT filter, rewind, rumble and wheel force feedback. Translucency and the extended draw distance only apply to Model 1 and 2; on `model3` there are two more: *Speakers* (stereo or surround, for the four-speaker cabinets) and *Threaded frame building*.
 - **Pad layout:** per game for the Model 2 games (taken from RetroBat); Model 1 and 3 games use the default layout, or one of the arcade panel layouts, from *Button layout*.
 
+### PlayStation controllers
+
+In the *Controls* menu of Ares and of the RetroArch PlayStation cores (`pcsx_rearmed`, `mednafen_psx`, `swanstation`), each of the two ports plugs its own controller type: standard, DualShock, and what the core offers besides (dual analog, analog joystick, neGcon). With the standard pad, which has no sticks, the left stick of your gamepad drives the D-pad and the D-pad keeps working; the other types read the sticks themselves. RetroArch does it with its analog to D-pad mode and Ares with a second binding on the D-pad. The device ids differ from one core to another, so each core has its own list in `share/emulator_options/libretro_<core>.yaml`; the choice is read as `controller<port>_<core>` (`ares_psx_port<port>` in Ares). Ares only has the standard pad and the DualShock, and plugs the DualShock by default; the cores plug the standard one. Multitap and light guns are not offered.
+
 ### Apps
 
 An `apps` system with app-like shortcuts to web streaming services (opened in Chrome or Firefox kiosk mode, so one of them must be installed) and Kodi (which needs Kodi).

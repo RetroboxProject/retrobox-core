@@ -31,3 +31,39 @@ groups:
               value: '12'
             - name: 16x
               value: '16'
+  CONTROLS:
+    submenus:
+      PORT 1:
+        - name: CONTROLLER TYPE
+          value: controller1_swanstation
+          description: >-
+            Controller plugged into port 1. Standard has no analog sticks: the left stick of your pad drives the D-pad, which keeps working too. The DualShock and the analog joystick read both sticks; the DualShock also rumbles.
+          core_option: false
+          choices:
+            - name: Standard (Default)
+              value: auto
+            - name: DualShock
+              value: '261'
+            - name: Analog Joystick
+              value: '517'
+            - name: neGcon
+              value: '773'
+            - name: neGcon Rumble
+              value: '1029'
+      PORT 2:
+        - name: CONTROLLER TYPE
+          value: controller2_swanstation
+          description: >-
+            Controller plugged into port 2. Standard has no analog sticks: the left stick of your pad drives the D-pad, which keeps working too. The DualShock and the analog joystick read both sticks; the DualShock also rumbles.
+          core_option: false
+          choices:
+            - name: Standard (Default)
+              value: auto
+            - name: DualShock
+              value: '261'
+            - name: Analog Joystick
+              value: '517'
+            - name: neGcon
+              value: '773'
+            - name: neGcon Rumble
+              value: '1029'

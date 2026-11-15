@@ -14,12 +14,23 @@ groups:
               value: true
   CONTROLS:
     submenus:
-      CONTROLLERS:
+      PORT 1:
         - name: CONTROLLER TYPE
-          value: ares_psx_pad
-          description: The DualShock has analog sticks and rumble. The digital gamepad has neither.
+          value: ares_psx_port1
+          description: >-
+            Controller plugged into port 1. The DualShock has analog sticks and rumble. Standard has no analog sticks: the left stick of your pad drives the D-pad, which keeps working too.
           choices:
             - name: DualShock (Default)
               value: DualShock
-            - name: Digital gamepad
+            - name: Standard (digital gamepad)
+              value: Digital Gamepad
+      PORT 2:
+        - name: CONTROLLER TYPE
+          value: ares_psx_port2
+          description: >-
+            Controller plugged into port 2. The DualShock has analog sticks and rumble. Standard has no analog sticks: the left stick of your pad drives the D-pad, which keeps working too.
+          choices:
+            - name: DualShock (Default)
+              value: DualShock
+            - name: Standard (digital gamepad)
               value: Digital Gamepad

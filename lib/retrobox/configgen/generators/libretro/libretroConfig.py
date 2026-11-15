@@ -142,6 +142,11 @@ _N64_BUTTONS = {
 # ids: R2 = 13, R3 = 15.
 _MELONDSDS_BUTTONS = {"btn_r2": "15", "btn_r3": "13"}
 
+# PlayStation cores that can plug a different controller in each port
+_PSX_CORES = ("mednafen_psx", "pcsx_rearmed", "swanstation")
+_PSX_PORTS = (1, 2)
+_PSX_STANDARD_PAD = "1"  # RETRO_DEVICE_JOYPAD: the standard pad of every PlayStation core
+
 _LANGUAGE_FONTS = {
     "1": "/usr/share/fonts/truetype/noto/NotoSansJP-VF.ttf",
     "ja_JP": "/usr/share/fonts/truetype/noto/NotoSansJP-VF.ttf",
@@ -351,23 +356,29 @@ def _apply_simple_core_inputs(
             config[f"input_player1_{button}"] = value
 
 
+def _apply_psx_pads(config: dict[str, object], system: Emulator) -> None:
+    """Plug the controller of each port, as picked in ``controller<port>_<core>``.
+
+    The device ids are those of each core (the feature YAML of the core lists
+    them). The standard pad has no analog sticks, so the left stick of the pad
+    drives its D-pad, which keeps working: RetroArch's analog to D-pad mode is
+    on for it, and off for the controllers that read the sticks themselves.
+    """
+    core = system.config.core
+    for player in _PSX_PORTS:
+        device = _chosen(system.config, f"controller{player}_{core}", _PSX_STANDARD_PAD)
+        _set_device(config, player, device, "1" if device == _PSX_STANDARD_PAD else "0")
+
+
 def _apply_psx_inputs(config: dict[str, object], launch: LibretroLaunch) -> None:
     """Set the devices of the PlayStation cores."""
     system = launch.system
     core = system.config.core
-    if core == "mednafen_psx":
-        for player in (1, 2):
-            if ctrl := system.config.get(f"beetle_psx_hw_Controller{player}"):
-                _set_device(config, player, ctrl, "0" if ctrl != "1" else "1")
-
-    if core != "pcsx_rearmed":
+    if core not in _PSX_CORES:
         return
+    _apply_psx_pads(config, system)
 
-    for player in (1, 2):
-        if ctrl := system.config.get(f"controller{player}_pcsx"):
-            _set_device(config, player, ctrl, "0" if ctrl != "1" else "1")
-
-    if not system.config.use_wheels:
+    if core != "pcsx_rearmed" or not system.config.use_wheels:
         return
     device_infos = controllersConfig.getDevicesInformation()
     for pad in launch.inputs.controllers:

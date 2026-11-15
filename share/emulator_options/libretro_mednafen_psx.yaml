@@ -20,3 +20,43 @@ groups:
               value: 8x
             - name: 16x
               value: 16x
+  CONTROLS:
+    submenus:
+      PORT 1:
+        - name: CONTROLLER TYPE
+          value: controller1_mednafen_psx
+          description: >-
+            Controller plugged into port 1. Standard has no analog sticks: the left stick of your pad drives the D-pad, which keeps working too. The analog controllers read both sticks; the DualShock and the neGcon Rumble also rumble.
+          core_option: false
+          choices:
+            - name: Standard (Default)
+              value: auto
+            - name: DualShock
+              value: '517'
+            - name: Dual Analog
+              value: '261'
+            - name: Analog Joystick
+              value: '773'
+            - name: neGcon
+              value: '1029'
+            - name: neGcon Rumble
+              value: '1285'
+      PORT 2:
+        - name: CONTROLLER TYPE
+          value: controller2_mednafen_psx
+          description: >-
+            Controller plugged into port 2. Standard has no analog sticks: the left stick of your pad drives the D-pad, which keeps working too. The analog controllers read both sticks; the DualShock and the neGcon Rumble also rumble.
+          core_option: false
+          choices:
+            - name: Standard (Default)
+              value: auto
+            - name: DualShock
+              value: '517'
+            - name: Dual Analog
+              value: '261'
+            - name: Analog Joystick
+              value: '773'
+            - name: neGcon
+              value: '1029'
+            - name: neGcon Rumble
+              value: '1285'
