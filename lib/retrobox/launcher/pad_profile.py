@@ -132,7 +132,22 @@ def _read_base(base: Path | None) -> dict[str, Any]:
 
 
 def _merge(own: list[Any], hotkeys: list[dict[str, Any]]) -> tuple[list[Any], int]:
-    """The profile's mappings plus the hotkeys whose combination they leave free."""
+    """The profile's mappings plus the hotkeys whose combination they leave free.
+
+    The on-screen keyboard is the exception: only emulators whose feature
+    file lists ``osk`` get it, and it takes its combination from the profile
+    (the apps' profile maps Hotkey+X to a screenshot of its own).
+    """
+    keyboard = {
+        _combo_key(mapping)
+        for mapping in hotkeys
+        if mapping.get("description") == HotkeyAction.OSK.value
+    }
+    own = [
+        mapping
+        for mapping in own
+        if not (isinstance(mapping, dict) and _combo_key(mapping) in keyboard)
+    ]
     taken = {_combo_key(mapping) for mapping in own if isinstance(mapping, dict)}
     added = [mapping for mapping in hotkeys if _combo_key(mapping) not in taken]
     return own + added, len(added)
