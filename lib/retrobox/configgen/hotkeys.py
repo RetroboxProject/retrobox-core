@@ -25,7 +25,6 @@ from __future__ import annotations
 
 import enum
 import logging
-import shutil
 from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
@@ -44,9 +43,9 @@ _logger = logging.getLogger(__name__)
 class HotkeyAction(enum.StrEnum):
     """What a hotkey can ask for.
 
-    ``OVERLAY`` opens retrobox-overlay (Hotkey+B); every emulator gets it from
-    ``common_bindings`` when the overlay is installed and turned on. The overlay's
-    daemon also opens it by itself when a dedicated hotkey is held.
+    ``OVERLAY`` stays for the users' tables that still name it, but no
+    emulator binds it: retrobox-overlay's daemon opens the overlay itself
+    (the hotkey held), everywhere in Retrobox.
 
     ``OSK`` opens retrobox-overlay's on-screen keyboard; only emulators whose
     feature file lists ``osk`` bind it (see ``osk_enabled``).
@@ -154,26 +153,23 @@ def keys_of(names: list[str]) -> Keys:
 
 
 def common_bindings(system: Emulator | None = None) -> dict[HotkeyAction, Binding | None]:
-    """What every emulator gets: leaving the game, screenshots and the overlay.
+    """What every emulator gets: leaving the game and screenshots.
 
-    The overlay only when it is installed and the ``overlay`` setting (global, per
-    system or per game, on by default) is not off; without it Hotkey+B stays free.
+    ``system`` is accepted for the generators' sake; nothing here depends on
+    it any more (the overlay is opened by its own daemon, see
+    ``overlay_enabled``).
     """
     bindings: dict[HotkeyAction, Binding | None] = {
         HotkeyAction.EXIT: Exec((str(BIN_DIR / "retrobox-emukill"),)),
         HotkeyAction.SCREENSHOT: Exec((str(BIN_DIR / "retrobox-screenshot"),)),
     }
-    if shutil.which(OVERLAY_COMMAND) is not None and (
-        system is None or overlay_enabled(system)
-    ):
-        bindings[HotkeyAction.OVERLAY] = Exec((OVERLAY_COMMAND,))
     if system is not None and osk_enabled(system):
         bindings[HotkeyAction.OSK] = Exec((OVERLAY_COMMAND, "--osk"))
     return bindings
 
 
 UNIVERSAL_ACTIONS: frozenset[HotkeyAction] = frozenset(
-    {HotkeyAction.EXIT, HotkeyAction.OVERLAY, HotkeyAction.SCREENSHOT, HotkeyAction.OSK}
+    {HotkeyAction.EXIT, HotkeyAction.SCREENSHOT, HotkeyAction.OSK}
 )
 """The commands that mean the same everywhere: they take their combination from
 a gamepad profile that maps it to something else (an app's Alt+F4, say)."""
@@ -186,8 +182,8 @@ OSK_FEATURE = "osk"
 
 
 def _has_osk_feature(emulator: str) -> bool:
-    """Whether the emulator's feature file (``emulator_options/<emulator>.yaml``) lists ``osk``."""
-    path = layered_file(f"emulator_options/{emulator}.yaml")
+    """Whether the emulator's feature file (``emu_features/<emulator>.yaml``) lists ``osk``."""
+    path = layered_file(f"emu_features/{emulator}.yaml")
     if path is None:
         return False
     try:

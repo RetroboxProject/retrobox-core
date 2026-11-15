@@ -116,10 +116,8 @@ A replacement for evmapy, now a standalone project ([`gamepadly`](https://github
 | Combination | Action |
 |---|---|
 | Hotkey+Start | Leave the game (`retrobox-emukill`) |
-| Hotkey+B | Open the overlay (`retrobox-overlay`, when installed and on) |
-| Hotkey+Y / Hotkey+L1 | Save / load state |
 | Hotkey+X | Screenshot (`retrobox-screenshot`) |
-| Hotkey+Up / Hotkey+Down | Previous / next state slot |
+| Hotkey+Y | On-screen keyboard (where the app has one) |
 | Hotkey+Left / Hotkey+Right | Rewind / fast forward |
 | Hotkey+R1 | Translate (AI service) |
 | Hotkey+L2 / Hotkey+R2 | Swap screens / next screen layout |
@@ -134,7 +132,7 @@ On the keyboard (gamepadly 0.1.5 or later; any keyboard, right or left modifiers
 
 Gamepadly does not take these keys from the game, so they use keys emulators leave free (RetroArch's own Shift hotkeys use F1-F6 and F9-F12). Only commands are bound to the keyboard.
 
-**The overlay** (`retrobox-overlay`, when installed) opens with Hotkey+B in a game, on every controller and in every emulator. Retrobox also starts its daemon (`retrobox-overlay --daemon`) with EmulationStation, and it opens the overlay anywhere in Retrobox, in a game or in EmulationStation, when a dedicated hotkey (Home/Guide) is held alone for a moment (750 ms), or on Shift+F7. Where the hotkey is a button the game uses (Select, on controllers without Home/Guide), holding it opens nothing. Holding rather than pressing keeps the hotkey free as the modifier of the combinations above. The `overlay` setting (global, per system or per game) keeps it from opening over a game, and frees Hotkey+B. The table's `keyboard` section holds the keyboard chords; a user table can replace the `pad` and `keyboard` sections separately.
+**The overlay** (`retrobox-overlay`, when installed) is not in the table: Retrobox starts its daemon (`retrobox-overlay --daemon`) with EmulationStation, and it opens the overlay anywhere in Retrobox, in a game or in EmulationStation, with Hotkey+B on every controller, when a dedicated hotkey (Home/Guide) is held alone for a moment (750 ms), or on Shift+F7. Where the hotkey is a button the game uses (Select, on controllers without Home/Guide), holding it opens nothing. Saving and loading states, and choosing their slot, are done from the overlay: there are no hotkeys for them. The `overlay` setting (global, per system or per game) keeps it from opening over a game. The table's `keyboard` section holds the keyboard chords; a user table can replace the `pad` and `keyboard` sections separately.
 
 Each generator says how its emulator performs these actions (`hotkey_bindings()`, see `lib/retrobox/configgen/hotkeys.py`): a key chord gamepadly presses, a command, or `Native` when the emulator reads the combination itself (RetroArch does, from its own configuration). An action the emulator cannot perform leaves its combination free. Leaving the game, screenshots and the overlay work in every emulator. For each game the launcher writes `<runtime dir>/pad2key/session.keys`: the profile gamepadly would pick for the game (`share/pad2key/profiles`, the user's, `<rom>.keys`) plus these hotkeys; a combination the game's profile already maps keeps the profile's meaning.
 
@@ -207,7 +205,6 @@ An `apps` system with app-like shortcuts to web streaming services (opened in Ch
 | Start / Select | Play/Pause / `Tab` |
 | L1 / R1 | Page Up / Page Down |
 | Hotkey+L1 / Hotkey+R1 | Previous / next media |
-| Hotkey+Up / Hotkey+Down | System volume up / down |
 | Hotkey+Y | `Meta+O` (on-screen keyboard shortcut) |
 | Hotkey+X | `Meta+SysRq` (screenshot) |
 | Hotkey+Start | Exit back to EmulationStation |
