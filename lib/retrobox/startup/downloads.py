@@ -24,8 +24,8 @@ belongs to Retrobox); the shaders are merged into theirs, which may also
 hold the user's own shaders. Nothing here stops the frontend from starting.
 
 Run as ``python3 -m retrobox.startup.downloads PACKAGE...`` it downloads the
-given packages, printing its progress: this is what the setup screen
-(``retrobox.emusetup --download``) runs and shows.
+given packages, printing its progress: this is what the overlay's task screen
+(``retrobox-overlay --task --download``) runs and shows.
 """
 
 from __future__ import annotations
@@ -208,7 +208,7 @@ class _Progress:  # pylint: disable=too-few-public-methods
             line += f" / {self._total / _MIB:.1f} MiB ({percent}%)"
         else:
             line += " MiB"
-        # \r: the setup screen (like a terminal) rewrites the same line
+        # \r: the task screen (like a terminal) rewrites the same line
         print(f"\r{line}", end=end, flush=True)
 
 

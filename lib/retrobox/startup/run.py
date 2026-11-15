@@ -12,7 +12,8 @@ EmulationStation ROM directories before startup as retrobox.ini says
 follow-roms-dir; none by default). If EmulationStation has no theme at all,
 the default one is downloaded first, and so are the default bezels and
 shaders the first time they are on offer (see retrobox.startup.downloads),
-showing the progress on the setup screen.
+showing the progress on the overlay's task screen (without the overlay installed,
+nothing is downloaded).
 
 While EmulationStation runs, so does the overlay's daemon
 (``retrobox-overlay --daemon``, when the overlay is installed): it opens
@@ -69,9 +70,8 @@ from retrobox.startup.frontend_conf.features_list_generator import generate_es_f
 from retrobox.startup.frontend_conf.system_list_generator import generate_es_systems
 from retrobox.startup.frontend_conf.pcgames_utils import sync_pcgames
 from retrobox.startup.frontend_conf.roms_dirs import create_roms_dirs
-from retrobox.emusetup import EXIT_UNAVAILABLE
-from retrobox.emusetup.launch import run_screen
 from retrobox.startup.downloads import install_all, labels, pending
+from retrobox.utils.overlay_task import EXIT_UNAVAILABLE, overlay_available, run_task
 
 _logger = logging.getLogger(__name__)
 
@@ -239,8 +239,10 @@ def setup_emulationstation_config() -> None:
 def download_before_start(updates: frozenset[str]) -> None:
     """Download the default theme, bezels and shaders if due (see downloads.pending).
 
-    The download runs on the setup screen, so its progress is visible (and
-    it can be cancelled); without a screen it runs here, in the log.
+    The download runs on the overlay's task screen, so its progress is visible
+    (and it can be cancelled). Without the overlay installed nothing is
+    downloaded (``retrobox --download-default`` does it by hand); if it is
+    there but cannot open a screen, it runs here, in the log.
 
     Args:
         updates: Packages to download again anyway ("theme", "bezels", "shaders").
@@ -248,15 +250,18 @@ def download_before_start(updates: frozenset[str]) -> None:
     keys = pending(updates)
     if not keys:
         return
+    if not overlay_available():
+        _logger.info("retrobox-overlay is not installed: not downloading %s", labels(keys))
+        return
     _logger.info("Downloading before starting: %s", labels(keys))
-    status = run_screen(
+    status = run_task(
         labels(keys),
         LOGS / "retrobox-downloads.log",
         [sys.executable, "-m", "retrobox.startup.downloads", *keys],
-        ["--download"],
+        download=True,
     )
     if status == EXIT_UNAVAILABLE:
-        _logger.warning("No setup screen available: downloading without it")
+        _logger.warning("The task screen could not be shown: downloading without it")
         install_all(keys)
 
 

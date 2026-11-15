@@ -8,8 +8,8 @@ Each module owns one concern of launching a game:
 * ``process``: running the emulator command and mapping its exit status.
 * ``power``: power profiles and ``nvidia-powerd``.
 * ``hooks``: the ``retrohook`` script runner.
-* ``emulator_setup``: offering to install a missing emulator (``retrobox.emusetup``),
-  or to install it again when the hotkey is held (``hotkey_held``).
+* ``emulator_setup``: offering to install a missing emulator on the overlay's task
+  screen, or to install it again when L1 and R1 are held (``retrobox.utils.overlay_task``).
 * ``emulator_update``: that reinstall, built aside and swapped in only if it works.
 * ``controller_monitor``: controller hot-plug watching.
 * ``hud``: the MangoHud overlay (HUD text and environment).

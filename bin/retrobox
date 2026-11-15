@@ -9,6 +9,9 @@
 #                                            source (repeatable)
 #   retrobox --setup-emulator             list available emulators
 #   retrobox --setup-bezel <name>         install a bezel/decoration pack
+#   retrobox --download-default <name>    download the default theme, bezels or
+#                                            shaders again (repeatable), in the
+#                                            terminal
 #   retrobox --version                    print the installed version
 #   retrobox --settings                   open the settings window (edits
 #                                            ~/.config/retrobox/retrobox.ini)
@@ -107,6 +110,14 @@ Usage: $(basename "${BASH_SOURCE[0]}") [OPTIONS] [-- ARGS...]
                             repeated to install several at once. Called
                             with no name, lists every installer available
                             under tools/decorations/.
+--download-default <name>   Download the default theme, bezels or shaders
+                            (theme, bezels, shaders) right here, printing
+                            its progress, and exit. Can be repeated. This
+                            is what to use without retrobox-overlay, which
+                            otherwise shows these downloads, and the
+                            emulators' installers, on its task screen
+                            (nothing is downloaded or installed at start
+                            without it).
 --version                   Print the installed version and exit.
 --settings                  Open the settings window (folders, hidden
                             systems, PC games sync...), which edits
@@ -144,6 +155,7 @@ EOF
 
 declare -a emulators_to_setup=()
 declare -a bezels_to_setup=()
+declare -a defaults_to_download=()
 declare -a frontend_args=()
 
 while [[ $# -gt 0 ]]; do
@@ -162,6 +174,14 @@ case "$1" in
         exit 0
     fi
     bezels_to_setup+=("$2")
+    shift 2
+    ;;
+--download-default)
+    if [[ -z "${2:-}" || "${2:0:1}" == "-" ]]; then
+        echo "Available: theme bezels shaders"
+        exit 0
+    fi
+    defaults_to_download+=("$2")
     shift 2
     ;;
 --version)
@@ -205,6 +225,11 @@ if [[ "${#bezels_to_setup[@]}" -gt 0 ]]; then
     done
     did_maintenance=1
     [[ "${status}" -eq 0 ]] || exit "${status}"
+fi
+
+if [[ "${#defaults_to_download[@]}" -gt 0 ]]; then
+    "${RETROBOX_PYTHON}" -m retrobox.startup.downloads "${defaults_to_download[@]}" || exit 1
+    did_maintenance=1
 fi
 
 if [[ "${did_maintenance}" -eq 1 ]]; then

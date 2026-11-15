@@ -29,6 +29,7 @@ from retrobox.paths import (
     SESSION_PAD_PROFILE,
     mkdir_if_not_exists,
 )
+from retrobox.utils.overlay_task import reinstall_requested
 
 from . import control as control_channel
 from .controller_monitor import ControllerMonitor
@@ -40,7 +41,6 @@ from .pad_profile import build_session_profile, effective_bindings
 from .power import apply_power_profile, restore_power_profile
 from .process import run_command
 from .session import GameInputs, GameSession, effective_core
-from .hotkey_held import hotkey_held
 
 if TYPE_CHECKING:
     import argparse
@@ -116,8 +116,8 @@ def start_rom(args: argparse.Namespace, max_players: int, rom: Path, original_ro
 
     player_controllers = Controller.load_for_players(max_players, args)
     # read right away, while the button that launched the game is likely still
-    # down: the hotkey held asks for the emulator to be installed again
-    args.reinstall_emulator = hotkey_held(player_controllers)
+    # down: L1 and R1 held ask for the emulator to be installed again
+    args.reinstall_emulator = reinstall_requested()
     monitor = ControllerMonitor(player_controllers)
 
     # find the system to run
@@ -129,10 +129,9 @@ def start_rom(args: argparse.Namespace, max_players: int, rom: Path, original_ro
     generator = get_generator(system.config.emulator, system.config.core)
 
     # a missing emulator: offer to install it, or go back to the frontend;
-    # hotkey held: offer to install it again (to update it)
+    # L1 and R1 held: offer to install it again (to update it)
     if not ensure_emulator(
         system.config.emulator,
-        player_controllers,
         reinstall=getattr(args, "reinstall_emulator", False),
     ):
         return 0

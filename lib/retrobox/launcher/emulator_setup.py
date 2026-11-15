@@ -3,10 +3,13 @@
 Only emulators with an installer in ``tools/emulators/`` are handled: for
 each one, the file whose absence means "not installed" is the very binary its
 generator runs, read from the generator's own paths module so the two never
-drift apart. The screen itself (``retrobox.emusetup``) runs in a child
-process; the launcher just waits for its verdict.
+drift apart. The screen itself is the overlay's task screen
+(``retrobox-overlay --task``), a process of its own: the launcher just waits
+for its verdict. Without the overlay nothing is offered or installed (the
+emulators are then installed and updated by hand, ``retrobox --setup-emulator``)
+and the game is launched anyway.
 
-When the launcher asks for a reinstall (hotkey held while the game starts),
+When the launcher asks for a reinstall (L1 and R1 held while the game starts),
 the screen offers to install the emulator again even though it is there, to
 update it. That install goes through ``emulator_update``, which builds the
 new version in a separate folder and only replaces the installed one once it
@@ -19,21 +22,12 @@ import logging
 import sys
 from importlib import import_module
 from pathlib import Path
-from typing import TYPE_CHECKING, Final, NamedTuple
+from typing import Final, NamedTuple
 
-from retrobox.configgen.controller import Controller
-from retrobox.emusetup import EXIT_DECLINED, EXIT_FAILED
-from retrobox.emusetup.launch import run_screen
 from retrobox.paths import BIN_DIR, EMULATORS, LOGS, RETROBOX_ROOTDIR
-
-if TYPE_CHECKING:
-    from retrobox.configgen.controller import Controllers
+from retrobox.utils.overlay_task import EXIT_DECLINED, EXIT_FAILED, run_task
 
 _logger = logging.getLogger(__name__)
-
-# es_input.cfg inputs the screen uses
-_PAD_INPUTS: Final = ("a", "b", "up", "down", "left", "right", "joystick1up", "joystick1left")
-
 
 # what a reinstall keeps from the installed folder by default (relative to it)
 _KEEP_DEFAULT: Final = ("config",)
@@ -126,22 +120,7 @@ def _missing(emulator: str) -> tuple[Installable, Path] | None:
     return entry, binary
 
 
-def _pad_arguments(controllers: Controllers) -> list[str]:
-    """Player 1's controller and mapping, for the screen."""
-    player = Controller.find_player_number(controllers, 1)
-    if player is None or player.type != "joystick":
-        return []
-    arguments = ["--pad-guid", player.guid]
-    if player.device_path:
-        arguments += ["--pad-device", player.device_path]
-    for name in _PAD_INPUTS:
-        pad_input = player.inputs.get(name)
-        if pad_input is not None and pad_input.type in ("button", "hat", "axis"):
-            arguments += ["--pad-map", f"{name}={pad_input.type}:{pad_input.id}:{pad_input.value}"]
-    return arguments
-
-
-def _reinstall(emulator: str, controllers: Controllers) -> None:
+def _reinstall(emulator: str) -> None:
     """Offer to install the (installed) ``emulator`` again, safely."""
     entry = _INSTALLABLE.get(emulator)
     binary = binary_of(entry) if entry else None
@@ -153,45 +132,45 @@ def _reinstall(emulator: str, controllers: Controllers) -> None:
     except ValueError:
         _logger.warning("%s is outside %s: it can't be reinstalled safely", binary, EMULATORS)
         return
-    _logger.info("reinstall of %s requested (hotkey held)", entry.label)
-    status = run_screen(
+    _logger.info("reinstall of %s requested (L1 and R1 held)", entry.label)
+    status = run_task(
         entry.label,
         LOGS / f"emusetup-{entry.installer}.log",
         [sys.executable, "-m", "retrobox.launcher.emulator_update", emulator],
-        ["--reinstall", "--check", str(binary), *_pad_arguments(controllers)],
+        check=binary,
+        reinstall=True,
     )
     _logger.info("emulator reinstall screen exited with status %s", status)
 
 
-def ensure_emulator(emulator: str, controllers: Controllers, reinstall: bool = False) -> bool:
+def ensure_emulator(emulator: str, reinstall: bool = False) -> bool:
     """Offer to install ``emulator`` if it is missing, or again if asked to.
 
     Args:
         emulator: The emulator of the game (``system.config.emulator``).
-        controllers: The players' controllers (player 1 drives the screen).
-        reinstall: Offer to install it again even if it is installed (the
-            hotkey was held). A reinstall never stops the launch: when it is
+        reinstall: Offer to install it again even if it is installed (L1 and
+            R1 were held). A reinstall never stops the launch: when it is
             declined or fails, the installed version is still there.
 
     Returns:
         False when the game must not be launched (the user said no, or the
         installation failed and the user has seen why); True otherwise,
-        including when no screen could be shown: the launch then goes on and
-        fails the usual way.
+        including when no screen could be shown (no overlay installed): the
+        launch then goes on and fails the usual way.
     """
     missing = _missing(emulator)
     if missing is None:
         if reinstall:
-            _reinstall(emulator, controllers)
+            _reinstall(emulator)
         return True
     entry, binary = missing
     _logger.info("%s is not installed (%s): offering to install it", entry.label, binary)
 
-    status = run_screen(
+    status = run_task(
         entry.label,
         LOGS / f"emusetup-{entry.installer}.log",
         [str(BIN_DIR / "retrobox"), "--setup-emulator", entry.installer],
-        ["--check", str(binary), *_pad_arguments(controllers)],
+        check=binary,
     )
     _logger.info("emulator setup screen exited with status %s", status)
     # installed, or no screen at all (any other status): go on with the launch

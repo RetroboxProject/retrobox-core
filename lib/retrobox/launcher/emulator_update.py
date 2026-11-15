@@ -1,7 +1,7 @@
 """Install an emulator again without risking the working copy.
 
-Run by the setup screen as its command (``python3 -m
-retrobox.launcher.emulator_update <emulator>``) when the hotkey was held while
+Run by the overlay's task screen as its command (``python3 -m
+retrobox.launcher.emulator_update <emulator>``) when L1 and R1 were held while
 a game started. The emulator's own installer runs with
 ``RETROBOX_EMULATORS_DIR`` pointing at a staging folder
 (``<emulators>/.update-<installer>/``), so it builds or downloads the new
@@ -16,7 +16,7 @@ new binary exists is the installed folder replaced:
    and the old one deleted. If the move fails, the old folder is put back.
 
 On any failure the staging folder is deleted and the installed emulator is
-left exactly as it was. The output goes to the screen's terminal.
+left exactly as it was. The output goes to the task screen's terminal.
 """
 
 from __future__ import annotations

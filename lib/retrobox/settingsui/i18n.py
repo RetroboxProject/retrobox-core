@@ -2,7 +2,7 @@
 
 en.yaml is the reference and the fallback, key by key: a language file may
 lack some keys. The language is chosen as for the rest of Retrobox's screens
-(EmulationStation's, else the system locale, see retrobox.emusetup.i18n).
+(EmulationStation's, else the system locale, see retrobox.utils.language).
 """
 
 from __future__ import annotations
@@ -12,7 +12,7 @@ from typing import Final
 
 import yaml
 
-from retrobox.emusetup.i18n import DEFAULT_LANGUAGE, pick_language
+from retrobox.utils.language import DEFAULT_LANGUAGE, pick_language
 
 _DIR: Final = Path(__file__).with_name("i18n")
 
@@ -34,9 +34,7 @@ class Translator:
     """Look texts up by id, in one language with English as the fallback."""
 
     def __init__(self, es_language: str = "", language: str | None = None) -> None:
-        self.language = language or pick_language(
-            es_language, supported=available_languages()
-        )
+        self.language = language or pick_language(es_language, available_languages())
         self._texts = _load(DEFAULT_LANGUAGE)
         if self.language != DEFAULT_LANGUAGE:
             self._texts.update(_load(self.language))
