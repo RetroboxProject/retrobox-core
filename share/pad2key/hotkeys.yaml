@@ -9,9 +9,9 @@
 # hotkey_bindings()); an action an emulator cannot perform gets no
 # combination. Only player 1 gets these hotkeys, as in Batocera.
 #
-# "tap: true" fires when the button is released alone (see gamepadly); a tap
-# on the hotkey is ignored when the hotkey is select, so it never takes a
-# button the game needs.
+# "tap: true" fires when the button is released alone (retrobox-overlay's
+# input daemon maps these); a tap on the hotkey is ignored when the hotkey is
+# select, so it never takes a button the game needs.
 #
 # The overlay is not here: retrobox-overlay's daemon opens it everywhere in
 # Retrobox (EmulationStation too) with Hotkey+B on every controller, when a
@@ -20,7 +20,7 @@
 # holding it opens nothing. Save states and their slots are the overlay's too.
 #
 # "keyboard" holds the keyboard chords, as evdev key names (the right-hand
-# modifiers count as the left-hand ones). Gamepadly watches every keyboard
+# modifiers count as the left-hand ones). The input daemon watches every keyboard
 # without taking the keys from the game, so a chord also reaches the
 # emulator: these use keys emulators leave free (RetroArch's own Shift+key
 # hotkeys use F1-F4 and F9-F12, and P; Ctrl+Shift+O and Shift+F7 are the overlay's). Only

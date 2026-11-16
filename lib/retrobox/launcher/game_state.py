@@ -2,9 +2,10 @@
 
 The launcher writes the file once the emulator has started and removes it
 when the game is over. Whatever acts on the running game from outside the
-launcher reads it: ``retrobox-emukill`` (to end the game), the gamepad
-mappers and the in-game overlay. It is the contract between them, so the
-layout is versioned (``version``) and only ever extended.
+launcher reads it: ``retrobox-emukill`` (to end the game), the overlay's
+input daemon (which maps the controllers) and the in-game overlay. It is the
+contract between them, so the layout is versioned (``version``) and only
+ever extended.
 
 ``pid`` is the first process of the game (the emulator, or the wrapper that
 runs it) and the leader of a process group of its own (``pgid``), so the
@@ -21,6 +22,11 @@ press, a command to run, or ``native`` when the emulator reads the
 combination itself), the game information EmulationStation exported
 (``game_info``), its resolved menu theme (``menu_theme``) and whether the
 overlay may open over the game at all (``overlay``).
+
+For the input daemon (``retrobox-inputd``), ``pad_profile`` is the game's
+pad profile (see ``launcher.pad_profile``): with it, the daemon maps each
+player's controller (``controllers``) and the keyboards while the game runs;
+without it (null), nothing is mapped.
 """
 
 from __future__ import annotations
@@ -80,6 +86,7 @@ class GameState:  # pylint: disable=too-many-instance-attributes
     savestates: dict[str, object] | None = None
     overlay: bool = True
     osk: bool = False
+    pad_profile: str | None = None
     version: int = SESSION_VERSION
 
     def is_alive(self) -> bool:

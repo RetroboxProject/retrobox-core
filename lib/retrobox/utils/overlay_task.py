@@ -44,11 +44,38 @@ BACKGROUND: Final = "emusetup/background.png"
 
 _FORCE_REINSTALL: Final = "RETROBOX_REINSTALL_EMULATOR"
 _HELD_TIMEOUT_S: Final = 5
+_HELP_TIMEOUT_S: Final = 5
+
+
+def _overlay_path() -> str | None:
+    """The overlay's executable, if it is installed and knows the task screen.
+
+    An overlay older than the task screen ignores ``--task`` and opens its
+    menu instead, then exits with 0 as if the installation had worked: its
+    ``--help`` is how to tell.
+    """
+    overlay = shutil.which(OVERLAY_COMMAND)
+    if overlay is None:
+        return None
+    try:
+        usage = subprocess.run(
+            [overlay, "--help"],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=_HELP_TIMEOUT_S,
+        ).stdout
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if "--task" not in usage:
+        _logger.warning("%s is too old for the task screen: update it", OVERLAY_COMMAND)
+        return None
+    return overlay
 
 
 def overlay_available() -> bool:
-    """Whether the overlay is installed (and so the task screen can be shown)."""
-    return shutil.which(OVERLAY_COMMAND) is not None
+    """Whether the overlay is installed and can show the task screen."""
+    return _overlay_path() is not None
 
 
 def run_task(  # pylint: disable=too-many-arguments
@@ -75,9 +102,9 @@ def run_task(  # pylint: disable=too-many-arguments
         The screen's exit status (see the module docstring); EXIT_UNAVAILABLE
         when the overlay is not installed or could not show the screen.
     """
-    overlay = shutil.which(OVERLAY_COMMAND)
+    overlay = _overlay_path()
     if overlay is None:
-        _logger.warning("%s is not installed: nothing to show %s on", OVERLAY_COMMAND, label)
+        _logger.warning("no task screen (%s missing or too old): %s", OVERLAY_COMMAND, label)
         return EXIT_UNAVAILABLE
     screen = [overlay, "--task", "--label", label, "--log", str(log_path)]
     if check is not None:
@@ -112,7 +139,7 @@ def reinstall_requested() -> bool:
     if os.environ.get(_FORCE_REINSTALL, "") not in ("", "0"):
         _logger.info("%s is set: asking for a reinstall", _FORCE_REINSTALL)
         return True
-    overlay = shutil.which(OVERLAY_COMMAND)
+    overlay = _overlay_path()
     if overlay is None:
         return False
     try:

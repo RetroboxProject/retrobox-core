@@ -34,7 +34,7 @@ RETROBOX_ROOTDIR="$(dirname "$(dirname "${RETROBOX_SELF}")")"
 export RETROBOX_ROOTDIR
 TOOLS_DIR="${RETROBOX_ROOTDIR}/tools"
 
-# The Python code lives in <root>/lib (packages `retrobox` and `gamepadly`).
+# The Python code lives in <root>/lib (package `retrobox`).
 export PYTHONPATH="${RETROBOX_ROOTDIR}/lib${PYTHONPATH:+:${PYTHONPATH}}"
 
 # The RETROBOX_* variables the user exported himself, as opposed to the ones
@@ -89,11 +89,11 @@ print(" ".join(m for m in mods if u.find_spec(m) is None))' 2>/dev/null || true)
     if [[ -n "${missing}" ]]; then
         log_warn "Missing Python modules: ${missing}. Install the dependencies (see README) or re-run install.sh."
     fi
-    # gamepadly is optional (gamepad hotkeys such as Hotkey+Start); check it with the very
-    # interpreter the launcher will use, so a venv that can't see it is reported.
-    if ! "${RETROBOX_PYTHON}" -W ignore -c 'import gamepadly' 2>/dev/null; then
-        log_warn "gamepadly not importable from ${RETROBOX_PYTHON}: gamepad hotkeys are disabled."
-        log_warn "Install the python3-gamepadly package (https://github.com/RetroboxProject/gamepadly)."
+    # the overlay's input daemon (overlay hotkeys, and the gamepad hotkeys such as
+    # Hotkey+Start) is optional
+    if ! command -v retrobox-inputd >/dev/null 2>&1; then
+        log_warn "retrobox-inputd not found: no overlay and no gamepad hotkeys."
+        log_warn "Install retrobox-overlay 0.5.5 or later (https://github.com/RetroboxProject/retrobox-overlay)."
     fi
 }
 

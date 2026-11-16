@@ -63,7 +63,7 @@ audiofilters={_RETROARCH_AUDIO_FILTERS}
 # RETROACHIEVEMENT SOUNDS
 retroachievementsounds={DATA_DIR}/retroachievements-sounds
 
-# PAD-TO-KEYBOARD (gamepadly) MAPPINGS
+# PAD-TO-KEYBOARD MAPPINGS (retrobox-inputd)
 system.padtokey={_GAMEPADLY_PROFILES}
 padtokey={_GAMEPADLY_USER_PROFILES}
 

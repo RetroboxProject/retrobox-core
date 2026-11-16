@@ -1,8 +1,9 @@
-"""retrobox.paths constants for the profiles consumed by gamepadly.
+"""retrobox.paths constants for the pad profiles (pad -> keyboard mappings).
 
-gamepadly is a separate, system-installed Python package (`python3-gamepadly`)
-that knows nothing about Retrobox: the launcher hands it these directories
-when it constructs GamepadManager(...).
+The launcher composes the game's profile from these
+(retrobox.launcher.pad_profile) and the overlay's input daemon
+(``retrobox-inputd``) maps the controllers with it. The names keep their
+gamepadly prefix: it was the first to read these profiles.
 """
 
 from __future__ import annotations

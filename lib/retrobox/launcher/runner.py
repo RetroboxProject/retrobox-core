@@ -18,11 +18,8 @@ from retrobox.configgen.utils import metadata, videoMode, wheelsUtils
 from retrobox.configgen.utils.overlayfs import mount_overlayfs
 from retrobox.configgen.utils.squashfs import mount_squashfs
 from retrobox.paths import (
-    _GAMEPADLY_PROFILES,
-    _GAMEPADLY_USER_PROFILES,
     ES_GAME_INFO,
     ES_GAMES_METADATA,
-    ES_INPUT_CFG,
     ES_MENU_THEME,
     RUNTIME_DIR,
     SAVES,
@@ -37,7 +34,7 @@ from .emulator_setup import ensure_emulator
 from .game_state import GameState, clear_state, process_start_time, write_state
 from .hooks import call_game_hooks
 from .hud import setup_hud
-from .pad_profile import build_session_profile, effective_bindings
+from .pad_profile import build_session_profile, effective_bindings, find_profile
 from .power import apply_power_profile, restore_power_profile
 from .process import run_command
 from .session import GameInputs, GameSession, effective_core
@@ -193,43 +190,17 @@ def _run_game(session: GameSession, previous_power_profile: str | None) -> int:
         ES_GAME_INFO.unlink(missing_ok=True)
 
 
-def _gamepad_manager(session: GameSession) -> AbstractContextManager[object]:
-    """Run gamepadly with the game's profile plus the standard hotkeys.
+def _session_pad_profile(session: GameSession) -> Path | None:
+    """Compose the game's pad profile (its own mappings plus the standard hotkeys).
 
-    Gamepadly (pad -> keyboard mappings and hotkeys) is a separate package:
-    the game runs without it when it is absent.
+    The overlay's input daemon maps the controllers with it while the game
+    runs, once session.json names it (see _publish_state()).
     """
-    try:
-        # pylint: disable-next=import-outside-toplevel
-        from gamepadly import GamepadManager, find_profile
-    except ImportError:
-        _logger.warning(
-            "gamepadly is not installed: gamepad hotkeys (e.g. Hotkey+Start) are disabled"
-        )
-        return contextlib.nullcontext()
-
     system = session.system
-    lookup = {
-        "rom": session.rom,
-        "system": session.args.system,
-        "emulator": system.config.emulator,
-        "core": effective_core(system),
-        "profiles_dir": _GAMEPADLY_PROFILES,
-        "user_profiles_dir": _GAMEPADLY_USER_PROFILES,
-    }
-    profile = build_session_profile(
-        session.generator, system, find_profile(**lookup), SESSION_PAD_PROFILE
+    base = find_profile(
+        session.rom, session.args.system, system.config.emulator, effective_core(system)
     )
-    manager_args = {
-        **lookup,
-        "controllers": session.inputs.controllers,
-        "es_input": ES_INPUT_CFG,
-    }
-    try:
-        return GamepadManager(**manager_args, profile=profile)
-    except TypeError:
-        _logger.warning("gamepadly is older than 0.1.4: the standard hotkeys are disabled")
-        return GamepadManager(**manager_args)
+    return build_session_profile(session.generator, system, base, SESSION_PAD_PROFILE)
 
 
 def _controllers_json(session: GameSession) -> list[dict[str, object]]:
@@ -246,7 +217,7 @@ def _controllers_json(session: GameSession) -> list[dict[str, object]]:
 
 
 def _publish_state(
-    session: GameSession, control: control_channel.Control
+    session: GameSession, control: control_channel.Control, pad_profile: Path | None
 ) -> Callable[[subprocess.Popen[bytes]], None]:
     """Return the callback that writes session.json once the emulator has started.
 
@@ -283,6 +254,7 @@ def _publish_state(
                 savestates=savestates,
                 overlay=overlay_enabled(system),
                 osk=osk_enabled(system),
+                pad_profile=str(pad_profile) if pad_profile else None,
             )
         )
 
@@ -310,27 +282,30 @@ def _run_emulator(session: GameSession) -> int:
     """Generate the emulator command, set up HUD and gun helpers, and run it."""
     system = session.system
 
-    with _gamepad_manager(session):
-        # change directory if wanted
-        execution_directory = session.generator.executionDirectory(system.config, session.rom)
-        if execution_directory is not None:
-            os.chdir(execution_directory)
+    pad_profile = _session_pad_profile(session)
 
-        cmd = session.generator.generate(
-            system,
-            session.rom,
-            session.inputs.controllers,
-            session.metadata,
-            session.inputs.guns,
-            session.inputs.wheels,
-            session.resolution,
+    # change directory if wanted
+    execution_directory = session.generator.executionDirectory(system.config, session.rom)
+    if execution_directory is not None:
+        os.chdir(execution_directory)
+
+    cmd = session.generator.generate(
+        system,
+        session.rom,
+        session.inputs.controllers,
+        session.metadata,
+        session.inputs.guns,
+        session.inputs.wheels,
+        session.resolution,
+    )
+
+    setup_hud(session, cmd)
+
+    control = _control(session, cmd)
+    with profiler.pause(), control_channel.serve(control):
+        session.inputs.monitor.start()
+        return run_command(
+            cmd,
+            on_started=_publish_state(session, control, pad_profile),
+            on_output=control.on_output,
         )
-
-        setup_hud(session, cmd)
-
-        control = _control(session, cmd)
-        with profiler.pause(), control_channel.serve(control):
-            session.inputs.monitor.start()
-            return run_command(
-                cmd, on_started=_publish_state(session, control), on_output=control.on_output
-            )

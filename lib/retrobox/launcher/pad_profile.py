@@ -1,19 +1,24 @@
-"""The gamepadly profile of the game being played: its mappings plus the standard hotkeys.
+"""The pad profile of the game being played: its mappings plus the standard hotkeys.
+
+The overlay's input daemon (``retrobox-inputd``) maps the game's controllers
+with it while the game runs: session.json names it (``pad_profile``). Its
+format is evmapy's ``.keys`` with gamepadly's additions, which the daemon
+reads as gamepadly did.
 
 Two layers, merged into ``<runtime dir>/pad2key/session.keys``:
 
-1. the profile gamepadly would pick for the game (per game, system,
-   emulator, core; ``share/pad2key/profiles`` and the user's), with the
-   full pad-to-keyboard mappings of keyboard-only games;
+1. the game's own profile (see find_profile(): per game, system, emulator,
+   core; ``share/pad2key/profiles`` and the user's), with the full
+   pad-to-keyboard mappings of keyboard-only games;
 2. the standard hotkeys (``retrobox.configgen.hotkeys``): the pad ones for
    player 1, as the emulator performs them, and the keyboard ones
-   (``actions_keyboard``, gamepadly 0.1.5 and later).
+   (``actions_keyboard``).
 
 The first layer wins: a combination it already maps is not touched, so a
 game or system profile can still do its own thing with any hotkey.
 
 The keyboard chords reach the emulator too, and the user holds their
-modifier while gamepadly would press its keys, so only commands are bound
+modifier while the mapper would press its keys, so only commands are bound
 to them: an emulator's key binding gives way to the common command for the
 action (``retrobox-emukill`` to leave), and a chord the emulator reads
 itself (``Native``, or the very same keys) is left to it.
@@ -37,7 +42,10 @@ from retrobox.configgen.hotkeys import (
     load_table,
 )
 
+from retrobox.paths import _GAMEPADLY_PROFILES, _GAMEPADLY_USER_PROFILES
+
 if TYPE_CHECKING:
+    from collections.abc import Iterator
     from pathlib import Path
 
     from retrobox.configgen.Emulator import Emulator
@@ -52,6 +60,40 @@ _KEYBOARD_ACTIONS = "actions_keyboard"
 type _ComboKey = tuple[frozenset[str], bool]
 
 
+def _profile_candidates(rom: Path, system: str, emulator: str, core: str) -> Iterator[Path]:
+    """Where a game's profile may be, first to last.
+
+    The game's own (``<rom>.keys`` next to it; inside a ROM folder,
+    ``<folder name>.keys`` or the legacy ``pad2.keys``), then the user's and
+    the shipped ones, from the most specific name to ``any.keys``.
+    """
+    if rom.is_dir():
+        yield rom / f"{rom.name}.keys"
+        yield rom / "pad2.keys"
+    else:
+        yield rom.parent / f"{rom.name}.keys"
+    names = (
+        f"{system}.{emulator}.{core}.keys",
+        f"{system}.{emulator}.keys",
+        f"{system}.keys",
+        f"{emulator}.keys",
+        "any.keys",
+    )
+    for base in (_GAMEPADLY_USER_PROFILES, _GAMEPADLY_PROFILES):
+        for name in names:
+            yield base / name
+
+
+def find_profile(rom: Path, system: str, emulator: str, core: str) -> Path | None:
+    """The game's own profile: the first that exists (see _profile_candidates())."""
+    for path in _profile_candidates(rom, system, emulator, core):
+        if path.is_file():
+            _logger.debug("pad profile: %s", path)
+            return path
+    _logger.debug("no pad profile for system=%s emulator=%s core=%s", system, emulator, core)
+    return None
+
+
 def effective_bindings(generator: Generator, system: Emulator) -> dict[HotkeyAction, Binding]:
     """The common bindings, overridden by the emulator's own; unbound actions dropped."""
     merged = {**common_bindings(system), **generator.hotkey_bindings(system)}
@@ -61,7 +103,7 @@ def effective_bindings(generator: Generator, system: Emulator) -> dict[HotkeyAct
 def hotkey_mappings(
     table: list[HotkeyEntry], bindings: dict[HotkeyAction, Binding]
 ) -> list[dict[str, Any]]:
-    """The gamepadly mappings of the table entries the emulator can perform.
+    """The pad mappings of the table entries the emulator can perform.
 
     ``Native`` bindings get none: the emulator reads those combinations itself.
     """
@@ -91,7 +133,7 @@ def keyboard_mappings(
     bindings: dict[HotkeyAction, Binding],
     common: dict[HotkeyAction, Binding | None],
 ) -> list[dict[str, Any]]:
-    """The gamepadly keyboard mappings of the table entries (commands only)."""
+    """The keyboard mappings of the table entries (commands only)."""
     mappings: list[dict[str, Any]] = []
     for entry in table:
         binding = bindings.get(entry.action)
@@ -169,7 +211,7 @@ def compose_profile(
     """Write the session profile; None when there is nothing to map at all."""
     profile = _read_base(base)
 
-    # gamepadly falls back to "mappings" when a player has no section: player 1
+    # the mapper falls back to "mappings" when a player has no section: player 1
     # keeps those once it gets a section of its own
     player1, added = _merge(
         list(profile.get(_HOTKEYS_PLAYER) or profile.get("mappings") or []), mappings

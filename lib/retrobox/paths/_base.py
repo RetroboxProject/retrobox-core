@@ -1,8 +1,8 @@
 """
 Base runtime paths module.
 
-Zero knowledge of configgen, launcher, frontend (EmulationStation),
-or gamepadly. Only generic path resolution (XDG, ROOTDIR) and filesystem
+Zero knowledge of configgen, launcher, frontend (EmulationStation)
+or the pad mapper. Only generic path resolution (XDG, ROOTDIR) and filesystem
 helpers. This is the only module in the package that other subsystems
 of the project (outside of retrobox_paths) should consider truly
 "independent".

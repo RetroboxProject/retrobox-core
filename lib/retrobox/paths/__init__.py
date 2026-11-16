@@ -6,7 +6,7 @@ Internally split by subsystem:
     _frontend.py   -> EmulationStation (lib/retrobox/startup/frontend_conf)
     _gamepadly.py  -> the profile directories, hotkey tables and session
                       profile the launcher hands to GamepadManager
-                      (gamepadly itself imports nothing from here)
+                      (the overlay's input daemon reads the session profile)
 
 Nothing changes from the outside, though: everything is still imported
 the same way as before, `from retrobox.paths import X`. None of the

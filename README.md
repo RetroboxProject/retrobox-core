@@ -14,7 +14,7 @@ This project brings the parts that matter most to a desktop Linux installation:
 - Bezels: RetroArch draws them itself; the other emulators get them through a patched MangoHud build, the same approach batocera uses.
 - Shaders on RetroArch and ares.
 - Controller autoconfiguration for RetroArch, ares, Azahar, Cemu, Dolphin, Eden, Flycast, MAME, melonDS, PCSX2, PPSSPP, Redream, RPCS3, Ryujinx, ScummVM, shadPS4, Vita3K, Kodi and Keisho (Sega Model 1, 2 and 3).
-- Gamepad hotkeys (Hotkey+Start to exit, etc.) on every emulator through [gamepadly](https://github.com/RetroboxProject/gamepadly).
+- Gamepad hotkeys (Hotkey+Start to exit, etc.) on every emulator through the input daemon of [retrobox-overlay](https://github.com/RetroboxProject/retrobox-overlay).
 
 ## Architecture
 
@@ -24,7 +24,7 @@ EmulationStation (separate package)
             ├── configgen   (lib/retrobox/configgen: writes emulator configs, builds the command)
             │       ├── libexec/stubs/batocera-resolution  (stub → kscreen-doctor / wlr-randr / xrandr)
             │       └── libexec/stubs/batocera-vulkan      (stub → vulkaninfo)
-            └── gamepadly   (separate Python package: hotkeys and pad2key profiles while the game runs)
+            └── retrobox-inputd  (retrobox-overlay package: hotkeys and pad2key profiles while the game runs)
 ```
 
 This repo can be cloned and used from anywhere, or installed into `/opt/retrobox` with the `.deb`, the `.rpm` or `install.sh`. Paths have been adapted to replace the `/userdata` hierarchy: see [Paths](#paths).
@@ -107,9 +107,11 @@ The Eden and Ryujinx generators were adapted from a third-party batocera package
 
 ## New components
 
-### Gamepadly
+### Pad-to-keyboard mappings
 
-A replacement for evmapy, now a standalone project ([`gamepadly`](https://github.com/RetroboxProject/gamepadly), package `python3-gamepadly`, recommended by the core packages; install it separately). The launcher starts it with every game: it reads evmapy-style JSON profiles (`share/pad2key/profiles/*.keys`, overridable in `~/.config/retrobox/pad2key/profiles`) and maps gamepad buttons to keys, shortcuts and mouse events. Without it (or with a version older than 0.1.4) the game still runs, but with no gamepad hotkeys; the keyboard hotkeys need 0.1.5.
+A replacement for evmapy: the input daemon of the overlay (`retrobox-inputd`, in the [`retrobox-overlay`](https://github.com/RetroboxProject/retrobox-overlay) package, 0.5.5 or later; it took over from the former [`gamepadly`](https://github.com/RetroboxProject/gamepadly), whose profiles it reads the same way). For each game the launcher composes its profile (see below) and names it in `session.json` (`pad_profile`); while the game runs, the daemon maps each player's controller with it to keys, shortcuts, commands and mouse events, using evmapy-style JSON profiles (`share/pad2key/profiles/*.keys`, overridable in `~/.config/retrobox/pad2key/profiles`). Without the overlay the game still runs, but with no gamepad hotkeys.
+
+**The daemon.** Retrobox runs it as long as EmulationStation runs. Where systemd is the init and the user manager is reachable, as the user unit `retrobox-inputd.service` (installed by the overlay, never enabled): before starting it, Retrobox writes `$XDG_RUNTIME_DIR/retrobox/inputd.env` (the environment EmulationStation runs with, and `RETROBOX_PARENT_PID`), and stops it when EmulationStation ends; its log is in the journal (`journalctl --user -u retrobox-inputd`). Elsewhere it runs as a child of Retrobox (`retrobox-inputd --parent PID`, log in `<state dir>/logs/inputd.log`). Either way it stops on its own if Retrobox's process ends without stopping it.
 
 **Standard hotkeys.** Every emulator gets the same combinations for player 1, from `share/pad2key/hotkeys.yaml` (copy it to `~/.config/retrobox/pad2key/hotkeys.yaml` to change them):
 
@@ -124,17 +126,17 @@ A replacement for evmapy, now a standalone project ([`gamepadly`](https://github
 | Hotkey+L3 | Next disc |
 | Hotkey+R3 | Show or hide the bezel |
 
-On the keyboard (gamepadly 0.1.5 or later; any keyboard, right or left modifiers):
+On the keyboard (any keyboard, right or left modifiers):
 
 | Keys | Action |
 |---|---|
 | Shift+Esc | Leave the game (`retrobox-emukill`; RetroArch does it itself) |
 
-Gamepadly does not take these keys from the game, so they use keys emulators leave free (RetroArch's own Shift hotkeys use F1-F6 and F9-F12). Only commands are bound to the keyboard.
+The daemon does not take these keys from the game, so they use keys emulators leave free (RetroArch's own Shift hotkeys use F1-F6 and F9-F12). Only commands are bound to the keyboard.
 
-**The overlay** (`retrobox-overlay`, when installed) is not in the table: Retrobox starts its daemon (`retrobox-overlay --daemon`) with EmulationStation, and it opens the overlay anywhere in Retrobox, in a game or in EmulationStation, with Hotkey+B on every controller, when a dedicated hotkey (Home/Guide) is held alone for a moment (750 ms), or on Ctrl+Shift+O (Shift+F7 too, for keyboards whose function keys need Fn). Where the hotkey is a button the game uses (Select, on controllers without Home/Guide), holding it opens nothing. Saving and loading states, and choosing their slot, are done from the overlay: there are no hotkeys for them. The `overlay` setting (global, per system or per game) keeps it from opening over a game. The table's `keyboard` section holds the keyboard chords; a user table can replace the `pad` and `keyboard` sections separately.
+**The overlay** (`retrobox-overlay`, when installed) is not in the table: the same input daemon opens the overlay anywhere in Retrobox, in a game or in EmulationStation, with Hotkey+B on every controller, when a dedicated hotkey (Home/Guide) is held alone for a moment (750 ms), or on Ctrl+Shift+O (Shift+F7 too, for keyboards whose function keys need Fn). Where the hotkey is a button the game uses (Select, on controllers without Home/Guide), holding it opens nothing. Saving and loading states, and choosing their slot, are done from the overlay: there are no hotkeys for them. The `overlay` setting (global, per system or per game) keeps it from opening over a game. The table's `keyboard` section holds the keyboard chords; a user table can replace the `pad` and `keyboard` sections separately.
 
-Each generator says how its emulator performs these actions (`hotkey_bindings()`, see `lib/retrobox/configgen/hotkeys.py`): a key chord gamepadly presses, a command, or `Native` when the emulator reads the combination itself (RetroArch does, from its own configuration). An action the emulator cannot perform leaves its combination free. Leaving the game, screenshots and the overlay work in every emulator. For each game the launcher writes `<runtime dir>/pad2key/session.keys`: the profile gamepadly would pick for the game (`share/pad2key/profiles`, the user's, `<rom>.keys`) plus these hotkeys; a combination the game's profile already maps keeps the profile's meaning.
+Each generator says how its emulator performs these actions (`hotkey_bindings()`, see `lib/retrobox/configgen/hotkeys.py`): a key chord the daemon presses, a command, or `Native` when the emulator reads the combination itself (RetroArch does, from its own configuration). An action the emulator cannot perform leaves its combination free. Leaving the game, screenshots and the overlay work in every emulator. For each game the launcher writes `<runtime dir>/pad2key/session.keys`: the game's own profile (the first of `<rom>.keys`, then `<system>.<emulator>.<core>.keys`, `<system>.<emulator>.keys`, `<system>.keys`, `<emulator>.keys` and `any.keys` in the user's profiles and then in `share/pad2key/profiles`) plus these hotkeys; a combination the game's profile already maps keeps the profile's meaning.
 
 **Leaving a game.** `retrobox-emukill` ends the game being played (Retrobox's `batocera-es-swissknife --emukill`): SIGTERM to the emulator's process group and to the processes of a Steam, Heroic or Lutris game, which a running client starts outside it, then SIGKILL to whatever is left after a few seconds. The launcher publishes the running game in `<runtime dir>/session.json` for it (and for the overlay).
 
@@ -194,9 +196,9 @@ In the *Controls* menu of Ares and of the RetroArch PlayStation cores (`pcsx_rea
 
 An `apps` system with app-like shortcuts to web streaming services (opened in Chrome or Firefox kiosk mode, so one of them must be installed) and Kodi (which needs Kodi).
 
-**Kodi** is started through `bin/retrobox-kodi`, which only launches it: the Flatpak (`tv.kodi.Kodi`) if installed, else a native `kodi` (`RETROBOX_KODI=flatpak|native` forces one; `--which` prints the one it would start). Before that, configgen writes the controllers' button maps for Kodi's `peripheral.joystick` add-on into the userdata folder of that Kodi (`~/.var/app/tv.kodi.Kodi/data/userdata` or `~/.kodi/userdata`), mirroring EmulationStation's layout (the buttons by position, L3/R3 included; with *Switch confirm & cancel buttons* the east button confirms, as in EmulationStation). The hotkey is not mapped, because it is a modifier in Retrobox. A native Kodi needs the `peripheral.joystick` add-on, which some distributions package separately. If neither Kodi is installed, configgen stops before anything starts with a `RetroboxException` ("Kodi is not installed: install the tv.kodi.Kodi Flatpak or the kodi package"), also when no controller is connected. EmulationStation's *Kodi media center* menu entry shows when `retrobox-kodi --check` succeeds and goes through the same path (`retrobox-launch -system apps -emulator kodi -rom config`). Kodi uses its own gamepad handling, so its `apps.kodi.keys` gamepadly profile is empty (it only gets the standard hotkeys, such as Hotkey+Start to leave).
+**Kodi** is started through `bin/retrobox-kodi`, which only launches it: the Flatpak (`tv.kodi.Kodi`) if installed, else a native `kodi` (`RETROBOX_KODI=flatpak|native` forces one; `--which` prints the one it would start). Before that, configgen writes the controllers' button maps for Kodi's `peripheral.joystick` add-on into the userdata folder of that Kodi (`~/.var/app/tv.kodi.Kodi/data/userdata` or `~/.kodi/userdata`), mirroring EmulationStation's layout (the buttons by position, L3/R3 included; with *Switch confirm & cancel buttons* the east button confirms, as in EmulationStation). The hotkey is not mapped, because it is a modifier in Retrobox. A native Kodi needs the `peripheral.joystick` add-on, which some distributions package separately. If neither Kodi is installed, configgen stops before anything starts with a `RetroboxException` ("Kodi is not installed: install the tv.kodi.Kodi Flatpak or the kodi package"), also when no controller is connected. EmulationStation's *Kodi media center* menu entry shows when `retrobox-kodi --check` succeeds and goes through the same path (`retrobox-launch -system apps -emulator kodi -rom config`). Kodi uses its own gamepad handling, so its `apps.kodi.keys` pad profile is empty (it only gets the standard hotkeys, such as Hotkey+Start to leave).
 
-`gamepadly` maps the player 1 gamepad so the web pages can be used without a mouse (`share/pad2key/profiles/apps.keys`; buttons in SNES layout):
+The input daemon maps the player 1 gamepad so the web pages can be used without a mouse (`share/pad2key/profiles/apps.keys`; buttons in SNES layout):
 
 | Input | Action |
 |---|---|
@@ -239,9 +241,9 @@ It installs the same layout as the package: `/opt/retrobox` (or `/var/opt/retrob
 
 ### Components
 
-The core is modular. EmulationStation ([`retrobox-emulationstation`](https://github.com/RetroboxProject/retrobox-emulationstation)) and the patched MangoHud ([`retrobox-mangohud`](https://github.com/RetroboxProject/retrobox-mangohud)) are separate projects; [`gamepadly`](https://github.com/RetroboxProject/gamepadly) (pad-to-keyboard mapper, a regular Python package) is too. `retrobox-core` ships no frontend, no MangoHud, no theme and compiles nothing. If EmulationStation finds no theme at all (neither in `<install dir>/frontend/themes` nor in `<data dir>/themes`), `retrobox` downloads the latest commit of [*es-theme-iconic*](https://github.com/manu-creative-411/es-theme-iconic) into `<data dir>/themes` before starting; `retrobox --update-default-theme` downloads it again (update, or reinstall if it was removed) and then starts. The [RetroBat bezels](https://github.com/RetroBat-Official/retrobat-bezels) (the default decorations) are downloaded the same way into `<data dir>/decorations-default`, and [Retrobox's shaders](https://github.com/RetroboxProject/retrobox-shaders) into the shaders folder (`<data dir>/shaders`, or `SHADERS_DIR`), but only on the first start (the bezels, only if their folder holds no files yet); `retrobox --update-default-bezels` / `--update-default-shaders` get them again. The bezels replace their folder, which belongs to Retrobox; the shaders are merged into theirs, so your own shaders there are kept. All these downloads show their progress on the setup screen (see *Emulator setup screen*), can be cancelled with B / Esc, never replace a working copy with a broken one, and if they fail Retrobox says so and starts anyway.
+The core is modular. EmulationStation ([`retrobox-emulationstation`](https://github.com/RetroboxProject/retrobox-emulationstation)) and the patched MangoHud ([`retrobox-mangohud`](https://github.com/RetroboxProject/retrobox-mangohud)) are separate projects; so is the overlay ([`retrobox-overlay`](https://github.com/RetroboxProject/retrobox-overlay)), with its input daemon and pad-to-keyboard mapper. `retrobox-core` ships no frontend, no MangoHud, no theme and compiles nothing. If EmulationStation finds no theme at all (neither in `<install dir>/frontend/themes` nor in `<data dir>/themes`), `retrobox` downloads the latest commit of [*es-theme-iconic*](https://github.com/manu-creative-411/es-theme-iconic) into `<data dir>/themes` before starting; `retrobox --update-default-theme` downloads it again (update, or reinstall if it was removed) and then starts. The [RetroBat bezels](https://github.com/RetroBat-Official/retrobat-bezels) (the default decorations) are downloaded the same way into `<data dir>/decorations-default`, and [Retrobox's shaders](https://github.com/RetroboxProject/retrobox-shaders) into the shaders folder (`<data dir>/shaders`, or `SHADERS_DIR`), but only on the first start (the bezels, only if their folder holds no files yet); `retrobox --update-default-bezels` / `--update-default-shaders` get them again. The bezels replace their folder, which belongs to Retrobox; the shaders are merged into theirs, so your own shaders there are kept. All these downloads show their progress on the setup screen (see *Emulator setup screen*), can be cancelled with B / Esc, never replace a working copy with a broken one, and if they fail Retrobox says so and starts anyway.
 
-- **Packages (.deb/.rpm):** `retrobox-core` only *recommends* `retrobox-emulationstation`, `retrobox-mangohud` and `python3-gamepadly`; install them with the package manager. Those packages are built per architecture (amd64, arm64); the core is architecture-independent (`_all.deb`, `noarch.rpm`).
+- **Packages (.deb/.rpm):** `retrobox-core` only *recommends* `retrobox-emulationstation`, `retrobox-mangohud` and `retrobox-overlay` (0.5.5 or later; it *breaks* older ones); install them with the package manager. Those packages are built per architecture (amd64, arm64); the core is architecture-independent (`_all.deb`, `noarch.rpm`).
 - **install.sh:** `--with emulationstation` / `--with mangohud` downloads the component's own `install.sh` (the one at the root of its repository, or `--with NAME=<URL or local path>`) and runs it:
 
   ```
@@ -257,7 +259,7 @@ The core is modular. EmulationStation ([`retrobox-emulationstation`](https://git
 
 Retrobox keeps the *operational* part (this tree: code, `share/`, `libexec/`, installed at `/opt/retrobox` by the packages and `install.sh`) apart from the *mutable* part (ROMs, BIOS, saves, themes, music, emulators... under `~/.local/share/retrobox`, `~/.local/state/retrobox` and `~/.config/retrobox`, see *Paths*). The tree is never written to at runtime, and a checkout holds no such content either, so it is not an install method: install with a package or `install.sh`.
 
-For debugging, `bin/retrobox` also runs straight from a clone, using the same user directories as an installed Retrobox. You need the dependencies of `tools/deps/*.list` (and `pip install -r requirements.txt` for a virtualenv), the udev rules of `system/udev/` and, as components, EmulationStation, MangoHud and gamepadly (their packages, or `install.sh --with ...`, which installs them next to the core).
+For debugging, `bin/retrobox` also runs straight from a clone, using the same user directories as an installed Retrobox. You need the dependencies of `tools/deps/*.list` (and `pip install -r requirements.txt` for a virtualenv), the udev rules of `system/udev/` and, as components, EmulationStation, MangoHud and the overlay (their packages, or `install.sh --with ...`, which installs them next to the core).
 
 ### Building the packages
 

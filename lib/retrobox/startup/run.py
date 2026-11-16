@@ -15,9 +15,11 @@ shaders the first time they are on offer (see retrobox.startup.downloads),
 showing the progress on the overlay's task screen (without the overlay installed,
 nothing is downloaded).
 
-While EmulationStation runs, so does the overlay's daemon
-(``retrobox-overlay --daemon``, when the overlay is installed): it opens
-Retrobox's overlay when a controller's hotkey is held, in a game or not.
+While EmulationStation runs, so does the overlay's input daemon
+(``retrobox-inputd``, when the overlay is installed; a systemd user unit
+where there is one, see retrobox.startup.input_daemon): it opens Retrobox's
+overlay when a controller's hotkey is held, in a game or not, and maps the
+game's controllers to keys while a game runs.
 
 Accepts three flags of its own, "--update-default-theme",
 "--update-default-bezels" and "--update-default-shaders", which download
@@ -71,83 +73,13 @@ from retrobox.startup.frontend_conf.system_list_generator import generate_es_sys
 from retrobox.startup.frontend_conf.pcgames_utils import sync_pcgames
 from retrobox.startup.frontend_conf.roms_dirs import create_roms_dirs
 from retrobox.startup.downloads import install_all, labels, pending
+from retrobox.startup.input_daemon import start_input_daemon, stop_input_daemon
 from retrobox.utils.overlay_task import EXIT_UNAVAILABLE, overlay_available, run_task
 
 _logger = logging.getLogger(__name__)
 
 # Global flag to ensure teardown runs only once
 _TEARDOWN_DONE: bool = False
-
-OVERLAY_COMMAND = "retrobox-overlay"
-"""The overlay, a separate package: its daemon only runs once installed."""
-OVERLAY_STOP_TIMEOUT = 2.0
-"""Seconds the overlay's daemon has to stop before it is killed."""
-OVERLAY_PROBE_TIMEOUT = 2.0
-"""Seconds ``retrobox-overlay --help`` has to answer."""
-
-
-def overlay_has_daemon(overlay: str) -> bool:
-    """Whether the installed overlay has a daemon (0.2.8 and later).
-
-    An older one takes ``--daemon`` for a plain start, finds no game and
-    exits, while Retrobox no longer binds the overlay to the hotkey: it would
-    never open. Its help names the flag when it has it.
-    """
-    try:
-        result = subprocess.run(
-            [overlay, "--help"],
-            capture_output=True,
-            text=True,
-            timeout=OVERLAY_PROBE_TIMEOUT,
-            check=False,
-        )
-    except (OSError, subprocess.TimeoutExpired):
-        return False
-    return "--daemon" in result.stdout
-
-
-def start_overlay_daemon(env: dict[str, str]) -> subprocess.Popen[bytes] | None:
-    """Start the overlay's daemon, when the overlay is installed.
-
-    It logs to its own file (``<state dir>/logs/overlay-daemon.log``) and
-    stops when Retrobox does (see stop_overlay_daemon()).
-    """
-    overlay = shutil.which(OVERLAY_COMMAND)
-    if overlay is None:
-        _logger.info("%s is not installed: no overlay", OVERLAY_COMMAND)
-        return None
-    if not overlay_has_daemon(overlay):
-        _logger.warning("%s is too old (no --daemon, needs 0.2.8 or later): no overlay",
-                        OVERLAY_COMMAND)
-        return None
-    try:
-        # pylint: disable-next=consider-using-with  # stopped by stop_overlay_daemon()
-        process = subprocess.Popen(
-            [overlay, "--daemon"],
-            env=env,
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            start_new_session=True,
-        )
-    except OSError as err:
-        _logger.warning("cannot start the overlay's daemon: %s", err)
-        return None
-    _logger.info("Overlay daemon started (pid %d)", process.pid)
-    return process
-
-
-def stop_overlay_daemon(process: subprocess.Popen[bytes] | None) -> None:
-    """Stop the overlay's daemon (and the overlay, if it is open)."""
-    if process is None or process.poll() is not None:
-        return
-    process.terminate()
-    try:
-        process.wait(timeout=OVERLAY_STOP_TIMEOUT)
-    except subprocess.TimeoutExpired:
-        process.kill()
-        process.wait()
-
 
 def is_emulationstation_running(es_binary: Path) -> bool:
     """
@@ -304,15 +236,15 @@ def run_emulationstation(args: list[str], updates: frozenset[str] = frozenset())
     # Controllers through the kernel's evdev devices, not SDL's HIDAPI drivers:
     # HIDAPI numbers the buttons of some pads (Switch, DualShock 4, DualSense)
     # its own way, and es_input.cfg (from which every emulator's controls are
-    # written) must use the numbering of evdev, which RetroArch's udev driver,
-    # gamepadly and the overlay read. Everything started from EmulationStation
+    # written) must use the numbering of evdev, which RetroArch's udev driver
+    # and the overlay (its menu and its input daemon) read. Everything started from EmulationStation
     # inherits it; the emulators that want HIDAPI (Dolphin, Eden, Ryujinx...)
     # turn it back on in their generator, with their own controller ids.
     es_env["SDL_JOYSTICK_HIDAPI"] = "0"
 
     _logger.info("Starting EmulationStation")
 
-    overlay = start_overlay_daemon(es_env)
+    input_daemon = start_input_daemon(es_env)
     try:
         result = subprocess.run(
             [str(ES_EXECUTABLE), "--fullscreen-borderless", "--home", str(FRONTEND_HOME),
@@ -322,7 +254,7 @@ def run_emulationstation(args: list[str], updates: frozenset[str] = frozenset())
             check=False,
         )
     finally:
-        stop_overlay_daemon(overlay)
+        stop_input_daemon(input_daemon)
 
     call_retrohook(
         "_frontend",
