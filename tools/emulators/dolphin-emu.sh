@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 ## DOLPHIN INSTALLER
 ## Created: 1 November 2025
+## Changed: 16 November 2026 (source build: -DENABLE_NOGUI=ON, upstream now
+##   defaults it to OFF and dolphin-emu-nogui was not being installed)
 ## Changed: 4 August 2026 (rewritten in the style of the other installers;
 ##   the source install now uses "cmake --install" with a prefix inside
 ##   INSTALL_DIR/app, so it is self-contained and does not depend on the git
@@ -126,6 +128,7 @@ function install_source() {
     cmake .. -G Ninja \
       -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}/app" \
+      -DENABLE_NOGUI=ON \
       ${extra_flags} \
       || exit 1
     ninja || exit 1
@@ -138,6 +141,9 @@ function install_source() {
   # on _src/
   [[ -x "${INSTALL_DIR}/app/bin/dolphin-emu" ]] \
     || error "The build finished but the installed binary is not in ${INSTALL_DIR}/app/bin/dolphin-emu"
+  # Upstream builds the NoGUI frontend only with ENABLE_NOGUI=ON (default OFF)
+  [[ -x "${INSTALL_DIR}/app/bin/dolphin-emu-nogui" ]] \
+    || error "The build finished but ${INSTALL_DIR}/app/bin/dolphin-emu-nogui is missing"
 
   echo "[INFO] Cleaning up temporary sources..."
   rm -rf "${SRC_DIR}"
