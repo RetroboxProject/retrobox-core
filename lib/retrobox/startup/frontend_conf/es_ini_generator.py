@@ -12,8 +12,8 @@ from retrobox.paths import (
     mkdir_if_not_exists,
     _DECORATIONS_DEF_DIR,
     _DECORATIONS_DIR,
-    _GAMEPADLY_PROFILES,
-    _GAMEPADLY_USER_PROFILES,
+    PAD_PROFILES,
+    USER_PAD_PROFILES,
     _SHADERS_DIR,
     DATA_DIR,
     ES_INI_CFG,
@@ -64,8 +64,8 @@ audiofilters={_RETROARCH_AUDIO_FILTERS}
 retroachievementsounds={DATA_DIR}/retroachievements-sounds
 
 # PAD-TO-KEYBOARD MAPPINGS (retrobox-inputd)
-system.padtokey={_GAMEPADLY_PROFILES}
-padtokey={_GAMEPADLY_USER_PROFILES}
+system.padtokey={PAD_PROFILES}
+padtokey={USER_PAD_PROFILES}
 
 # TIMEZONES
 timezones=/usr/share/zoneinfo
@@ -89,7 +89,7 @@ def ensure_ini_directories() -> None:
         MUSIC_DIR,
         THEMES_DIR,
         _SHADERS_DIR / "configs",
-        _GAMEPADLY_USER_PROFILES,
+        USER_PAD_PROFILES,
     ):
         mkdir_if_not_exists(directory)
 

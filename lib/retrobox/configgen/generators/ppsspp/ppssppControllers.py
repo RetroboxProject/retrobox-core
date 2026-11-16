@@ -59,7 +59,7 @@ KEYBOARD_HOTKEYS: Final = (
 
 
 def hotkey_bindings() -> dict[HotkeyAction, Keys]:
-    """The keys gamepadly presses for each standard action, as controls.ini sets them."""
+    """The keys the pad mapper presses for each standard action, as controls.ini sets them."""
     return {
         action: Keys((f"KEY_F{function_key}",))
         for _entry, function_key, action in KEYBOARD_HOTKEYS

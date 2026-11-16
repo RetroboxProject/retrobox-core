@@ -63,8 +63,8 @@ _HAT_DIRECTIONS: Final = {1: "up", 2: "right", 4: "down", 8: "left"}
 
 # EmulationStation's names (SNES layout) -> the features of Kodi's default
 # controller (Xbox layout), by position: ES "b" is the south button, Kodi's "a".
-# "hotkey" is left out on purpose: in Retrobox it is a modifier (gamepadly reads
-# it), and Kodi's "guide" would jump to its home screen.
+# "hotkey" is left out on purpose: in Retrobox it is a modifier (the pad mapper
+# reads it), and Kodi's "guide" would jump to its home screen.
 _FEATURES: Final = {
     "a": "b", "b": "a", "x": "y", "y": "x",
     "select": "back", "start": "start",

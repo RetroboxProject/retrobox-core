@@ -106,7 +106,7 @@ def _binding_keys(binding: str) -> list[str]:
 
 
 def hotkey_bindings() -> dict[HotkeyAction, Keys]:
-    """The keys gamepadly presses for each standard action, as [Hotkeys] sets them."""
+    """The keys the pad mapper presses for each standard action, as [Hotkeys] sets them."""
     hotkeys = dict(_HOTKEYS)
     return {
         action: keys_of(_binding_keys(hotkeys[entry]))

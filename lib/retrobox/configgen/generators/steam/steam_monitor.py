@@ -318,7 +318,7 @@ def _registry_says_running(appid: str) -> bool:
 class _ExitKeyWatcher:
     """Notices Alt+F4 on any keyboard, without grabbing it from anyone.
 
-    A virtual keyboard (gamepadly's, for one) is just one more evdev device
+    A virtual keyboard (the pad mapper's, for one) is just one more evdev device
     here. Needs the "input" group, like the rest of Retrobox's keyboard
     handling; without it the watcher does nothing.
     """

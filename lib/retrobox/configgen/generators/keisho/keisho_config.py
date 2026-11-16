@@ -348,7 +348,7 @@ def _input_settings(
         **layout,
         "pad1_device": pad1,
         "pad2_device": pad2,
-        # the Guide chords would fire twice: gamepadly maps the hotkeys to the keys
+        # the Guide chords would fire twice: the pad mapper maps the hotkeys to the keys
         "pad_shortcuts": "false",
         "pad_rumble": _ini_bool(config.get_bool("keisho_pad_rumble", True)),
         "pad_rumble_strength": config.get_str("keisho_pad_rumble_strength", "50"),

@@ -42,7 +42,7 @@ from retrobox.configgen.hotkeys import (
     load_table,
 )
 
-from retrobox.paths import _GAMEPADLY_PROFILES, _GAMEPADLY_USER_PROFILES
+from retrobox.paths import PAD_PROFILES, USER_PAD_PROFILES
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -79,7 +79,7 @@ def _profile_candidates(rom: Path, system: str, emulator: str, core: str) -> Ite
         f"{emulator}.keys",
         "any.keys",
     )
-    for base in (_GAMEPADLY_USER_PROFILES, _GAMEPADLY_PROFILES):
+    for base in (USER_PAD_PROFILES, PAD_PROFILES):
         for name in names:
             yield base / name
 

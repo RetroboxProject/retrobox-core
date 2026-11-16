@@ -2,8 +2,7 @@
 
 The launcher composes the game's profile from these
 (retrobox.launcher.pad_profile) and the overlay's input daemon
-(``retrobox-inputd``) maps the controllers with it. The names keep their
-gamepadly prefix: it was the first to read these profiles.
+(``retrobox-inputd``) maps the controllers with it.
 """
 
 from __future__ import annotations
@@ -12,10 +11,10 @@ from typing import Final
 
 from ._base import CONFIG_DIR, RUNTIME_DIR, SHARE_DIR
 
-_GAMEPADLY_PROFILES: Final = SHARE_DIR / "pad2key" / "profiles"
+PAD_PROFILES: Final = SHARE_DIR / "pad2key" / "profiles"
 # User profiles are configuration (they override the shipped ones), so they
 # live in the config dir, mirroring share/pad2key/profiles.
-_GAMEPADLY_USER_PROFILES: Final = CONFIG_DIR / "pad2key" / "profiles"
+USER_PAD_PROFILES: Final = CONFIG_DIR / "pad2key" / "profiles"
 
 # The standard hotkeys (controller combination -> action), and the user's
 # own table, which replaces it when present.

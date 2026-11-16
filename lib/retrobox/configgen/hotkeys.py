@@ -12,12 +12,12 @@ Three pieces, kept apart so that each changes on its own:
 
 A binding is one of:
 
-* ``Keys``: a key chord the emulator listens to, pressed by gamepadly's
-  virtual keyboard;
-* ``Exec``: a command, run by gamepadly;
+* ``Keys``: a key chord the emulator listens to, pressed by the pad mapper's
+  virtual keyboard (the overlay's input daemon, ``retrobox-inputd``);
+* ``Exec``: a command, run by the pad mapper;
 * ``Native``: the emulator reads the combination from the controller itself
-  (its generator writes it to the emulator's configuration), so gamepadly
-  must not fire it too;
+  (its generator writes it to the emulator's configuration), so the pad
+  mapper must not fire it too;
 * ``None``: the emulator cannot do it; the combination is left free.
 """
 
@@ -92,7 +92,7 @@ class Native:
     """The emulator handles the combination itself.
 
     ``keys`` is the emulator's keyboard shortcut for the same action, when
-    it has one: gamepadly ignores it, the overlay presses it.
+    it has one: the pad mapper ignores it, the overlay presses it.
     """
 
     keys: tuple[str, ...] = ()

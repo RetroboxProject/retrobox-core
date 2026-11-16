@@ -3,10 +3,10 @@
 RetroArch reads "hotkey + button" combinations from the controller itself
 (``input_enable_hotkey_btn`` plus one ``input_<action>_btn`` per action), so
 the combinations of the standard table that have that shape are written to
-its configuration and bound as ``Native``: gamepadly leaves them alone and
+its configuration and bound as ``Native``: the pad mapper leaves them alone and
 RetroArch performs them (and quits cleanly on Hotkey+Start). Combinations of
 another shape fall back to RetroArch's keyboard hotkeys (Shift + key), which
-gamepadly presses. Screenshots and the overlay are Retrobox's own
+the pad mapper presses. Screenshots and the overlay are Retrobox's own
 (``hotkeys.common_bindings``), not RetroArch's.
 """
 

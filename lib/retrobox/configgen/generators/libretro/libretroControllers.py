@@ -179,7 +179,7 @@ def writeHotKeyConfig(
     """RetroArch's pad hotkeys: the hotkey button and the standard combinations it reads itself.
 
     Which button does what comes from the standard hotkeys table (see
-    ``libretro_hotkeys``); the other actions go through gamepadly.
+    ``libretro_hotkeys``); the other actions go through the pad mapper.
     """
     hotkeys: dict[str, str] = {}
     if not controller:
