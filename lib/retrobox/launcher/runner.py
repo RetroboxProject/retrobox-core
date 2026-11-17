@@ -12,6 +12,7 @@ from retrobox.configgen import profiler
 from retrobox.configgen.controller import Controller
 from retrobox.configgen.Emulator import Emulator
 from retrobox.configgen.generators import get_generator
+from retrobox.configgen.generators.libretro import libretro_achievements
 from retrobox.configgen.gun import Guns
 from retrobox.configgen.hotkeys import osk_enabled, overlay_enabled
 from retrobox.configgen.utils import metadata, videoMode, wheelsUtils
@@ -259,6 +260,7 @@ def _publish_state(
                 overlay=overlay_enabled(system),
                 osk=osk_enabled(system),
                 pad_profile=str(pad_profile) if pad_profile else None,
+                achievements=libretro_achievements.account(system.config),
             )
         )
         # the overlay may open from now on

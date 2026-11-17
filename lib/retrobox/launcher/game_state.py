@@ -23,6 +23,11 @@ combination itself), the game information EmulationStation exported
 (``game_info``), its resolved menu theme (``menu_theme``) and whether the
 overlay may open over the game at all (``overlay``).
 
+For the overlay's achievements page, ``achievements`` is the RetroAchievements
+account (``username``, and ``token`` or else ``password``; see
+``libretro_achievements.account()``), or null when achievements are off. The
+runtime directory and the file are the user's alone.
+
 For the input daemon (``retrobox-inputd``), ``pad_profile`` is the game's
 pad profile (see ``launcher.pad_profile``): with it, the daemon maps each
 player's controller (``controllers``) and the keyboards while the game runs;
@@ -87,6 +92,7 @@ class GameState:  # pylint: disable=too-many-instance-attributes
     overlay: bool = True
     osk: bool = False
     pad_profile: str | None = None
+    achievements: dict[str, str] | None = None
     version: int = SESSION_VERSION
 
     def is_alive(self) -> bool:

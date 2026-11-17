@@ -24,7 +24,8 @@ can override them like any other option):
 =========================================== ====================================
 
 Every key is written on every launch, enabled or not, so what one game turned
-on never leaks into the next one. Whether a core can earn achievements at all
+on never leaks into the next one. The overlay's achievements page gets the
+account too (``account()``, through session.json). Whether a core can earn achievements at all
 is up to RetroArch; ``cheevos_cores`` of ``share/emulator_options/libretro.yaml``
 only tells EmulationStation which ones to offer them for.
 """
@@ -108,6 +109,25 @@ def unlock_sound(name: str) -> Path | None:
     return None
 
 
+def account(config: SystemConfig) -> dict[str, str] | None:
+    """The account the overlay shows the game's achievements with.
+
+    Returns:
+        ``username`` and ``token``, or ``password`` when there is no token;
+        None when achievements are off or the account is unusable.
+    """
+    if not config.get_bool("retroachievements"):
+        return None
+    username = config.get_str("retroachievements.username", "").strip()
+    token = config.get_str("retroachievements.token", "").strip()
+    password = config.get_str("retroachievements.password", "")
+    if not username or not (token or password):
+        return None
+    if token:
+        return {"username": username, "token": token}
+    return {"username": username, "password": password}
+
+
 def _credentials(config: SystemConfig) -> dict[str, str] | None:
     """The account settings of retroarch.cfg, or None if the account is unusable.
 
@@ -149,8 +169,8 @@ def settings(config: SystemConfig) -> dict[str, str]:
     """
     if not config.get_bool("retroachievements"):
         return dict(_DISABLED)
-    account = _credentials(config)
-    if account is None:
+    credentials = _credentials(config)
+    if credentials is None:
         return dict(_DISABLED)
 
     # Hardcore mode disables the savestates that netplay is built on.
@@ -161,7 +181,7 @@ def settings(config: SystemConfig) -> dict[str, str]:
 
     result = {
         **_DISABLED,
-        **account,
+        **credentials,
         "cheevos_enable": "true",
         HARDCORE_SETTING: _bool(hardcore),
         # leaderboards need hardcore (EmulationStation says so in its menu)
