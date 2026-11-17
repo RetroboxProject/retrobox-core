@@ -157,6 +157,15 @@ Each generator says how its emulator performs these actions (`hotkey_bindings()`
 
 **Leaving a game.** `retrobox-emukill` ends the game being played (Retrobox's `batocera-es-swissknife --emukill`): SIGTERM to the emulator's process group and to the processes of a Steam, Heroic or Lutris game, which a running client starts outside it, then SIGKILL to whatever is left after a few seconds. The launcher publishes the running game in `<runtime dir>/session.json` for it (and for the overlay). From the moment it starts until it exits it also keeps `<runtime dir>/launch.json`, which tells whether the game is starting, running or ending: the overlay neither opens nor stays open while a game starts or ends.
 
+### Keeping the computer awake
+
+Most desktops don't count controller input as activity, so a game played with a gamepad only would see the screen dim, turn off or lock, or the computer go to sleep. While a game runs (from its `on-start-game` hooks to the moment it ends) the launcher holds two inhibitors, and releases them when the game is over; in EmulationStation nothing is held, so the desktop's own power settings apply there (`lib/retrobox/launcher/idle_inhibit.py`):
+
+- **logind:** a `block` inhibitor of `idle` and `sleep`, through `systemd-inhibit` (or `elogind-inhibit`). It stops automatic suspend, and desktops that follow logind's idle inhibitors (KDE Plasma among them) keep the screen on too. Closing a laptop's lid still suspends it.
+- **`org.freedesktop.ScreenSaver`** on the session bus, which most desktops use to keep the screen on and unlocked. It needs the `jeepney` Python module (`python3-jeepney`, recommended by the packages).
+
+`systemd-inhibit --list` shows the first one (who *Retrobox*, why *Playing <game>*). Both are released even if the launcher is killed, and if one can't be taken the game starts anyway and the log says why.
+
 ### Bezels and aspect ratios
 
 A bezel is looked up in this order, in your `decorations/<set>` first and then in `decorations-default/<set>`: the game (`games/<system>/<rom>.png`, then `games/<rom>.png`), the system (`systems/<system>.png`, with its alternative decoration and language variants) and `default.png`. Before any of those, the same order is tried with the screen's aspect ratio appended to the name: on a 16:10 screen, `systems/megadrive_16_10.png` beats `games/megadrive/Sonic.png`, and `games/fbneo/truxton2_16_10.png` beats both. The suffix is `_<width>_<height>` of a common ratio (`1_1`, `5_4`, `4_3`, `3_2`, `16_10`, `16_9`, `21_9`, `32_9`; a 2560x1080 screen still counts as `21_9`) or of the screen's exact one, and the bezel's `.info`, `.lay` and `.zip` carry it too (`megadrive_16_10.info`). A bezel made for another ratio is stretched or narrowed to the screen, unless *Stretch bezels* is turned off for the game.

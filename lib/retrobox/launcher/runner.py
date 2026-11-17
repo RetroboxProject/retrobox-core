@@ -12,7 +12,6 @@ from retrobox.configgen import profiler
 from retrobox.configgen.controller import Controller
 from retrobox.configgen.Emulator import Emulator
 from retrobox.configgen.generators import get_generator
-from retrobox.configgen.generators.libretro import libretro_achievements
 from retrobox.configgen.gun import Guns
 from retrobox.configgen.hotkeys import osk_enabled, overlay_enabled
 from retrobox.configgen.utils import metadata, videoMode, wheelsUtils
@@ -36,6 +35,7 @@ from .game_state import GameState, clear_state, process_start_time, write_state
 from .launch_phase import Phase, set_phase
 from .hooks import call_game_hooks
 from .hud import setup_hud
+from .idle_inhibit import inhibit_idle
 from .pad_profile import build_session_profile, effective_bindings, find_profile
 from .power import apply_power_profile, restore_power_profile
 from .process import run_command
@@ -177,12 +177,15 @@ def _run_game(session: GameSession, previous_power_profile: str | None) -> int:
     try:
         _prepare_game_environment(session.system)
 
-        # run a script before emulator starts
-        call_game_hooks(session, "on-start-game")
+        # no screen blanking, locking or sleep while the game runs (a game
+        # played with a controller only looks idle to most desktops)
+        with inhibit_idle(f"Playing {Path(session.args.rom).stem}"):
+            # run a script before emulator starts
+            call_game_hooks(session, "on-start-game")
 
-        exit_code = _run_emulator(session)
-        # the game is over: the overlay keeps away until the launcher is done
-        set_phase(Phase.ENDING)
+            exit_code = _run_emulator(session)
+            # the game is over: the overlay keeps away until the launcher is done
+            set_phase(Phase.ENDING)
 
         # run a script after emulator shuts down
         call_game_hooks(session, "on-close-game")
@@ -260,7 +263,6 @@ def _publish_state(
                 overlay=overlay_enabled(system),
                 osk=osk_enabled(system),
                 pad_profile=str(pad_profile) if pad_profile else None,
-                achievements=libretro_achievements.account(system.config),
             )
         )
         # the overlay may open from now on

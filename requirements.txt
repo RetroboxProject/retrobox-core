@@ -19,5 +19,7 @@ requests
 # Content Downloader: reads .zst packages (or the zstd tool; Python 3.14 has it built in)
 zstandard
 typing_extensions
+# keeps the screen on while a game runs (org.freedesktop.ScreenSaver); optional
+jeepney
 # settings window (retrobox --settings); any Qt 6 binding works, PyQt6 too
 PySide6-Essentials

@@ -9,3 +9,5 @@ python3-pyside6.qtwidgets | python3-pyqt6
 # volume of EmulationStation: its ALSA mixer must be the sound server's one (ALSA "pulse" plugin)
 libasound2-plugins
 pipewire-pulse | pulseaudio
+# keep the screen on while a game runs (org.freedesktop.ScreenSaver over D-Bus)
+python3-jeepney
