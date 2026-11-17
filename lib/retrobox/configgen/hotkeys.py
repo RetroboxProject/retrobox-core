@@ -45,7 +45,7 @@ class HotkeyAction(enum.StrEnum):
 
     ``OVERLAY`` stays for the users' tables that still name it, but no
     emulator binds it: retrobox-overlay's daemon opens the overlay itself
-    (the hotkey held), everywhere in Retrobox.
+    (Hotkey+B, or a tap on a dedicated hotkey), everywhere in Retrobox.
 
     ``OSK`` opens retrobox-overlay's on-screen keyboard; only emulators whose
     feature file lists ``osk`` bind it (see ``osk_enabled``).
@@ -180,31 +180,43 @@ OVERLAY_COMMAND = "retrobox-overlay"
 OSK_FEATURE = "osk"
 """The feature that lists an emulator's feature file as one the on-screen keyboard works with."""
 
+FEATURES_DIR = "emulator_options"
+"""Where the feature files are, in each configuration layer: ``<emulator>.yaml``
+for an emulator, ``<emulator>_<core>.yaml`` for one of its cores (the files
+es_features.cfg is generated from)."""
 
-def _has_osk_feature(emulator: str) -> bool:
-    """Whether the emulator's feature file (``emu_features/<emulator>.yaml``) lists ``osk``."""
-    path = layered_file(f"emu_features/{emulator}.yaml")
+
+def _features(name: str) -> list[Any]:
+    """The ``features`` of the feature file ``name`` (empty when there is none)."""
+    path = layered_file(f"{FEATURES_DIR}/{name}")
     if path is None:
-        return False
+        return []
     try:
         with path.open(encoding="utf-8") as file:
             data = load_feature_yaml(file)
     except (OSError, yaml.YAMLError) as err:
         # best effort: a broken feature file must never prevent the game from starting
-        _logger.warning("cannot read the features of %s: %s", emulator, err)
-        return False
+        _logger.warning("cannot read the features of %s: %s", path, err)
+        return []
     features = data.get("features") if isinstance(data, dict) else None
-    return isinstance(features, list) and OSK_FEATURE in features
+    return features if isinstance(features, list) else []
+
+
+def _has_osk_feature(emulator: str, core: str | None) -> bool:
+    """Whether the feature file of the emulator, or of its core, lists ``osk``."""
+    names = [f"{emulator}.yaml"] + ([f"{emulator}_{core}.yaml"] if core else [])
+    return any(OSK_FEATURE in _features(name) for name in names)
 
 
 def osk_enabled(system: Emulator) -> bool:
     """Whether the on-screen keyboard may open over this game.
 
-    The emulator's feature file must list ``osk``, and the ``osk`` setting
+    The emulator's (or its core's) feature file must list ``osk``, and the ``osk`` setting
     (global, per system or per game, on by default) must not turn it off;
     published in session.json.
     """
-    return _has_osk_feature(system.config.emulator) and system.config.get_bool(OSK_FEATURE, True)
+    config = system.config
+    return _has_osk_feature(config.emulator, config.core) and config.get_bool(OSK_FEATURE, True)
 
 
 def overlay_enabled(system: Emulator) -> bool:
