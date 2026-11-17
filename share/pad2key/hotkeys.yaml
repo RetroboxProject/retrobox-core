@@ -10,14 +10,15 @@
 # combination. Only player 1 gets these hotkeys, as in Batocera.
 #
 # "tap: true" fires when the button is released alone (retrobox-overlay's
-# input daemon maps these); a tap on the hotkey is ignored when the hotkey is
-# select, so it never takes a button the game needs.
+# input daemon maps these); a tap on the hotkey is ignored: a dedicated
+# hotkey's opens the overlay, and select is a button the game needs.
 #
 # The overlay is not here: retrobox-overlay's daemon opens it everywhere in
-# Retrobox (EmulationStation too) with Hotkey+B on every controller, when a
-# dedicated hotkey (Home/Guide) is held for a moment, or on Ctrl+Shift+O or Shift+F7 (see its
-# overlay.ini, hold_ms). Where the hotkey is a button the game uses (Select),
-# holding it opens nothing. Save states and their slots are the overlay's too.
+# Retrobox (EmulationStation too) with Hotkey+B on every controller, with a
+# tap on a dedicated hotkey (Home/Guide: an input of its own in es_input.cfg),
+# or on Ctrl+Shift+O or Shift+F7. Where the hotkey is a button the game uses
+# (Select), tapping it opens nothing. Save states and their slots are the
+# overlay's too.
 #
 # "keyboard" holds the keyboard chords, as evdev key names (the right-hand
 # modifiers count as the left-hand ones). The input daemon watches every keyboard
