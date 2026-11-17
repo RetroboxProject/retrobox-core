@@ -4,7 +4,8 @@
 # maybe an other choice is better
 
 if test -z "${DISPLAY}"; then
-    export DISPLAY=$(getLocalXDisplay)
+    DISPLAY="$(getLocalXDisplay)"
+    export DISPLAY
 fi
 
 "${RETROBOX_ROOTDIR}/bin/retrobox-launch" -system switch -emulator ryujinx -rom config

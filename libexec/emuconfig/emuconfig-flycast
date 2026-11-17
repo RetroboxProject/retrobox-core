@@ -4,7 +4,8 @@ if [ -n "$WAYLAND_DISPLAY" ]; then
     export SDL_VIDEODRIVER=wayland
     export SDL_VIDEO_WAYLAND_WMCLASS="emuconfig-flycast"
 else
-    export DISPLAY=$(getLocalXDisplay)
+    DISPLAY="$(getLocalXDisplay)"
+    export DISPLAY
 fi
 
 export XDG_CONFIG_HOME="${RETROBOX_EMUCONFIG_DIR}/flycast"

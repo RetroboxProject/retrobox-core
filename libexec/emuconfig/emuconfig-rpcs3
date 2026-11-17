@@ -5,7 +5,8 @@
 
 if test -z "${DISPLAY}"
 then
-    export DISPLAY=$(getLocalXDisplay)
+    DISPLAY="$(getLocalXDisplay)"
+    export DISPLAY
 fi
 
 "${RETROBOX_ROOTDIR}/bin/retrobox-launch" -system ps3 -rom config -emulator rpcs3

@@ -44,7 +44,7 @@ SYSCONF_DIR="${SYSCONF_DIR:-/etc/retrobox}"
 # dependency lists and requirements.txt are only needed by install.sh, which
 # gets them through the tarball's extras/; the udev rules are installed into
 # /usr/lib/udev below).
-EXCLUDE_RE='^(\.vscode/|docs/|\.github/|packaging/|dev/|system/|LICENSE$|install\.sh$|\.gitmodules$|tools/deps/|tools/lib/deps\.sh$)|(^|/)(README(\.md)?|requirements\.txt|\.gitignore|\.gitattributes|\.gitkeep)$'
+EXCLUDE_RE='^(\.vscode/|docs/|tests/|pytest\.ini$|\.pylintrc$|\.github/|packaging/|dev/|system/|LICENSE$|install\.sh$|\.gitmodules$|tools/deps/|tools/lib/deps\.sh$)|(^|/)(README(\.md)?|requirements\.txt|\.gitignore|\.gitattributes|\.gitkeep)$'
 
 ROOT_IN_PKG="${DESTDIR}${INSTALL_ROOT}"
 

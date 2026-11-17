@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 # Retrobox directories for bash scripts.
 #
 # Source this file, don't execute it:

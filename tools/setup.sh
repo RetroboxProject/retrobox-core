@@ -15,6 +15,7 @@
 #                                the flag each would be called with
 
 TOOLS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd -P)"
+# shellcheck disable=SC2034  # exported by bin/retrobox, which sources this file
 RETROBOX_ROOTDIR="$(cd "${TOOLS_DIR}/.." >/dev/null 2>&1 && pwd -P)"
 
 # shellcheck source=lib/log.sh

@@ -295,7 +295,21 @@ packaging/rpm/build-rpm.sh           # dist/retrobox-core-<version>-1.noarch.rpm
 packaging/tarball/build-tarball.sh   # dist/retrobox-core-all.tar.gz + SHA256SUMS (the install.sh payload)
 ```
 
-The GitHub Actions workflow builds the three on every push to `main` and pull request, and smoke-tests them in Ubuntu 24.04, Debian 13 and Fedora containers. Releases are manual: run the workflow by hand (`workflow_dispatch`) with a `version` (e.g. `v0.3`) and it publishes the packages, `install.sh` and `SHA256SUMS` as a GitHub Release; tick `prerelease` for a pre-release. Only `vX.Y` and `vX.Y.0` are full releases; any other `vX.Y.Z` is a pre-release.
+The GitHub Actions workflow runs the checks below and builds the three on every push to `main` and pull request, and smoke-tests them in Ubuntu 24.04, Debian 13 and Fedora containers. Releases are manual: run the workflow by hand (`workflow_dispatch`) with a `version` (e.g. `v0.3`) and it publishes the packages, `install.sh` and `SHA256SUMS` as a GitHub Release; tick `prerelease` for a pre-release. Only `vX.Y` and `vX.Y.0` are full releases; any other `vX.Y.Z` is a pre-release.
+
+### Tests and checks
+
+```bash
+pip install -r dev/requirements-dev.txt   # pytest and pylint, pinned
+dev/check.sh                              # everything CI checks
+dev/check.sh tests | pylint | shell       # one part
+```
+
+- **tests:** `tests/` (pytest) covers the parts that run without hardware: the configuration layers and `[paths]` of `retrobox.ini`, the bezel lookup order, the systems and emulator options and the `es_systems.cfg` / `es_features.cfg` built from them (every emulator a system offers must have a working generator), the ROM folders, the store's unpacking of untrusted packages, the idle inhibitor and the desktop notifications. They never touch your home: every run gets its own home, XDG and `/etc/retrobox` in a temporary directory. CI runs them on Ubuntu 24.04, Debian 13 and Fedora with the distribution's own Python packages.
+- **pylint:** strict for all the Python code except `lib/retrobox/configgen`, which comes from batocera and is held to `dev/pylint-baseline.json` instead: a file may not get a message it didn't have, so it only gets cleaner. After cleaning some of it, lower the baseline with `python3 dev/pylint_baseline.py --update`.
+- **shell:** `bash -n` and `shellcheck --severity=warning` on every shell script.
+
+A release can only be published once all of them pass.
 
 ### Command line
 
@@ -331,7 +345,7 @@ Install directory (read-only):
 └── venv/                      # (install.sh on immutable systems only)
 ```
 
-Only in the repository (not installed): `dev/` (helper scripts and notes for developers), `docs/` (the README's screenshots), `packaging/`, `system/` (installed into `/usr/lib/udev` and polkit instead), `install.sh`, `.github/`, `.vscode/`. Python modules are run with `PYTHONPATH=<install dir>/lib`: `python3 -m retrobox.startup` (what `bin/retrobox` runs) and `python3 -m retrobox.launcher` (`bin/retrobox-launch`).
+Only in the repository (not installed): `dev/` (helper scripts, `check.sh` and notes for developers), `docs/` (the README's screenshots), `tests/`, `packaging/`, `system/` (installed into `/usr/lib/udev` and polkit instead), `install.sh`, `.github/`, `.vscode/`. Python modules are run with `PYTHONPATH=<install dir>/lib`: `python3 -m retrobox.startup` (what `bin/retrobox` runs) and `python3 -m retrobox.launcher` (`bin/retrobox-launch`).
 
 System and user directories (see [Paths](#paths)):
 

@@ -4,14 +4,13 @@ if [ -n "$WAYLAND_DISPLAY" ]; then
     export SDL_VIDEODRIVER=wayland
     export SDL_VIDEO_WAYLAND_WMCLASS="emuconfig-vita3k"
 else
-    export DISPLAY=$(getLocalXDisplay)
+    DISPLAY="$(getLocalXDisplay)"
+    export DISPLAY
 fi
 
-# set the environment variables
+# the same folders as the vita3k generator (configgen/generators/vita3k/vita3k_paths.py)
 CFGDIR="${RETROBOX_EMUCONFIG_DIR}/vita3k"
-XDG_CONFIG_HOME=$CFGDIR \
-XDG_CACHE_HOME="${HOME}/.cache" \
+XDG_CONFIG_HOME="${CFGDIR}" \
+XDG_CACHE_HOME="${HOME}/.cache/retrobox" \
 XDG_DATA_HOME="${RETROBOX_SAVES_DIR}" \
-XDG_DATA_DIRS="${RETROBOX_SAVES_DIR}" \
-# now run the emulator
-/usr/bin/vita3k/Vita3K
+    exec "${RETROBOX_EMULATORS_DIR}/vita3k/app/AppRun" -c "${CFGDIR}/vita3k/config.yml"

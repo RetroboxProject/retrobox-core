@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from abc import abstractmethod
 from typing import Any, Final
 
 import tomlkit
@@ -14,7 +13,6 @@ from retrobox.paths import BIOS, mkdir_if_not_exists
 
 class MelonDSGenerator(Generator):
 
-    @abstractmethod
     def generate(self, system, rom, playersControllers, metadata, guns, wheels, gameResolution):
         # Verify paths
         mkdir_if_not_exists(_MELONDS_SAVES)

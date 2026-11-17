@@ -1,0 +1,4 @@
+# Tools for dev/check.sh and CI. Pinned: another pylint reports other messages,
+# and dev/pylint-baseline.json was recorded with this one.
+pylint==4.1.4
+pytest==9.1.1

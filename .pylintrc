@@ -1,0 +1,6 @@
+# pylint settings of the project (dev/check.sh, CI and editors).
+[MAIN]
+ignore=_vendor
+
+[FORMAT]
+max-line-length=100

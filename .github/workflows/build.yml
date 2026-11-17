@@ -1,8 +1,9 @@
 name: Build packages
 
-# Builds retrobox-core_<version>_all.deb, retrobox-core-<version>-1.noarch.rpm and
-# retrobox-core-all.tar.gz (the payload of install.sh) and smoke-tests them
-# on Ubuntu 24.04, Debian 13 and Fedora. Releases are manual: run this
+# Runs the checks of dev/check.sh (pytest on Ubuntu 24.04, Debian 13 and
+# Fedora; pylint and shellcheck), builds retrobox-core_<version>_all.deb,
+# retrobox-core-<version>-1.noarch.rpm and retrobox-core-all.tar.gz (the
+# payload of install.sh) and smoke-tests them on the same distributions. Releases are manual: run this
 # workflow with a version (see release-dispatch) to publish them (plus
 # install.sh and SHA256SUMS) as a GitHub Release.
 
@@ -182,9 +183,77 @@ jobs:
           test ! -e /usr/local/share/applications/retrobox.desktop
           test ! -e /usr/local/share/icons/hicolor/48x48/apps/retrobox.png
 
+  tests:
+    strategy:
+      fail-fast: false
+      matrix:
+        image: ["ubuntu:24.04", "debian:trixie", "fedora:latest"]
+    runs-on: ubuntu-24.04
+    container: ${{ matrix.image }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Install git
+        run: |
+          if command -v apt-get >/dev/null; then
+            apt-get update -qq
+            apt-get install -y -qq git ca-certificates
+          else
+            dnf install -y -q git
+          fi
+
+      - name: Check out
+        uses: actions/checkout@v4
+
+      # The distribution's own Python packages, as the .deb/.rpm use them, plus
+      # what the tests need: jeepney and a session bus for the screen saver
+      # test, pgrep for the inhibitor's helper process.
+      - name: Install Retrobox's dependencies
+        run: |
+          source tools/lib/deps.sh
+          if command -v apt-get >/dev/null; then
+            mapfile -t packages < <(deps_apt_args tools/deps/debian.list)
+            DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
+              "${packages[@]}" python3-jeepney dbus procps
+          else
+            mapfile -t packages < <(deps_list tools/deps/fedora.list)
+            dnf install -y -q "${packages[@]}" python3-jeepney dbus-daemon procps-ng
+          fi
+          python3 -m venv --system-site-packages /opt/venv
+          /opt/venv/bin/pip install -q "$(grep '^pytest==' dev/requirements-dev.txt)"
+
+      - name: Run the tests
+        run: PYTHON=/opt/venv/bin/python3 dev/check.sh tests
+
+  lint:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      # The Python version and the pinned pylint must match the ones
+      # dev/pylint-baseline.json was recorded with.
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install pylint, shellcheck and Retrobox's Python dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq shellcheck
+          python -m pip install -q -r dev/requirements-dev.txt -r requirements.txt
+
+      - name: pylint (strict outside configgen, baseline inside it)
+        run: dev/check.sh pylint
+
+      - name: bash -n and shellcheck
+        run: dev/check.sh shell
+
   release:
     if: github.event_name == 'workflow_dispatch' && inputs.version != ''
-    needs: [build, smoke-test, smoke-test-rpm, install-test]
+    needs: [tests, lint, build, smoke-test, smoke-test-rpm, install-test]
     runs-on: ubuntu-24.04
     permissions:
       contents: write

@@ -5,7 +5,8 @@
 
 if test -z "${DISPLAY}"
 then
-    export DISPLAY=$(getLocalXDisplay)
+    DISPLAY="$(getLocalXDisplay)"
+    export DISPLAY
 fi
 
 XDG_CONFIG_HOME="${RETROBOX_EMUCONFIG_DIR}/azahar" \

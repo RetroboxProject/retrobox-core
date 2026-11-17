@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 # Retrobox logging helpers: colored [INFO] / [ OK ] / [ERR ] / [WARN] tags.
 #
 # Usage (source this file, don't execute it):

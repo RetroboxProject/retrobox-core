@@ -2,7 +2,8 @@
 
 if test -z "${DISPLAY}"
 then
-	export DISPLAY=$(getLocalXDisplay)
+	DISPLAY="$(getLocalXDisplay)"
+	export DISPLAY
 fi
 
 PATH=$PATH:PATH=$PATH:/usr/wine/wine-tkg/bin

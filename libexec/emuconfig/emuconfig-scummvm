@@ -7,7 +7,8 @@ if [ -n "$WAYLAND_DISPLAY" ]; then
     # Set the Wayland app_id (window class) of the emulator window
     export SDL_VIDEO_WAYLAND_WMCLASS="emuconfig-scummvm"
 else
-    export DISPLAY=$(getLocalXDisplay)
+    DISPLAY="$(getLocalXDisplay)"
+    export DISPLAY
 fi
 
 XDG_CONFIG_HOME="${RETROBOX_EMUCONFIG_DIR}/scummvm" \

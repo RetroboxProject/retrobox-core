@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 # Dependency lists (tools/deps/*.list), shared by setup-*.sh, install.sh and
 # the .deb build, so the package names live in exactly one place.
 #
