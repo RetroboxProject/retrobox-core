@@ -1,8 +1,10 @@
 # retrobox-core
 
-A port of the [batocera](https://github.com/batocera-linux/batocera.linux) backend stack to a standard Linux desktop (Debian, Ubuntu or Fedora; KDE Plasma or X11), using `batocera-configgen` as a base.
+A port of the [batocera](https://github.com/batocera-linux/batocera.linux) backend stack to a standard Linux desktop (Debian, Ubuntu or Fedora; KDE Plasma, wlroots compositors or X11), using `batocera-configgen` as a base.
 
 The goal is to have a batocera/Retrobat-like experience if paired with [retrobox-emulationstation](https://github.com/RetroboxProject/retrobox-emulationstation), a build of batocera-emulationstation, featuring automatic emulator configuration, bezels, shaders, controller mapping — without having to reboot to other OS.
+
+![EmulationStation's system view in Retrobox, with the es-theme-iconic theme](docs/screenshots/system-view.webp)
 
 ## Motivation
 
@@ -15,6 +17,21 @@ This project brings the parts that matter most to a desktop Linux installation:
 - Shaders on RetroArch and ares.
 - Controller autoconfiguration for RetroArch, ares, Azahar, Cemu, Dolphin, Eden, Flycast, MAME, melonDS, PCSX2, PPSSPP, Redream, RPCS3, Ryujinx, ScummVM, shadPS4, Vita3K, Kodi and Keisho (Sega Model 1, 2 and 3).
 - Gamepad hotkeys (Hotkey+Start to exit, etc.) on every emulator through the input daemon of [retrobox-overlay](https://github.com/RetroboxProject/retrobox-overlay).
+
+## Screenshots
+
+| | |
+|---|---|
+| ![A game list with scraped media](docs/screenshots/game-list.webp) | ![Another system's game list](docs/screenshots/game-list-megadrive.webp) |
+| **Game lists** with scraped media, ratings and metadata. | Every system keeps the theme's look and its own artwork. |
+| ![Per-game options generated from Retrobox's YAML files](docs/screenshots/game-options.webp) | ![The decorations submenu](docs/screenshots/decorations-menu.webp) |
+| **Per-game options**: emulator, power profile, decorations, shaders, screen, audio and emulation, built from `share/emulator_options/` (see [Systems and emulator options](#systems-and-emulator-options)). | **Decorations**: bezel set, stretching, HUD and tattoo, for RetroArch and (through MangoHud) the other emulators. |
+| ![Sonic the Hedgehog 2 inside the Mega Drive bezel](docs/screenshots/bezel-megadrive.webp) | ![Super Metroid inside the Super Nintendo bezel](docs/screenshots/bezel-snes.webp) |
+| **Bezels** from the RetroBat set, downloaded on the first start (see [Bezels and aspect ratios](#bezels-and-aspect-ratios)). | The game is fitted to the bezel's viewport from its `.info` file. |
+| ![The overlay over Super Mario World](docs/screenshots/overlay-menu.webp) | ![The setup screen asking to install an emulator](docs/screenshots/setup-screen.webp) |
+| **The overlay** ([retrobox-overlay](https://github.com/RetroboxProject/retrobox-overlay)), opened with Hotkey+B in any game. | **The setup screen**, when a game needs an emulator that isn't installed yet (see [Emulator setup screen](#emulator-setup-screen)). |
+| ![EmulationStation's main menu](docs/screenshots/main-menu.webp) | ![The settings window](docs/screenshots/settings-window.webp) |
+| **Main menu** of retrobox-emulationstation, with Bluetooth, network and content downloads. | **Settings window** (`retrobox --settings`) for `retrobox.ini`. |
 
 ## Architecture
 
@@ -269,7 +286,24 @@ packaging/rpm/build-rpm.sh           # dist/retrobox-core-<version>-1.noarch.rpm
 packaging/tarball/build-tarball.sh   # dist/retrobox-core-all.tar.gz + SHA256SUMS (the install.sh payload)
 ```
 
-The GitHub Actions workflow builds the three, smoke-tests them in Ubuntu 24.04, Debian 13 and Fedora containers and, for `v*` tags, publishes them with `install.sh` as a release.
+The GitHub Actions workflow builds the three on every push to `main` and pull request, and smoke-tests them in Ubuntu 24.04, Debian 13 and Fedora containers. Releases are manual: run the workflow by hand (`workflow_dispatch`) with a `version` (e.g. `v0.3`) and it publishes the packages, `install.sh` and `SHA256SUMS` as a GitHub Release; tick `prerelease` for a pre-release. Only `vX.Y` and `vX.Y.0` are full releases; any other `vX.Y.Z` is a pre-release.
+
+### Command line
+
+```
+retrobox                              start Retrobox (EmulationStation and the input daemon)
+retrobox --settings                   open the settings window (edits ~/.config/retrobox/retrobox.ini)
+retrobox --setup-emulator [NAME]      install or update an emulator (no name: list the installers)
+retrobox --setup-bezel [NAME]         install a bezel pack (no name: list them)
+retrobox --download-default WHAT      download the default theme, bezels or shaders and exit
+retrobox --update-default-theme       download the default theme again, then start
+retrobox --update-default-bezels      likewise for the RetroBat bezels
+retrobox --update-default-shaders     likewise for Retrobox's shaders
+retrobox --version | --help
+retrobox -- ARGS...                   pass ARGS to EmulationStation
+```
+
+The settings window (PySide6 or PyQt6) covers the folders, the hidden systems, the PC games sync and the advanced keys of `retrobox.ini`, and saves them in the user layer. It is also the *Settings* action of the application menu entry.
 
 ## Directory layout
 
@@ -288,7 +322,7 @@ Install directory (read-only):
 └── venv/                      # (install.sh on immutable systems only)
 ```
 
-Only in the repository (not installed): `dev/` (helper scripts and notes for developers), `packaging/`, `system/` (installed into `/usr/lib/udev` and polkit instead), `install.sh`, `.github/`, `.vscode/`. Python modules are run with `PYTHONPATH=<install dir>/lib`: `python3 -m retrobox.startup` (what `bin/retrobox` runs) and `python3 -m retrobox.launcher` (`bin/retrobox-launch`).
+Only in the repository (not installed): `dev/` (helper scripts and notes for developers), `docs/` (the README's screenshots), `packaging/`, `system/` (installed into `/usr/lib/udev` and polkit instead), `install.sh`, `.github/`, `.vscode/`. Python modules are run with `PYTHONPATH=<install dir>/lib`: `python3 -m retrobox.startup` (what `bin/retrobox` runs) and `python3 -m retrobox.launcher` (`bin/retrobox-launch`).
 
 System and user directories (see [Paths](#paths)):
 
@@ -318,4 +352,6 @@ Every Retrobox tool, bash or Python, prints the same kind of line: `[INFO]`, `[ 
 This project is a derivative of [batocera-configgen](https://github.com/batocera-linux/batocera.linux/tree/master/package/batocera/core/batocera-configgen), part of the `batocera.linux` project which is licensed under the GPLv2 License.
 
 All modifications are also released under GPLv2. See [LICENSE](LICENSE).
+
+The screenshots use game pictures from the [libretro thumbnails](https://github.com/libretro-thumbnails/libretro-thumbnails), the [*es-theme-iconic*](https://github.com/manu-creative-411/es-theme-iconic) theme and the [RetroBat bezels](https://github.com/RetroBat-Official/retrobat-bezels). The games and their artwork belong to their owners.
 
