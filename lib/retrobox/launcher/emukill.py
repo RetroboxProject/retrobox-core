@@ -15,6 +15,9 @@ frontend as soon as the game is gone, does not bring EmulationStation back
 over a game that is still closing. SIGTERM lets emulators save and quit
 cleanly; SIGKILL is only the last resort.
 
+It first moves the launch to ``ending`` (see ``launch_phase``): the overlay
+closes and stays away until the launcher is done.
+
 Nothing happens when no game is running, so a stray press in the frontend
 is harmless, and a second press while the first one is working is ignored.
 """
@@ -35,6 +38,7 @@ from retrobox.configgen.utils.logger import OK, setup_logging
 from retrobox.paths import LOGS, RUNTIME_DIR
 
 from .game_state import GameState, read_state
+from .launch_phase import Phase, set_phase
 
 _logger = logging.getLogger(__name__)
 
@@ -186,6 +190,8 @@ def main() -> int:
             return 0
         try:
             _logger.info("ending %s (%s, %s)", state.rom, state.system, state.emulator)
+            # the overlay closes and stays away until the launcher is done
+            set_phase(Phase.ENDING, state.launcher_pid)
             end_game(state)
             _logger.log(OK, "game ended")
         finally:

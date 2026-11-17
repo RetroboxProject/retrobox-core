@@ -32,6 +32,7 @@ from . import control as control_channel
 from .controller_monitor import ControllerMonitor
 from .emulator_setup import ensure_emulator
 from .game_state import GameState, clear_state, process_start_time, write_state
+from .launch_phase import Phase, set_phase
 from .hooks import call_game_hooks
 from .hud import setup_hud
 from .pad_profile import build_session_profile, effective_bindings, find_profile
@@ -179,11 +180,14 @@ def _run_game(session: GameSession, previous_power_profile: str | None) -> int:
         call_game_hooks(session, "on-start-game")
 
         exit_code = _run_emulator(session)
+        # the game is over: the overlay keeps away until the launcher is done
+        set_phase(Phase.ENDING)
 
         # run a script after emulator shuts down
         call_game_hooks(session, "on-close-game")
         return exit_code
     finally:
+        set_phase(Phase.ENDING)
         clear_state()
         SESSION_PAD_PROFILE.unlink(missing_ok=True)
         restore_power_profile(previous_power_profile)
@@ -257,6 +261,8 @@ def _publish_state(
                 pad_profile=str(pad_profile) if pad_profile else None,
             )
         )
+        # the overlay may open from now on
+        set_phase(Phase.RUNNING)
 
     return on_started
 

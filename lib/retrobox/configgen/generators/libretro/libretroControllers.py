@@ -91,6 +91,7 @@ def writeControllersConfig(
 
     # hotkeys, forced to match with the hotkeys system
     retroconfig.save('input_enable_hotkey',       '"shift"')
+    retroconfig.save('input_hotkey_block_delay',  _hotkey_block_delay(controllers))
     retroconfig.save('input_menu_toggle',         '"f1"')
     retroconfig.save('input_fps_toggle',          '"f2"')
     retroconfig.save('input_exit_emulator',       '"escape"')
@@ -133,6 +134,26 @@ def writeControllersConfig(
         writeControllerConfig(retroconfig, controller, controller.player_number, system, joypad_index, lightgun, mouseIndex)
 
     #pdb.set_trace()
+
+
+def _hotkey_block_delay(controllers: Controllers, /) -> str:
+    """How many frames RetroArch's hotkey waits before it blocks the game's input.
+
+    A dedicated hotkey (Home/Guide) blocks at once: the other button of a
+    shortcut never reaches the game (Hotkey+B, which opens retrobox-overlay,
+    would press B in the game otherwise). A hotkey shared with Select keeps
+    RetroArch's default delay, which lets a tap of Select through to the game.
+    """
+    player1 = next((c for c in controllers if c.player_number == 1), None)
+    if player1 is not None:
+        hotkey = player1.inputs.get("hotkey")
+        select = player1.inputs.get("select")
+        if hotkey is not None and (
+            select is None or (hotkey.type, hotkey.id) != (select.type, select.id)
+        ):
+            return '"0"'
+    return '"5"'
+
 
 # Remove all controller configurations
 def cleanControllerConfig(retroconfig: UnixSettings, controllers: Controllers, /) -> None:

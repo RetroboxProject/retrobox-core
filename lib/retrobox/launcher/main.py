@@ -18,6 +18,7 @@ from retrobox.configgen.exceptions import BaseRetroboxException, RetroboxExcepti
 from retrobox.configgen.utils.logger import setup_logging
 from retrobox.launcher.cli import MAX_PLAYERS, build_argument_parser
 from retrobox.launcher.hooks import call_retrohook
+from retrobox.launcher.launch_phase import end_launch, start_launch
 from retrobox.launcher.process import install_interrupt_handler, normalize_exit_code
 from retrobox.launcher.runner import run_rom
 from retrobox.paths import LOGS
@@ -28,7 +29,20 @@ _logger = logging.getLogger(__name__)
 
 
 def launch() -> None:
-    """Handle program arguments and exception handling to EmulationStation and logs."""
+    """Handle program arguments and exception handling to EmulationStation and logs.
+
+    ``launch.json`` covers the whole run (see ``launch_phase``): the overlay
+    keeps away from a game that is starting or ending.
+    """
+    start_launch()
+    try:
+        _launch()
+    finally:
+        end_launch()
+
+
+def _launch() -> None:
+    """Run the game, then exit with the status EmulationStation reads."""
     with setup_logging(LOGS / "retrobox-launch.log"):
         install_interrupt_handler()
 
