@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Stub de batocera-vulkan para Debian
+# batocera-vulkan stub for standard distributions
 
 case "$1" in
     hasVulkan)
-        # Comprueba si vulkaninfo existe y funciona
+        # Whether vulkaninfo exists and works
         if command -v vulkaninfo &>/dev/null && vulkaninfo --summary &>/dev/null 2>&1; then
             echo "true"
         else

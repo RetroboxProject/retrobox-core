@@ -126,7 +126,7 @@
     },
 
     {
-      "name": "configgen: Switch eden-emu (ROM genérica)",
+      "name": "configgen: Switch eden-emu (generic ROM)",
       "type": "debugpy",
       "request": "launch",
       "module": "retrobox.launcher",
@@ -177,7 +177,7 @@
       "justMyCode": false
     },
     {
-      "name": "configgen: GameCube (Mario Kart Double Dash) - 2 mandos",
+      "name": "configgen: GameCube (Mario Kart Double Dash) - 2 controllers",
       "type": "debugpy",
       "request": "launch",
       "module": "retrobox.launcher",
@@ -226,7 +226,7 @@
       "justMyCode": false
     },
     {
-      "name": "configgen: GameCube (Mario Kart Double Dash) - sin mandos",
+      "name": "configgen: GameCube (Mario Kart Double Dash) - no controllers",
       "type": "debugpy",
       "request": "launch",
       "module": "retrobox.launcher",
@@ -576,7 +576,7 @@
     },
 
     {
-      "name": "configgen: Mega Drive (Sonic 2 sin mando)",
+      "name": "configgen: Mega Drive (Sonic 2 without a controller)",
       "type": "debugpy",
       "request": "launch",
       "module": "retrobox.launcher",
@@ -705,7 +705,7 @@
       "justMyCode": false
     },
     {
-      "name": "configgen: Game Boy (ROM genérica)",
+      "name": "configgen: Game Boy (generic ROM)",
       "type": "debugpy",
       "request": "launch",
       "module": "retrobox.launcher",

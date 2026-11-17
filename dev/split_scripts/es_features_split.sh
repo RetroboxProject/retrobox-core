@@ -154,12 +154,12 @@ def format_yaml(data, indent=0):
                 lines.append(f"{space}- {item_str}")
     return "\n".join(filter(None, lines))
 
-# 0. Extraer los bloques raíz globales (<sharedFeatures> y <globalFeatures>) si existen
+# 0. Extract the global root blocks (<sharedFeatures> and <globalFeatures>) if present
 global_meta = {}
 
 shared_features_elem = root.find('sharedFeatures')
 if shared_features_elem is not None:
-    # Reutilizamos la lógica de parse_hierarchical_features para procesar las features globales
+    # Reuse parse_hierarchical_features to process the global features
     global_groups = parse_hierarchical_features(shared_features_elem)
     if global_groups:
         global_meta['groups'] = global_groups
@@ -212,7 +212,7 @@ for emulator in root.findall('emulator'):
         f.write(emu_yaml_text + "\n")
     print(f"  -> Generated Emulator Global: {out_path}")
 
-    # 2. Generar un YAML independiente por cada core ({emulador}_{core}.yaml)
+    # 2. Write one YAML per core ({emulator}_{core}.yaml)
     for core_elem in emulator.findall('cores/core'):
         core_name = core_elem.attrib.get('name', 'unknown_core')
         safe_core_name = "".join(c if c.isalnum() or c in ('_', '-') else '_' for c in core_name)

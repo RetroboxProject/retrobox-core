@@ -1,10 +1,10 @@
-# Dependencias Python de Retrobox.
-# Útil para distros inmutables (Bazzite, Silverblue, etc.) o entornos virtuales
-# donde se prefiere pip sobre los paquetes del sistema.
+# Retrobox's Python dependencies.
+# For immutable distributions (Bazzite, Silverblue, etc.) or virtual
+# environments, where pip is preferred over the system packages.
 #
-# Uso:
+# Usage:
 #   pip install -r requirements.txt
-#   # o en distros con protección del sistema:
+#   # or, on distributions that protect the system Python:
 #   pip install --user -r requirements.txt
 
 pyudev

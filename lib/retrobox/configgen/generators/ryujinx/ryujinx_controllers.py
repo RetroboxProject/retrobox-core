@@ -39,10 +39,10 @@ def _is_valid_sdl_guid(g):
     return True
 
 
-"""Traduce el nombre de botón SDL_GameController (minúscula, vocabulario SDL)
-al nombre interno que espera el JSON de Ryujinx (PascalCase, vocabulario propio
-de Ryujinx: GamepadInputId). No son intercambiables salvo para a/b/x/y, donde
-coinciden por casualidad."""
+"""Translate an SDL_GameController button name (lower case, SDL's vocabulary)
+into the internal name Ryujinx's JSON expects (PascalCase, Ryujinx's own
+GamepadInputId vocabulary). They are not interchangeable except for a/b/x/y,
+where they match by chance."""
 _SDL_TO_RYUJINX_NAME = {
     'a': 'A', 'b': 'B', 'x': 'X', 'y': 'Y',
     'start': 'Start', 'back': 'Back',
@@ -54,14 +54,14 @@ _SDL_TO_RYUJINX_NAME = {
 
 
 def _sdl_mapping_to_input_lookup(mapping_str: str) -> dict[tuple[str, str], str]:
-    """A partir de 'a:b1,b:b0,lefttrigger:a2,...' devuelve
-    {(kind, id_crudo): nombre_sdl}, con kind en {'button', 'axis'}.
+    """From 'a:b1,b:b0,lefttrigger:a2,...', return
+    {(kind, raw_id): sdl_name}, with kind in {'button', 'axis'}.
 
-    Este lookup es la pieza clave para respetar es_input.cfg (fuente de verdad
-    posicional de EmulationStation) frente a mandos cuya entrada en la SDL
-    GameControllerDB resuelve algunos nombres por etiqueta física en vez de
-    por posición (p.ej. mandos Nintendo con el hint USE_BUTTON_LABELS, que
-    afecta a a/b/x/y).
+    This lookup is what keeps es_input.cfg (EmulationStation's positional
+    truth) authoritative over controllers whose SDL GameControllerDB entry
+    resolves some names by physical label instead of by position (e.g.
+    Nintendo controllers with the USE_BUTTON_LABELS hint, which affects
+    a/b/x/y).
     """
     lookup: dict[tuple[str, str], str] = {}
     if not mapping_str:
@@ -110,8 +110,8 @@ def list_sdl_gamepads(sdlversion):
             continue
 
         try:
-            # IMPORTANTE:
-            # usar DeviceGUID y NO JoystickGUID
+            # IMPORTANT:
+            # use DeviceGUID, NOT JoystickGUID
             guid = joystick.SDL_JoystickGetDeviceGUID(i)
 
             buff = create_string_buffer(33)
@@ -278,10 +278,11 @@ def _ryujinx_gen_gamepad_config(system: Emulator, playersControllers):
             'button_sr': "SingleRightTrigger1",
         }
 
-        # Traduce cada botón lógico de EmulationStation (fuente de verdad
-        # posicional) al nombre que Ryujinx espera, pasando por el id crudo
-        # (y su tipo, botón o eje) para no depender de si la GameControllerDB
-        # resuelve el nombre SDL por posición o por etiqueta para este GUID.
+        # Translate each logical EmulationStation button (the positional
+        # truth) into the name Ryujinx expects, through the raw id (and its
+        # type, button or axis), so it does not depend on whether the
+        # GameControllerDB resolves the SDL name by position or by label for
+        # this GUID.
         input_lookup = pad_face_button_lookup.get(id(controller), {})
 
         def es_input_to_ryujinx_name(es_name: str, default: str) -> str:

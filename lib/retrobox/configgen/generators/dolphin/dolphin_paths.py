@@ -17,6 +17,7 @@ _DOLPHIN_LOCALE: Final = _DOLPHIN_DIR / 'app' / 'share' / 'locale'
 DOLPHIN_INI:     Final = _DOLPHIN_CFGDIR / 'Dolphin.ini'
 DOLPHIN_GFX_INI: Final = _DOLPHIN_CFGDIR / 'GFX.ini'
 DOLPHIN_QT_INI:  Final = _DOLPHIN_CFGDIR / 'Qt.ini'
+DOLPHIN_ACHIEVEMENTS_INI: Final = _DOLPHIN_CFGDIR / 'RetroAchievements.ini'
 
 DOLPHIN_SAVES:   Final = SAVES / 'dolphin-emu'
 DOLPHIN_SYSCONF: Final = _DOLPHIN_DATA / 'Wii' / 'shared2' / 'sys' / 'SYSCONF'

@@ -1,5 +1,5 @@
-# Anula el uaccess de steam-devices solo para el Switch Pro Controller,
-# forzando a SDL a caer a evdev (bus real) en vez de HIDAPI.
+# Undo steam-devices' uaccess for the Switch Pro Controller only, so SDL
+# falls back to evdev (the real bus) instead of HIDAPI.
 KERNEL=="hidraw*", ATTRS{idVendor}=="057e", ATTRS{idProduct}=="2009", TAG-="uaccess", MODE="0600", GROUP="root"
 KERNEL=="hidraw*", KERNELS=="*057E:2009*", TAG-="uaccess", MODE="0600", GROUP="root"
 

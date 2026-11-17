@@ -25,7 +25,7 @@ overlay may open over the game at all (``overlay``).
 
 For the overlay's achievements page, ``achievements`` is the RetroAchievements
 account (``username``, and ``token`` or else ``password``; see
-``libretro_achievements.account()``), or null when achievements are off. The
+``configgen.utils.achievements.session_account()``), or null when achievements are off. The
 runtime directory and the file are the user's alone.
 
 For the input daemon (``retrobox-inputd``), ``pad_profile`` is the game's

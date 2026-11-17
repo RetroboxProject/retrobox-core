@@ -3,7 +3,8 @@ from __future__ import annotations
 from shutil import copyfile
 
 from retrobox.configgen import Command
-from ..Generator import Generator  # <- lo importamos desde el módulo correcto
+from retrobox.configgen.utils import achievements
+from ..Generator import Generator
 from ...controller import generate_sdl_game_controller_config
 from ...controllersConfig import _logger
 from . import flycastControllers
@@ -150,16 +151,15 @@ class FlycastGenerator(Generator):
         if not Config.has_section("achievements"):
             Config.add_section("achievements")
 
-        if system.config.get_bool('retroachievements'):
-            username  = system.config.get('retroachievements.username', "")
-            hardcore  = system.config.get_bool('retroachievements.hardcore', return_values=("yes", "no"))
-            token     = system.config.get('retroachievements.token', "")
-
-            # apply config
+        # EmulationStation's RetroAchievements menu: the account and hardcore mode
+        account = achievements.account(system.config)
+        token = achievements.login_token(account) if account else None
+        if account and token:
+            hardcore = achievements.options(system.config).hardcore
             Config.set("achievements", "Enabled", "yes")
-            Config.set("achievements", "HardcoreMode", hardcore)
+            Config.set("achievements", "HardcoreMode", "yes" if hardcore else "no")
             Config.set("achievements", "Token", token)
-            Config.set("achievements", "UserName" , username)
+            Config.set("achievements", "UserName", account.username)
         else:
             Config.set("achievements", "Enabled", "no")
 

@@ -14,7 +14,7 @@ from retrobox.configgen.Emulator import Emulator
 from retrobox.configgen.generators import get_generator
 from retrobox.configgen.gun import Guns
 from retrobox.configgen.hotkeys import osk_enabled, overlay_enabled
-from retrobox.configgen.utils import metadata, videoMode, wheelsUtils
+from retrobox.configgen.utils import achievements, metadata, videoMode, wheelsUtils
 from retrobox.configgen.utils.overlayfs import mount_overlayfs
 from retrobox.configgen.utils.squashfs import mount_squashfs
 from retrobox.paths import (
@@ -263,6 +263,7 @@ def _publish_state(
                 overlay=overlay_enabled(system),
                 osk=osk_enabled(system),
                 pad_profile=str(pad_profile) if pad_profile else None,
+                achievements=achievements.session_account(system.config),
             )
         )
         # the overlay may open from now on

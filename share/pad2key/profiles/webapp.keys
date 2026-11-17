@@ -1,5 +1,5 @@
 {
-  "_comment": "Perfil para webapps: ratón con stick izquierdo, clic con b/r3. Salir, captura y teclado en pantalla vienen de los hotkeys estándar (hotkeys.yaml).",
+  "_comment": "Profile for web apps: mouse on the left stick, click with b/r3. Leaving, screenshots and the on-screen keyboard come from the standard hotkeys (hotkeys.yaml).",
   "cooldown": 0.5,
   "actions_player1": [
     {
@@ -29,7 +29,7 @@
         "KEY_LEFTALT",
         "KEY_LEFT"
       ],
-      "description": "Atrás en el navegador"
+      "description": "Back in the browser"
     },
     {
       "trigger": "pageup",

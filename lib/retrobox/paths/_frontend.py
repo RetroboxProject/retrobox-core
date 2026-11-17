@@ -56,7 +56,7 @@ ES_EXECUTABLE: Final = (
     else Path(shutil.which("retrobox-emulationstation") or FRONTEND_DIR / "emulationstation")
 )
 
-# Recursos de ES y configgen (sistema)
+# EmulationStation's and configgen's resources (system)
 _ES_RESOURCES_DIR: Final = FRONTEND_DIR / "resources"
 ES_WHEELS_METADATA: Final = _ES_RESOURCES_DIR / "wheelgames.xml"
 ES_GAMES_METADATA: Final = _ES_RESOURCES_DIR / "gamesdb.xml"

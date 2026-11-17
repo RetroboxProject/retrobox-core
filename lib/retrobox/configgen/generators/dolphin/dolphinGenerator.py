@@ -82,6 +82,9 @@ class DolphinGenerator(Generator):
         # Hotkeys.ini
         dolphin_config.write_hotkeys_ini()
 
+        # RetroAchievements.ini: EmulationStation's RetroAchievements menu
+        dolphin_config.write_achievements_ini(system.config)
+
         # SYSCONF: keep the Wii's internal aspect-ratio flag in sync
         dolphin_config.update_sysconf_aspect_ratio(system.config, DOLPHIN_SYSCONF)
 

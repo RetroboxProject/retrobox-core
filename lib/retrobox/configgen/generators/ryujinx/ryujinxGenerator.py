@@ -44,7 +44,7 @@ from ...input import Input
 _logger = logging.getLogger(__name__)
 
 
-# copiar todo lo de una carpeta a otra (sincronizar .keys)
+# copy a folder's files into another (syncs the .keys)
 def sync_keys(src_dir: Path, dst_dir: Path):
     if not src_dir.is_dir():
         return
@@ -55,7 +55,7 @@ def sync_keys(src_dir: Path, dst_dir: Path):
         if f.is_file():
             shutil.copy2(f, dst_dir / f.name)
 
-# calcular el checksum de todo un directorio - para ver integridad de firmware
+# checksum of a whole folder, to tell whether the firmware changed
 def compute_dir_checksum(path: Path) -> str:
     files = sorted(p for p in path.rglob("*") if p.is_file())
     h = hashlib.sha256()
@@ -65,7 +65,7 @@ def compute_dir_checksum(path: Path) -> str:
 
     return h.hexdigest()
 
-# sincronizar firmware de la carpeta bios con lo que necesita ryujinx (carpetas con 00)
+# sync the firmware of the bios folder into the layout Ryujinx needs (folders ending in 00)
 def sync_firmware(src: Path, registered: Path, checksum_file: Path):
     if not src.is_dir():
         return
@@ -77,7 +77,7 @@ def sync_firmware(src: Path, registered: Path, checksum_file: Path):
         old_checksum = checksum_file.read_text().strip()
 
     if new_checksum == old_checksum:
-        return  # nada que hacer
+        return  # nothing to do
 
     # rebuild
     if registered.exists():
@@ -116,7 +116,7 @@ class RyujinxGenerator(Generator):
 
         copyfile(RYUJINX_CONFIG_FILE_TPL, RYUJINX_CONFIG_FILE)
 
-        # Crear estructura base
+        # Create the base layout
         mkdir_if_not_exists(RYUJINX_BIS)
         mkdir_if_not_exists(RYUJINX_BIS / "system/Contents")
 

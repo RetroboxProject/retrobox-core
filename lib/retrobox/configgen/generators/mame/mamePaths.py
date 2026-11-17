@@ -4,7 +4,7 @@ from typing import Final
 
 from retrobox.paths import BIOS, CHEATS, DEFAULTS_DIR, EMULATORS_CONFIG, ROMS, SAVES
 
-# directorios y ejecutable de retroarch y su config
+# MAME's folders, executable and configuration
 _MAME_DIR: Final = EMULATORS_CONFIG / "mame"
 _MAME_BIN: Final = _MAME_DIR / "mame.AppImage"
 _MAME_XDG: Final = _MAME_DIR

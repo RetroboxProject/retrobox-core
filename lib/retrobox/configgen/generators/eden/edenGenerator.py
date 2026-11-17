@@ -21,12 +21,12 @@ class EdenGenerator(Generator):
         _logger.warning("DEBUG: generate() llamado, emulator=%s", system.config['emulator'])
         emulator = system.config['emulator']
 
-        # Invocar la creación modular de rutas y entornos symlink
+        # Create the folders and symlinks Eden needs
         setup_eden_environments()
 
         edenConfig = os.path.expanduser(_EDEN_INI)
         
-        # El template lo seguimos buscando en la carpeta del script
+        # The template still comes from the shipped data folder
         edenConfigTemplate = f'{DEFAULTS_DIR}/data/switch/qt-config.ini.template'
         _eden_write_config(edenConfig, edenConfigTemplate, system, playersControllers, emulator)
 

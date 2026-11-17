@@ -49,7 +49,7 @@ def _discrete_device() -> dict | None:
 
 
 def is_available() -> bool:
-    """True si vulkaninfo enumera al menos un device real (loader + ICD funcionales)."""
+    """Whether vulkaninfo lists at least one real device (a working loader and ICD)."""
     return bool(_devices())
 
 

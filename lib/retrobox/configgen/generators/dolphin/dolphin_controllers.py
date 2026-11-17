@@ -26,13 +26,13 @@ NINTENDO_PRO_NAMES = {
     "Nintendo.Co.Ltd. Pro Controller"
 }
 
-# Roles canónicos que controllers.py::_DEFAULT_SDL_MAPPING ya asigna a
-# 'start', 'pageup'/'pagedown' (shoulders) y 'l2'/'r2' (triggers) al generar
-# el SDL_GAMECONTROLLERCONFIG desde es_input.cfg (ver write_sdl_controller_db).
-# Cualquier mando que pase por ese generador expone estos nombres simbólicos
-# en Dolphin para ese rol, sea cual sea el modelo físico: no hace falta
-# identificar el dispositivo por nombre, basta con saber que el rol existe
-# en el mapeo GameCube/Wii y que el pad tiene la entrada correspondiente.
+# Canonical roles that controllers.py::_DEFAULT_SDL_MAPPING already gives
+# 'start', 'pageup'/'pagedown' (shoulders) and 'l2'/'r2' (triggers) when it
+# builds SDL_GAMECONTROLLERCONFIG from es_input.cfg (see write_sdl_controller_db).
+# Every controller that goes through it shows these symbolic names in Dolphin
+# for that role, whatever the physical model: there is no need to identify
+# the device by name, only to know that the role exists in the GameCube/Wii
+# mapping and that the pad has the matching input.
 _DOLPHIN_SYMBOLIC_TARGETS: Final[dict[str, str]] = {
     "Buttons/Start": "Start",
     "Buttons/Z":     "`Shoulder R`",
@@ -529,7 +529,7 @@ def get_AltMapping(system: Emulator, nplayer: int, anyMapping: Mapping[str, str 
 def generateControllerConfig_any(system: Emulator, playersControllers: Controllers, wheels: DeviceInfoMapping, filename: str, anyDefKey: str, anyMapping: Mapping[str, str | None], anyReverseAxes: Mapping[str | None, str], anyReplacements: Mapping[str, str] | None, extraOptions: Mapping[str, str] = {}, wheelMapping: Mapping[str, str | None] | None = None, wheelReverseAxes: Mapping[str | None, str] | None = None, wheelExtraOptions: Mapping[str, str] = {}) -> None:
     configFileName = _DOLPHIN_CFGDIR / filename
 
-    # Construir mapa device_path → índice SDL real
+    # Map each device_path to its real SDL index
     sdl_index_map: dict[str, int] = {}
     try:
         import sdl2
@@ -553,7 +553,7 @@ def generateControllerConfig_any(system: Emulator, playersControllers: Controlle
         double_pads: dict[str, int] = {}
 
         for nplayer, pad in enumerate(playersControllers, start=1):
-            # Usar índice SDL real si disponible, si no fallback al contador
+            # The real SDL index if known, else the counter
             real_name = pad.real_name.strip()
             if pad.device_path and pad.device_path in sdl_index_map:
                 nsamepad = sdl_index_map[pad.device_path]
@@ -680,10 +680,10 @@ def generateControllerConfig_any_auto(f: codecs.StreamReaderWriter, pad: Control
                 if x == "joystick2left":
                     currentMapping[anyReplacements["joystick2right"]] = anyReverseAxes[currentMapping["joystick2left"]]
 
-    # Qué targets simbólicos (Start/Shoulder/Trigger) aplican a ESTE pad: el
-    # target debe estar en el mapeo GameCube/Wii actual Y la entrada física
-    # correspondiente debe existir de verdad en el pad. No depende del modelo
-    # de mando, solo de qué roles tiene mapeados es_input.cfg para él.
+    # The symbolic targets (Start/Shoulder/Trigger) that apply to THIS pad: the
+    # target must be in the current GameCube/Wii mapping AND the matching
+    # physical input must really exist on the pad. It does not depend on the
+    # controller model, only on the roles es_input.cfg maps for it.
     symbolic_targets_in_use = {
         keyname for name, keyname in currentMapping.items()
         if keyname in _DOLPHIN_SYMBOLIC_TARGETS and name in pad.inputs
@@ -697,7 +697,7 @@ def generateControllerConfig_any_auto(f: codecs.StreamReaderWriter, pad: Control
             keyname = currentMapping[input.name]
 
         if keyname in symbolic_targets_in_use:
-            continue  # se escribe una única vez, simbólico, al final del bloque
+            continue  # written once, symbolically, at the end of the block
 
         # Write the configuration for this key
         if keyname is not None:
@@ -710,7 +710,7 @@ def generateControllerConfig_any_auto(f: codecs.StreamReaderWriter, pad: Control
         
         # DualShock / Nintendo Pro Controller Motion control
         if system.config.get_bool("dsmotion"):
-            # Detectamos el sufijo correcto según el mando
+            # The right suffix for this controller
             clean_name = pad.real_name.strip()
             if clean_name in NINTENDO_PRO_NAMES:
                 motion_suffix = " (IMU)"
@@ -753,8 +753,8 @@ def generateControllerConfig_any_auto(f: codecs.StreamReaderWriter, pad: Control
                 f.write("Main Stick/Gate Size = 95.0\n")
                 f.write("C-Stick/Gate Size = 88.0\n")
 
-    # Targets con nombre simbólico (Start/Shoulder/Trigger), escritos una sola
-    # vez cada uno, al margen de cuántas entradas físicas del pad apunten a ellos.
+    # Targets with a symbolic name (Start/Shoulder/Trigger), written once each,
+    # however many physical inputs of the pad point at them.
     for target_key in symbolic_targets_in_use:
         symbolic_value = _DOLPHIN_SYMBOLIC_TARGETS[target_key]
         f.write(f"{target_key} = {symbolic_value}\n")

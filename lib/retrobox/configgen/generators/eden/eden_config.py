@@ -31,7 +31,7 @@ def _eden_write_config(edenConfigFile, edenConfigTemplateFile, system, playersCo
 
     if os.path.exists(edenConfigFile):
         eden_config.read(edenConfigFile)
-    # Sinon première création depuis template
+    # Otherwise, first created from the template
     elif os.path.exists(edenConfigTemplateFile):
         eden_config.read(edenConfigTemplateFile)
         # The template carries placeholders instead of fixed paths.

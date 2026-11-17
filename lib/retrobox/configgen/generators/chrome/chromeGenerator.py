@@ -26,15 +26,15 @@ _DDG_SEARCH_DATA = {
 }
 
 def _seed_profile(user_data_dir: str) -> None:
-    """Pre-siembra el perfil ANTES del primer lanzamiento. No pisa un perfil ya existente."""
+    """Seed the profile BEFORE its first launch. An existing profile is left alone."""
     default_dir = os.path.join(user_data_dir, "Default")
     prefs_path = os.path.join(default_dir, "Preferences")
     if os.path.isfile(prefs_path):
-        return  # perfil ya iniciado alguna vez, no tocar
+        return  # the profile has run before: leave it
 
     os.makedirs(default_dir, exist_ok=True)
 
-    # marcador de "ya hicimos el first run" (además de --no-first-run, redundante a propósito)
+    # the "first run done" marker (on top of --no-first-run, redundant on purpose)
     open(os.path.join(user_data_dir, "First Run"), "a").close()
 
     prefs = {

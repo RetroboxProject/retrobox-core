@@ -100,21 +100,21 @@ def _find_input_config(roots: Iterable[ET.Element], name: str, guid: str, /) -> 
     raise RetroboxException(f'Could not find controller data for "{name}" with GUID "{guid}"')
 
 
-_HIDAPI_BUS = "0300"  # lo que SDL+HIDAPI reporta siempre vía kernel HID
+_HIDAPI_BUS = "0300"  # what SDL+HIDAPI always reports through kernel HID
 
 def normalize_sdl_guid_for_emulator(raw_guid: str) -> str:
     """
-    SDL con backend HIDAPI/hidraw presenta todos los mandos como USB HID (0300)
-    independientemente del transporte físico (BT=0500, virtual=0600, etc.).
-    Normaliza el GUID de Batocera para que coincida con lo que ve el emulador.
+    SDL with the HIDAPI/hidraw backend shows every controller as USB HID (0300),
+    whatever the physical transport (BT=0500, virtual=0600, etc.).
+    Normalize batocera's GUID so it matches what the emulator sees.
     """
     g = raw_guid.lower()
     bus = g[:4]
 
     if bus == _HIDAPI_BUS:
-        return g  # ya correcto, no tocar
+        return g  # already right, leave it
 
-    # cualquier otro bus → USB HID, igual que lo ve SDL+HIDAPI
+    # any other bus -> USB HID, as SDL+HIDAPI sees it
     return _HIDAPI_BUS + g[4:]
 
 def evdev_to_hidraw():
@@ -141,17 +141,17 @@ def evdev_to_hidraw():
 
 def getJoystickHardwareIds(device_path: str, /) -> tuple[str, str] | None:
     """
-    Obtiene Vendor y Product ID en decimal leyendo de forma unívoca el archivo uevent.
-    Soporta /dev/hidrawX y /dev/input/eventX sin depender de estructuras dinámicas de subcarpetas.
+    Get the vendor and product IDs, in decimal, from the device's uevent file.
+    Works for /dev/hidrawX and /dev/input/eventX without relying on the layout of subfolders.
     """
 
     if not device_path or not os.path.exists(device_path):
         return None
 
-    base_name = os.path.basename(device_path) # ej: 'hidraw6' o 'event19'
+    base_name = os.path.basename(device_path) # e.g. 'hidraw6' or 'event19'
 
     try:
-        # 1. Determinamos la ruta base en sysfs según el tipo de nodo
+        # 1. The sysfs base path, by kind of node
         if 'hidraw' in base_name:
             uevent_path = Path("/sys/class/hidraw") / base_name / "device" / "uevent"
         elif 'event' in base_name:
@@ -162,33 +162,33 @@ def getJoystickHardwareIds(device_path: str, /) -> tuple[str, str] | None:
         if not uevent_path.exists():
             return None
 
-        # 2. Parseamos el archivo uevent buscando el ID de hardware
+        # 2. Read the hardware ID from the uevent file
         vendor_hex, product_hex = None, None
         
         with open(uevent_path, 'r', encoding='utf-8') as f:
             for line in f:
                 line = line.strip()
                 
-                # Caso hidraw: Típicamente "HID_ID=0005:0000057E:00002009"
+                # hidraw: typically "HID_ID=0005:0000057E:00002009"
                 if line.startswith("HID_ID="):
                     parts = line.split("=")[1].split(":")
                     vendor_hex = parts[1]
                     product_hex = parts[2]
                     break
                 
-                # Caso event estándar: Típicamente "PRODUCT=3/57e/2009/11b"
+                # standard event node: typically "PRODUCT=3/57e/2009/11b"
                 elif line.startswith("PRODUCT="):
                     parts = line.split("=")[1].split("/")
                     vendor_hex = parts[1]
                     product_hex = parts[2]
                     break
 
-        # 3. Si encontramos los hexadecimales, conversión limpia a string decimal
+        # 3. Both found: convert the hex values to decimal strings
         if vendor_hex and product_hex:
             return str(int(vendor_hex, 16)), str(int(product_hex, 16))
 
     except Exception as e:
-        print(f"[DEBUG_HW] Error unívoco en sysfs para {base_name}: {e}")
+        print(f"[DEBUG_HW] Cannot read the sysfs IDs of {base_name}: {e}")
 
     return None
 
@@ -303,8 +303,8 @@ class Controller:
             if not matches:
                 return None
 
-            # `index` no es fiable entre procesos: solo desambigua entre mandos
-            # con el mismo GUID (modelos duplicados), nunca filtra por posición absoluta.
+            # `index` is not reliable across processes: it only tells apart
+            # controllers with the same GUID (duplicate models), never filters by absolute position.
             return matches[min(index, len(matches) - 1)]
 
         except Exception:
@@ -457,7 +457,7 @@ class Controller:
 
         if device_path_calc is None:
             raise ValueError(
-                f"No se pudo resolver device_path para player{player_number} "
+                f"Cannot resolve the device_path of player{player_number} "
                 f"(guid={guid}, name={real_name})"
             )
             
@@ -485,14 +485,14 @@ class Controller:
 
     def has_motion_controls(self) -> bool:
         """
-        Comprueba si el mando identificado por su GUID SDL tiene soporte de
-        controles de movimiento (acelerómetro y/o giroscopio).
+        Check whether the controller with this SDL GUID has motion controls
+        (accelerometer and/or gyroscope).
 
         Arguments:
-        guid: (str) GUID SDL del mando (formato hexadecimal de 32 caracteres).
+        guid: (str) the controller's SDL GUID (32 hex characters).
         Returns:
-        (bool) True si el mando expone acelerómetro o giroscopio, False en
-        cualquier otro caso (no encontrado, sin soporte, error de SDL, etc).
+        (bool) True if the controller has an accelerometer or a gyroscope, False
+        otherwise (not found, no support, SDL error, etc.).
         """
         try:
             import sdl2

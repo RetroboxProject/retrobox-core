@@ -2,7 +2,7 @@
 
 Only the options that must work with this setup (folders, BIOS, input) or that
 map to settings of the menu (graphics API, resolution, aspect ratio, audio
-gain, fast boot, Discord) are written. The rest is left untouched, so the
+gain, fast boot, Discord, RetroAchievements) are written. The rest is left untouched, so the
 choices made from PCSX2's own UI persist.
 
 An option the menu manages is written on every launch, with its default when
@@ -14,13 +14,14 @@ from __future__ import annotations
 
 import logging
 import re
+import time
 from typing import TYPE_CHECKING
 
 from retrobox.configgen.hotkeys import HotkeyAction, keys_of
 from retrobox.paths import CACHE, CHEATS, LOGS, ROMS, SAVES, SCREENSHOTS, mkdir_if_not_exists
 
 from ...exceptions import RetroboxException
-from ...utils import vulkan
+from ...utils import achievements, vulkan
 from ...utils.audio_gain import gain_to_percent
 from ...utils.discrete_gpu import discrete_gpu_property
 from ...utils.configparser import CaseSensitiveConfigParser
@@ -275,6 +276,47 @@ def _configure_audio(settings: CaseSensitiveConfigParser, config: SystemConfig) 
     settings.set("SPU2/Output", "StandardVolume", str(gain_to_percent(gain, _MAX_VOLUME)))
 
 
+def _pcsx2_bool(value: bool) -> str:
+    """A boolean as PCSX2.ini spells it."""
+    return "true" if value else "false"
+
+
+def _configure_achievements(settings: CaseSensitiveConfigParser, config: SystemConfig) -> None:
+    """[Achievements]: EmulationStation's RetroAchievements menu, on every launch.
+
+    PCSX2 needs a token (it can't log in with a password from the ini): the
+    one EmulationStation got, or one asked for with the password. It moves a
+    token found in PCSX2.ini to its own secrets file on start, so writing it
+    on every launch is what it expects. Off, only ``Enabled`` is written: the
+    account PCSX2 keeps stays as it is.
+    """
+    _ensure_sections(settings, "Achievements")
+    account = achievements.account(config)
+    token = achievements.login_token(account) if account else None
+    if account is None or token is None:
+        settings.set("Achievements", "Enabled", "false")
+        return
+
+    options = achievements.options(config)
+    values = {
+        "Enabled": True,
+        "ChallengeMode": options.hardcore,  # hardcore
+        "EncoreMode": options.encore,
+        "SpectatorMode": False,
+        "UnofficialTestMode": options.unofficial,
+        "Notifications": True,
+        "LeaderboardNotifications": options.leaderboards,
+        "SoundEffects": options.has_sound,
+        # the challenge indicators and progress shown over the game
+        "Overlays": options.challenge_indicators,
+    }
+    for key, value in values.items():
+        settings.set("Achievements", key, _pcsx2_bool(value))
+    settings.set("Achievements", "Username", account.username)
+    settings.set("Achievements", "Token", token)
+    settings.set("Achievements", "LoginTimestamp", str(int(time.time())))
+
+
 def _clear_usb_wheels(settings: CaseSensitiveConfigParser) -> None:
     """Remove what a previous game left in the USB ports: wheels."""
     for port in ("USB1", "USB2"):
@@ -315,6 +357,7 @@ def configure_ini(
     _configure_renderer(settings, config)
     _configure_display(settings, config)
     _configure_audio(settings, config)
+    _configure_achievements(settings, config)
 
     settings.set("InputSources", "Keyboard", "true")
     settings.set("InputSources", "Mouse", "true")

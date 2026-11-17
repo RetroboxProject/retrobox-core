@@ -21,11 +21,6 @@ from retrobox.utils.features_yaml import load_feature_yaml
 SYSTEM_FILES = sorted((SHARE_DIR / "systems").rglob("*.yaml"))
 OPTION_FILES = sorted((SHARE_DIR / "emulator_options").glob("*.yaml"))
 
-# Systems that list emulators but mark none as the default. Each one is a bug
-# to fix in its YAML; the list only keeps new ones from slipping in.
-KNOWN_WITHOUT_DEFAULT = frozenset({"bk", "tvc"})
-
-
 def _load(path: Path) -> tuple[str, dict[str, Any]]:
     data = yaml.safe_load(path.read_text(encoding="utf-8"))
     assert isinstance(data, dict) and len(data) == 1, f"{path}: one system per file"
@@ -73,12 +68,11 @@ def test_one_default_emulator_per_system() -> None:
     """Exactly one emulator and core is the default of each system."""
     several = {name: _defaults(c) for name, c in SYSTEMS.items() if len(_defaults(c)) > 1}
     assert several == {}
-    without = {
+    without = sorted(
         name for name, content in SYSTEMS.items()
         if content.get("emulators") and not _defaults(content)
-    }
-    unexpected = without - KNOWN_WITHOUT_DEFAULT
-    assert not unexpected, f"no default emulator: {unexpected}"
+    )
+    assert without == [], f"no default emulator: {without}"
 
 
 @pytest.mark.parametrize(
@@ -175,3 +169,16 @@ def test_es_features_warns_about_undefined_shared_features(
     with caplog.at_level(logging.WARNING):
         generate_es_features(options, output_path=tmp_path / "es_features.cfg")
     assert any("no_such_feature" in record.getMessage() for record in caplog.records)
+
+
+def test_standalone_emulators_offer_achievements(es_home: Path, tmp_path: Path) -> None:
+    """PCSX2, Dolphin and Flycast carry the cheevos feature (ES hashes their games)."""
+    del es_home
+    output = tmp_path / "es_features.cfg"
+    generate_es_features(output_path=output)
+    features = {
+        element.get("name"): (element.get("features") or "").split(",")
+        for element in ET.parse(output).getroot().iter("emulator")
+    }
+    for emulator in ("pcsx2", "dolphin", "flycast"):
+        assert "cheevos" in features[emulator], emulator

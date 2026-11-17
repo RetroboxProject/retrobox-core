@@ -8,8 +8,8 @@ RETROBOX_ROOTDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")"/../.. >/dev/null 2>&1 &&
 source "${RETROBOX_ROOTDIR}/tools/lib/paths.sh"
 INSTALL_DIR="${RETROBOX_BEZELS_DIR}/switch-online"
 TMP_DIR="$(mktemp -d)"
-# Nota: Se usa 'main' ya que es la rama por defecto visible en el repo. 
-# Si cambia a 'master', ajustar a: refs/heads/master.zip
+# Note: 'main' is the repository's default branch.
+# If it becomes 'master', use refs/heads/master.zip
 ZIP_URL="https://github.com/manu-creative-411/batocera-overlay-switchonline/archive/refs/heads/main.zip"
 PACK_NAME="switch-online"
 MANIFEST_DIR="${RETROBOX_STATEDIR}/packages/decorations"
@@ -40,7 +40,7 @@ function install() {
     echo "[INFO] Extracting ${PACK_NAME} to ${INSTALL_DIR}..."
     unzip -q "${TMP_DIR}/pack.zip" -d "${TMP_DIR}"
     
-    # Encontrar el directorio extraído (ej. batocera-overlay-switchonline-main)
+    # Find the extracted folder (e.g. batocera-overlay-switchonline-main)
     local extracted_dir
     extracted_dir="$(find "${TMP_DIR}" -mindepth 1 -maxdepth 1 -type d | head -n 1)"
     
@@ -48,11 +48,11 @@ function install() {
         error "Failed to find extracted directory in zip"
     fi
 
-    # Copiar contenidos al directorio de instalación
+    # Copy the contents into the install folder
     cp -r "${extracted_dir}"/* "${INSTALL_DIR}/"
 
     echo "[INFO] Generating manifest at ${MANIFEST_FILE}..."
-    # Generar manifiesto de archivos instalados relativo al directorio de bezels
+    # Write the manifest of installed files, relative to the bezels folder
     find "${INSTALL_DIR}" -type f | sed "s|^${RETROBOX_BEZELS_DIR}/||" > "${MANIFEST_FILE}"
 
     rm -rf "${TMP_DIR}"
@@ -73,7 +73,7 @@ function uninstall() {
         fi
     done < "${MANIFEST_FILE}"
     
-    # Eliminar el directorio si queda vacío
+    # Remove the folder if it is left empty
     rmdir "${INSTALL_DIR}" 2>/dev/null || true
     
     rm -f "${MANIFEST_FILE}"

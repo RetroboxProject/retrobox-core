@@ -34,7 +34,7 @@ try:
     tree = ET.parse(xml_file)
     root = tree.getroot()
 except Exception as e:
-    print(f"Error al parsear el XML: {e}")
+    print(f"Cannot parse the XML: {e}")
     sys.exit(1)
 
 for system in root.findall('system'):
@@ -58,7 +58,7 @@ for system in root.findall('system'):
             except ValueError:
                 sys_data[tag] = text
         elif tag in ['platform', 'extension']:
-            # Convertir cadenas con espacios o comas en listas YAML
+            # Turn space- or comma-separated strings into YAML lists
             if ',' in text:
                 sys_data[tag] = [p.strip() for p in text.split(',')]
             else:
@@ -85,11 +85,11 @@ for system in root.findall('system'):
                             else:
                                 core_props['incompatible_extensions'] = [i.strip() for i in incompatible.split()]
 
-                        # Inicializamos un diccionario de opciones vacío por defecto para cada core
+                        # Every core starts with an empty options dictionary
                         if core_name not in cores_dict:
                             cores_dict[core_name] = core_props
                 
-                # Agrupamos los cores bajo la clave explícita 'cores'
+                # Group the cores under an explicit 'cores' key
                 emulators_dict[emu_name] = {'cores': cores_dict}
             sys_data['emulators'] = emulators_dict
         else:
@@ -108,5 +108,5 @@ for system in root.findall('system'):
     with open(output_path, 'w', encoding='utf-8') as f:
         yaml.dump(file_content, f, sort_keys=False, allow_unicode=True, width=1000)
 
-print(f"Conversión completada. Estructura generada en '{base_dir}/<manufacturer>/'.")
+print(f"Conversion done. Tree written to '{base_dir}/<manufacturer>/'.")
 EOF

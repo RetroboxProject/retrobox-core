@@ -34,14 +34,14 @@ EDEN_SYSTEM_SAVE_LINK: Final = EDEN_DATA / "nand/system/save"
 EDEN_MODS_LINK: Final = EDEN_DATA / "load"
 
 # GAMEPAD RARE CONFIG
-# Mandos que exponen el dpad como BTN_DPAD_* pero SDL los virtualiza como hat
+# Controllers that expose the D-pad as BTN_DPAD_* while SDL turns it into a hat
 EDEN_RARE_DPAD_GUIDS = {
     "030000007e0500000920000000006803",  # Switch Pro Controller
 }
 
 def setup_eden_environments():
-    """Inicializa todos los directorios requeridos y enlaces simbólicos."""
-    # 1. Crear Directorios necesarios
+    """Create every folder and symlink Eden needs."""
+    # 1. Create the folders
     dirs_to_create = [
         SWITCH_BIOS, SWITCH_KEYS, SWITCH_FIRMWARE,
         EDEN_DATA, os.path.join(EDEN_DATA, "nand/system/Contents"),
@@ -52,7 +52,7 @@ def setup_eden_environments():
     for d in dirs_to_create:
         mkdir_if_not_exists(Path(d))
 
-    # 2. Desplegar Enlaces Simbólicos (Symlinks)
+    # 2. Create the symlinks
     ensure_symlink(SWITCH_KEYS, EDEN_KEYS)
     ensure_symlink(SWITCH_FIRMWARE, EDEN_REGISTERED)
     ensure_symlink(USER_SAVE_TARGET, EDEN_USER_SAVE_LINK)

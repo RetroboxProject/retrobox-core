@@ -84,9 +84,9 @@ def list_hidraw_devices():
     return devices
 
 def apply_rare_dpad_fix(inputs: dict, guid: str) -> None:
-    """Algunos mandos concretos (EDEN_RARE_DPAD_GUIDS) no exponen el D-Pad
-    como hat en la SDL_GameControllerMapping. Se fuerza el mapeo a los
-    índices de botón conocidos para esos GUID."""
+    """Some controllers (EDEN_RARE_DPAD_GUIDS) do not expose the D-pad as a
+    hat in their SDL_GameControllerMapping: map it to their known button
+    indexes instead."""
     normalized_guid = guid.lower()
     normalized_guid = normalized_guid[:4] + "0000" + normalized_guid[8:]
     if normalized_guid not in EDEN_RARE_DPAD_GUIDS:
@@ -247,8 +247,7 @@ def _eden_write_controller_config(system, playersControllers: Controllers, emula
 
         sorted_pads = sorted(playersControllers, key=lambda p: p.player_number)
 
-        # Paso 1
-        # Paso 1
+        # Step 1: each pad's SDL index
         pad_sdl_index = {}  # id(pad) -> sdl_index
         for pad in sorted_pads:
             hidraw_path = None
@@ -267,11 +266,11 @@ def _eden_write_controller_config(system, playersControllers: Controllers, emula
                         break
 
             if matched:
-                # Solo el GUID "en vivo" (normalizado a bus HIDAPI) y el
-                # sdl_index para ordenar puertos. Los "inputs" NO se tocan:
-                # se dejan los de es_input.cfg (verdad posicional), igual
-                # que en ryujinx_controllers.py, para no heredar el
-                # swap A/B - X/Y que aplica SDL por etiqueta física.
+                # Only the live GUID (normalized to the HIDAPI bus) and the
+                # sdl_index to order the ports. The "inputs" are NOT touched:
+                # es_input.cfg's (the positional truth) are kept, as in
+                # ryujinx_controllers.py, so as not to inherit the A/B - X/Y
+                # swap SDL applies by physical label.
                 pad.guid = matched['guid']
                 pad_sdl_index[id(pad)] = matched.get('sdl_index', 0)
             else:
@@ -279,7 +278,7 @@ def _eden_write_controller_config(system, playersControllers: Controllers, emula
 
             apply_rare_dpad_fix(pad.inputs, pad.guid)
 
-        # Paso 2: ordenar por sdl_index real, no por player_number
+        # Step 2: order by the real sdl_index, not by player_number
         guid_counter = {}
         guid_port_map = {}
         for pad in sorted(sorted_pads, key=lambda p: pad_sdl_index[id(p)]):
@@ -290,7 +289,7 @@ def _eden_write_controller_config(system, playersControllers: Controllers, emula
             guid_port_map[id(pad)] = guid_counter[eden_guid]
             guid_counter[eden_guid] += 1
 
-        # Paso 3: escribir config
+        # Step 3: write the configuration
         for pad in sorted_pads:
             real_player_index = pad.player_number - 1
             if real_player_index < 0 or real_player_index > 7:

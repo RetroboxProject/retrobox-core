@@ -15,7 +15,7 @@ def _runtime_dir() -> Path:
 def pipewire_is_available() -> bool:
     socket = _runtime_dir() / "pipewire-0"
     if not socket.exists():
-        _logger.debug("Socket de PipeWire no encontrado en %s", socket)
+        _logger.debug("No PipeWire socket at %s", socket)
         return False
     try:
         result = subprocess.run(
@@ -24,7 +24,7 @@ def pipewire_is_available() -> bool:
             timeout=1,
         )
     except (OSError, subprocess.TimeoutExpired):
-        # sin pw-cli, nos fiamos del socket
+        # without pw-cli, trust the socket
         return True
     return result.returncode == 0
 

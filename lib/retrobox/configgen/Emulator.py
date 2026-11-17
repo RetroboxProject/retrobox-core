@@ -60,7 +60,7 @@ def _load_system_config(system_name: str, rom: Path) -> dict[str, Any]:
             data['core'] = ""
         return data
 
-    # 1. Cargar las opciones globales desde defaults.yml si existe en _ES_SYSTEMS_DIR
+    # 1. Load the global options from defaults.yml, if there is one
     defaults_path = layered_file("systems/defaults.yml")
     if defaults_path is not None:
         try:
@@ -68,19 +68,19 @@ def _load_system_config(system_name: str, rom: Path) -> dict[str, Any]:
                 defaults_content = yaml.safe_load(f)
                 if isinstance(defaults_content, dict) and 'default' in defaults_content:
                     default_block = defaults_content['default']
-                    # Extraer emulator y core globales si los hubiera
+                    # Take the global emulator and core, if set
                     if 'emulator' in default_block:
                         data['emulator'] = default_block['emulator']
                     if 'core' in default_block:
                         data['core'] = default_block['core']
-                    # Aplanar el bloque 'options' global si existe
+                    # Flatten the global 'options' block, if present
                     if 'options' in default_block and isinstance(default_block['options'], dict):
                         _dict_merge(data, default_block['options'])
         except Exception as e:
             _logger.error("Error reading defaults.yml: %s", e)
             raise RetroboxException("Error reading default configs file") from e
 
-    # 2. Buscar el archivo YAML del sistema específico dentro de la estructura de _ES_SYSTEMS_DIR
+    # 2. Find the system's own YAML file
     # (the file of the highest-priority layer: user > /etc > shipped)
     sys_yaml_path = None
     for layer in reversed(CONFIG_LAYERS):
@@ -119,7 +119,7 @@ def _load_system_config(system_name: str, rom: Path) -> dict[str, Any]:
     emulators_data = yaml_content[system_name] \
         .get('emulators', {})
 
-    # 3. Buscar cuál es el emulador y core por defecto (marcado con default: true)
+    # 3. Find the default emulator and core (marked with default: true)
     selected_emulator = None
     selected_core = None
     core_options = {}
@@ -142,7 +142,7 @@ def _load_system_config(system_name: str, rom: Path) -> dict[str, Any]:
         if selected_emulator:
             break
 
-    # Si ningún core está marcado explícitamente como default, cogemos el primero por defecto
+    # If no core is marked as the default, take the first one
     if not selected_emulator and emulators_data:
         for emu_name, emu_content in emulators_data.items():
             if isinstance(emu_content, dict):
@@ -160,7 +160,7 @@ def _load_system_config(system_name: str, rom: Path) -> dict[str, Any]:
     if selected_core:
         data['core'] = selected_core
 
-    # 4. Aplanar las opciones específicas del core para que sobrescriban a los valores de defaults.yml
+    # 4. Flatten the core's own options so they override defaults.yml
     if core_options:
         _dict_merge(data, core_options)
 

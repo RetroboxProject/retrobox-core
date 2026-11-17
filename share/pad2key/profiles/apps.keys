@@ -99,7 +99,7 @@
             "speed": 8,
             "deadzone": 0.2,
             "acceleration": 1.2,
-            "description": "Scroll vertical con stick derecho"
+            "description": "Vertical scroll with the right stick"
         }
     ]
 }

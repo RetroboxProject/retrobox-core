@@ -1,4 +1,7 @@
 emulator_name: pcsx2
+# EmulationStation offers RetroAchievements for its games (and hashes them)
+features:
+  - cheevos
 sharedFeatures:
   - power_profile
   - bezel

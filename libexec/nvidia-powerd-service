@@ -2,29 +2,29 @@
 #
 # nvidia-powerd-service
 #
-# Controla el servicio nvidia-powerd mediante systemctl.
-# Uso: nvidia-powerd-service {start|stop|status|is-active}
+# Controls the nvidia-powerd service through systemctl.
+# Usage: nvidia-powerd-service {start|stop|status|is-active}
 #
-# Se autoeleva con sudo si no se ejecuta como root.
+# Elevates itself with sudo when not run as root.
 
 set -euo pipefail
 
 SERVICE="nvidia-powerd.service"
 
-# --- Comprobación de número de argumentos: debe ser exactamente 1 ---
+# --- Exactly one argument ---
 if [ "$#" -ne 1 ]; then
-    echo "Uso: $(basename "$0") {start|stop|status|is-active}" >&2
+    echo "Usage: $(basename "$0") {start|stop|status|is-active}" >&2
     exit 1
 fi
 
 ACTION="$1"
 
-# --- Validar que la acción sea una de las permitidas ---
+# --- The action must be one of the allowed ones ---
 case "$ACTION" in
 start | stop | status | is-active) ;;
 *)
-    echo "Error: acción no válida: '$ACTION'" >&2
-    echo "Uso: $(basename "$0") {start|stop|status|is-active}" >&2
+    echo "Error: invalid action: '$ACTION'" >&2
+    echo "Usage: $(basename "$0") {start|stop|status|is-active}" >&2
     exit 1
     ;;
 esac
@@ -36,15 +36,15 @@ esac
 
 # --- start / stop ---
 if [ "$EUID" -ne 0 ]; then
-    # 1) Normal: la regla de polkit que instala el paquete
-    #    (system/polkit/50-retrobox-nvidia-powerd.rules) lo permite sin
-    #    contraseña. "--no-ask-password": nunca preguntar; quien nos llama
-    #    (el launcher) no tiene terminal interactivo que pueda contestar.
+    # 1) Normally: the polkit rule the package installs
+    #    (system/polkit/50-retrobox-nvidia-powerd.rules) allows it without a
+    #    password. "--no-ask-password": never ask; the caller (the launcher)
+    #    has no interactive terminal to answer.
     if systemctl --no-ask-password "$ACTION" "$SERVICE" 2>/dev/null; then
         exit 0
     fi
-    # 2) Alternativa: una regla NOPASSWD de sudoers escrita a mano para este
-    #    script. "-n": si no existe, falla al instante en vez de esperar.
+    # 2) Otherwise: a NOPASSWD sudoers rule written by hand for this
+    #    script. "-n": without one, fail at once instead of waiting.
     exec sudo -n "$0" "$ACTION"
 fi
 

@@ -174,11 +174,13 @@ EmulationStation's lobby and *Netplay settings* menu work as in batocera and Ret
 
 ### RetroAchievements
 
-EmulationStation's *RetroAchievements settings* menu (account, hardcore mode, leaderboards, rich presence, encore mode, screenshots, challenge indicators, unofficial achievements, unlock sound) drives RetroArch: on every launch the `cheevos_*` options of `retroarch.cfg` are written from it (`lib/retrobox/configgen/generators/libretro/libretro_achievements.py`), all of them, so what one game turned on never leaks into the next. They are managed from EmulationStation, not from RetroArch's own menu: a login or option set there is overwritten on the next launch (an `retroarch.cheevos_*` line in the game's settings still wins). The login token that EmulationStation gets when the account is validated is used; the password is only used when there is no token, and RetroArch then swaps it for one.
+EmulationStation's *RetroAchievements settings* menu (account, hardcore mode, leaderboards, rich presence, encore mode, screenshots, challenge indicators, unofficial achievements, unlock sound) drives the emulators that earn achievements: RetroArch, PCSX2, Dolphin and Flycast. On every launch their settings are written from it (`retroarch.cfg`'s `cheevos_*`, PCSX2.ini's `[Achievements]`, Dolphin's `RetroAchievements.ini`; Flycast only takes the account and hardcore mode), all of them, so what one game turned on never leaks into the next. They are managed from EmulationStation, not from the emulators' own menus: a login or option set there is overwritten on the next launch (an `retroarch.cheevos_*` line in the game's settings still wins). The login token that EmulationStation gets when the account is validated is used. Without a token, RetroArch logs in with the password itself; for the others, which can't, Retrobox asks the server for a token with it, and leaves achievements off for that game if it can't get one. The account and the switches are read in one place (`lib/retrobox/configgen/utils/achievements.py`).
+
+The overlay's *Achievements* page lists the game's achievements, earned or not, with the same account, which the launcher passes in `session.json`.
 
 - **Hardcore mode** turns off rewind and the automatic loading of a state, and is off while a netplay room is open (it disables the savestates netplay is built on). Leaderboards only count together with hardcore, as the menu says.
-- **Unlock sound:** the `.ogg` files of `<data dir>/retroachievements-sounds/` (and of `/usr/share/libretro/assets/sounds/`) are the ones the menu offers.
-- **Which cores:** RetroArch decides what a core can do, but EmulationStation only offers achievements (the entries, the game hashing, the warning "current core is not compatible") for the cores marked with the `cheevos` feature. The list is `core_features: cheevos:` of `share/emulator_options/libretro.yaml`, taken from the RetroAchievements project's supported cores. `mame*`, `blastem`, `nestopia` and `quasi88` are left out on purpose. To offer it for another core, add it to that list (or to a file of the same name in `~/.config/retrobox/emulator_options/`).
+- **Unlock sound:** the `.ogg` files of `<data dir>/retroachievements-sounds/` (and of `/usr/share/libretro/assets/sounds/`) are the ones the menu offers. PCSX2 and Dolphin play their own sounds, turned on when one is picked.
+- **Which cores and emulators:** PCSX2, Dolphin and Flycast offer achievements for all their games (their `cheevos` feature). For RetroArch, it decides what a core can do, but EmulationStation only offers achievements (the entries, the game hashing, the warning "current core is not compatible") for the cores marked with the `cheevos` feature. The list is `core_features: cheevos:` of `share/emulator_options/libretro.yaml`, taken from the RetroAchievements project's supported cores. `mame*`, `blastem`, `nestopia` and `quasi88` are left out on purpose. To offer it for another core, add it to that list (or to a file of the same name in `~/.config/retrobox/emulator_options/`).
 - **RetroArch built from source** (`tools/emulators/retroarch.sh`) is configured with `--enable-cheevos --enable-ssl`, so it fails to build instead of silently lacking achievements or the TLS they log in with.
 
 ### Content downloader
@@ -303,7 +305,7 @@ dev/check.sh                              # everything CI checks
 dev/check.sh tests | pylint | shell       # one part
 ```
 
-- **tests:** `tests/` (pytest) covers the parts that run without hardware: the configuration layers and `[paths]` of `retrobox.ini`, the bezel lookup order, the systems and emulator options and the `es_systems.cfg` / `es_features.cfg` built from them (every emulator a system offers must have a working generator), the ROM folders, the store's unpacking of untrusted packages, the idle inhibitor and the desktop notifications. They never touch your home: every run gets its own home, XDG and `/etc/retrobox` in a temporary directory. CI runs them on Ubuntu 24.04, Debian 13 and Fedora with the distribution's own Python packages.
+- **tests:** `tests/` (pytest) covers the parts that run without hardware: the configuration layers and `[paths]` of `retrobox.ini`, the bezel lookup order, the systems and emulator options and the `es_systems.cfg` / `es_features.cfg` built from them (every emulator a system offers must have a working generator), the ROM folders, the store's unpacking of untrusted packages, the idle inhibitor, the desktop notifications, RetroAchievements (the shared account, PCSX2, Dolphin and RetroArch) and the doctor. They never touch your home: every run gets its own home, XDG and `/etc/retrobox` in a temporary directory. CI runs them on Ubuntu 24.04, Debian 13 and Fedora with the distribution's own Python packages.
 - **pylint:** strict for all the Python code except `lib/retrobox/configgen`, which comes from batocera and is held to `dev/pylint-baseline.json` instead (all messages but `duplicate-code`): a file may not get a message it didn't have, so it only gets cleaner. After cleaning some of it, lower the baseline with `python3 dev/pylint_baseline.py --update`.
 - **shell:** `bash -n` and `shellcheck --severity=warning` on every shell script.
 
@@ -314,6 +316,7 @@ A release can only be published once all of them pass.
 ```
 retrobox                              start Retrobox (EmulationStation and the input daemon)
 retrobox --settings                   open the settings window (edits ~/.config/retrobox/retrobox.ini)
+retrobox --doctor [--json]            check what Retrobox needs on this computer, and how to fix it
 retrobox --setup-emulator [NAME]      install or update an emulator (no name: list the installers)
 retrobox --setup-bezel [NAME]         install a bezel pack (no name: list them)
 retrobox --download-default WHAT      download the default theme, bezels or shaders and exit
@@ -323,6 +326,8 @@ retrobox --update-default-shaders     likewise for Retrobox's shaders
 retrobox --version | --help
 retrobox -- ARGS...                   pass ARGS to EmulationStation
 ```
+
+`retrobox --doctor` checks, without changing anything, what Retrobox needs on this computer: the Python modules, EmulationStation, the overlay and MangoHud, a theme, the graphical session and the tool that changes screen modes on it, Vulkan, controllers, the `input` group, `/dev/uinput` and the udev rules, what keeps the computer awake during games, the ROMs and BIOS folders and free space, the installed emulators and the RetroAchievements account. Each line says `[ OK ]`, `[INFO]`, `[WARN]` (works worse, or not in every game) or `[ERR ]` (games won't start), with how to fix it; it exits with 1 when there is an error. `--json` prints the same for a bug report; the RetroAchievements token and password are never printed, only whether they are set.
 
 The settings window (PySide6 or PyQt6) covers the folders, the hidden systems, the PC games sync and the advanced keys of `retrobox.ini`, and saves them in the user layer. It is also the *Settings* action of the application menu entry.
 

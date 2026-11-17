@@ -15,6 +15,8 @@
 #   retrobox --version                    print the installed version
 #   retrobox --settings                   open the settings window (edits
 #                                            ~/.config/retrobox/retrobox.ini)
+#   retrobox --doctor [--json]            check what Retrobox needs on this
+#                                            computer and say how to fix it
 #
 # All of the above are maintenance operations: they run and then exit,
 # they don't start the frontend afterwards. Any other argument is passed
@@ -123,6 +125,11 @@ Usage: $(basename "${BASH_SOURCE[0]}") [OPTIONS] [-- ARGS...]
                             systems, PC games sync...), which edits
                             ~/.config/retrobox/retrobox.ini. Needs PySide6
                             or PyQt6.
+--doctor [--json]           Check what Retrobox needs on this computer
+                            (components, display, GPU, input, folders,
+                            emulators, RetroAchievements) and say how to
+                            fix what is missing. Changes nothing. --json
+                            prints the results for a bug report.
 -h, --help                  Show this help and exit.
 
 --update-default-theme      Download the default theme (es-theme-iconic)
@@ -190,6 +197,10 @@ case "$1" in
     ;;
 --settings)
     exec "${RETROBOX_PYTHON}" -m retrobox.settingsui
+    ;;
+--doctor)
+    shift
+    exec "${RETROBOX_PYTHON}" -m retrobox.doctor "$@"
     ;;
 -h | --help)
     usage

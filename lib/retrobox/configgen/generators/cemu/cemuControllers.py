@@ -47,7 +47,7 @@ def generateControllerConfig(system: Emulator, playersControllers: Controllers) 
     DEFAULT_DEADZONE       = '0.25'
     DEFAULT_RANGE          = '1'
     
-    # Mandos con layout Nintendo donde A/B y X/Y están invertidos respecto a Xbox
+    # Controllers with the Nintendo layout, where A/B and X/Y are swapped compared with Xbox
     NINTENDO_LAYOUT_GUIDS = {
         "030000007e0500000920000000006803",  # Nintendo Switch Pro Controller
     }

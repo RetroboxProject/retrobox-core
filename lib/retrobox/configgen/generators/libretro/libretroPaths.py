@@ -4,7 +4,7 @@ from typing import Final
 
 from retrobox.paths import EMULATORS, EMULATORS_CONFIG
 
-# directorios y ejecutable de retroarch y su config
+# RetroArch's folders, executable and configuration
 _RETROARCH_DIR: Final = EMULATORS / "retroarch"
 _RETROARCH_BIN: Final = _RETROARCH_DIR / "app" / "bin" / "retroarch"
 _RETROARCH_XDG: Final = EMULATORS_CONFIG / 'retroarch'
@@ -12,15 +12,15 @@ _RETROARCH_CFGDIR: Final = _RETROARCH_XDG / "retroarch"
 
 _RETROARCH_SHARE: Final = _RETROARCH_DIR / "app" / "share" / "retroarch"
 
-# configs de retroarch que generamos en el configgen
+# the RetroArch configuration files configgen writes
 RETROARCH_CFG: Final = _RETROARCH_CFGDIR / 'retroarch.cfg'
 RETROARCH_CORE_CUSTOM: Final = _RETROARCH_CFGDIR / 'cores' / 'retroarch-core-options.cfg'
 RETROARCH_OVERLAY_CONFIG: Final = _RETROARCH_CFGDIR / 'overlay.cfg'
 
-# Ajustes "nucleares" que se fuerzan en TODOS los lanzamientos vía --appendconfig,
-# siempre el último de la lista, para que ganen sin importar lo que RetroArch
-# haya persistido en retroarch.cfg (p.ej. por config_save_on_exit) ni lo que
-# el usuario haya tocado desde el propio menú de RetroArch.
+# "Core" settings forced on EVERY launch through --appendconfig, always last
+# in the list, so they win over whatever RetroArch saved in retroarch.cfg
+# (e.g. through config_save_on_exit) and whatever the user changed from
+# RetroArch's own menu.
 RETROARCH_FORCED_CFG: Final = _RETROARCH_CFGDIR / 'retroarch-forced.cfg'
 
 # assets de retroarch

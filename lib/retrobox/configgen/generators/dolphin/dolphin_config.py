@@ -1,8 +1,9 @@
-"""Dolphin configuration: Dolphin.ini, GFX.ini, Hotkeys.ini and the Wii SYSCONF.
+"""Dolphin configuration: Dolphin.ini, GFX.ini, Hotkeys.ini, RetroAchievements.ini
+and the Wii SYSCONF.
 
 Only the options that must work with this setup (paths) or that map to
 explicit settings of the menu (controller port type, graphics API, audio gain,
-aspect ratio, internal resolution, Discord) are written.
+aspect ratio, internal resolution, Discord, RetroAchievements) are written.
 The rest (cheats, dual core, VSync, anti-aliasing, hires textures...) is left
 untouched, so the choices made from Dolphin's own UI persist.
 
@@ -19,7 +20,7 @@ from typing import TYPE_CHECKING, BinaryIO
 from retrobox.configgen.hotkeys import HotkeyAction, keys_of
 from retrobox.paths import BIOS, ROMS, SAVES, mkdir_if_not_exists
 
-from ...utils import vulkan
+from ...utils import achievements, vulkan
 from ...utils.audio_gain import gain_to_percent
 from ...utils.discrete_gpu import discrete_gpu_property
 from ...utils.configparser import CaseSensitiveConfigParser
@@ -32,6 +33,7 @@ from .dolphin_paths import (
     _DOLPHIN_WII_SDCARD_DIR,
     _DOLPHIN_WII_SDCARD_SYNC,
     _DOLPHIN_WII_WFSDIR,
+    DOLPHIN_ACHIEVEMENTS_INI,
     DOLPHIN_GFX_INI,
     DOLPHIN_INI,
 )
@@ -243,6 +245,52 @@ def _configure_gpu_adapter(settings: CaseSensitiveConfigParser) -> None:
     _logger.debug("Vulkan driver is available on the system.")
     if discrete_index := discrete_gpu_property("Dolphin", "Index", vulkan.get_discrete_gpu_index):
         settings.set("Hardware", "Adapter", discrete_index)
+
+
+# ---------------------------------------------------------------------------
+# RetroAchievements.ini
+# ---------------------------------------------------------------------------
+
+
+def write_achievements_ini(config: SystemConfig) -> None:
+    """Update RetroAchievements.ini from EmulationStation's RetroAchievements menu.
+
+    Dolphin needs a token (it only logs in with a password from its own
+    window): the one EmulationStation got, or one asked for with the
+    password. Off, only ``Enabled`` is written, so the account Dolphin keeps
+    stays as it is. Its hardcore mode is on by default, so it is always
+    written when achievements are on.
+    """
+    settings = CaseSensitiveConfigParser(interpolation=None)
+    if DOLPHIN_ACHIEVEMENTS_INI.exists():
+        settings.read(DOLPHIN_ACHIEVEMENTS_INI)
+    _ensure_sections(settings, ("Achievements",))
+
+    account = achievements.account(config)
+    token = achievements.login_token(account) if account else None
+    if account is None or token is None:
+        settings.set("Achievements", "Enabled", "False")
+    else:
+        options = achievements.options(config)
+        values = {
+            "Enabled": True,
+            "HardcoreEnabled": options.hardcore,
+            "EncoreEnabled": options.encore,
+            "UnofficialEnabled": options.unofficial,
+            "SpectatorEnabled": False,
+            "ChallengeIndicatorsEnabled": options.challenge_indicators,
+            "LeaderboardTrackerEnabled": options.leaderboards,
+            "ProgressEnabled": options.verbose,
+            "SoundFeedback": options.has_sound,
+        }
+        for key, value in values.items():
+            settings.set("Achievements", key, str(value))
+        settings.set("Achievements", "Username", account.username)
+        settings.set("Achievements", "ApiToken", token)
+
+    mkdir_if_not_exists(DOLPHIN_ACHIEVEMENTS_INI.parent)
+    with DOLPHIN_ACHIEVEMENTS_INI.open("w", encoding="utf-8") as config_file:
+        settings.write(config_file)
 
 
 # ---------------------------------------------------------------------------

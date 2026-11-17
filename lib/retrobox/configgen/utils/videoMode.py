@@ -153,7 +153,7 @@ def getCurrentResolution(name: str | None = None) -> Resolution:
                 return {"width": int(vals[0]), "height": int(vals[1])}
         except Exception:
             pass
-        return {"width": 1920, "height": 1080}  # último recurso
+        return {"width": 1920, "height": 1080}  # last resort
     vals = result.split("x")
     return {"width": int(vals[0]), "height": int(vals[1])}
 

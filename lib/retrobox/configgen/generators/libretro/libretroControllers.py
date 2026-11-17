@@ -280,7 +280,7 @@ def generateControllerConfig(
                                 continue
 
                             if k.startswith('input_'):
-                                # Capturamos los valores limpios que usaremos para la hotkey de respaldo
+                                # Keep the clean values for the fallback hotkey
                                 if k == 'input_enable_hotkey_btn':
                                     cfg_hotkey = v
                                 elif k == 'input_select_btn':
@@ -289,7 +289,7 @@ def generateControllerConfig(
                                 suffix = k[6:]
                                 config[f"input_player{p_num}_{suffix}"] = v        
                 
-                # Al salir del archivo, si eres Player 1, metemos la hotkey global de tu .cfg
+                # Done with the file: player 1 also gets the global hotkey of its .cfg
                 if p_num == 1:
                     config['input_enable_hotkey_btn'] = cfg_hotkey or cfg_select
                     config.update(writeHotKeyConfig(controller, True, config))
@@ -300,8 +300,8 @@ def generateControllerConfig(
                 return config
                 
             except Exception as e:
-                _logger.debug("Falló la lectura del perfil %s: %s", hw_cfg_name, e)
-    # Si no detectamos mapping manual de mando, seguimos
+                _logger.debug("Cannot read the profile %s: %s", hw_cfg_name, e)
+    # No manual controller mapping found: go on
     # Map an emulationstation button name to the corresponding retroarch name
     retroarchbtns = {'a': 'a', 'b': 'b', 'x': 'x', 'y': 'y', \
                      'pageup': 'l', 'pagedown': 'r', 'l2': 'l2', 'r2': 'r2', \
@@ -375,7 +375,7 @@ def generateControllerConfig(
     if not lightgun:
         config[f'input_player{controller.player_number}_mouse_index'] = mouseIndex
     
-    # Si entra por aquí (Plan A), mete las hotkeys de EmulationStation
+    # This path (plan A) adds EmulationStation's hotkeys
     if controller.player_number == 1:
         config.update(writeHotKeyConfig(controller, False))
         

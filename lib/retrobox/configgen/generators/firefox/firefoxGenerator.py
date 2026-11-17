@@ -8,8 +8,8 @@ from ..Generator import Generator
 
 
 def _parse_rom_launcher(lines: list[str]) -> tuple[str, str | None]:
-    """Soporta tanto el formato legacy (url en línea 1, user-agent opcional
-    en línea 2) como el formato ludex ([ludex-element] con run=/user-agent=)."""
+    """Read both the plain format (the URL on line 1, an optional user agent
+    on line 2) and the ludex one ([ludex-element] with run=/user-agent=)."""
     if not lines:
         return "about:blank", None
 
