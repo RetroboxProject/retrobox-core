@@ -290,6 +290,8 @@ class LibretroGenerator(Generator):
     def savestates(self, system: Emulator, rom: Path) -> dict[str, object] | None:
         """RetroArch's states, by slot: ``<saves>/<system>/<rom name>.state<N>``.
 
+        Slot 0 is ``.state``, the automatic slot (-1) ``.state.auto``.
+
         The folder is ``savestate_directory`` (libretroConfig); the overlay
         asks for them through the command pipe (``stdin_cmd_enable``).
         """

@@ -602,9 +602,16 @@ def _apply_ai_service_settings(config: dict[str, object], system: Emulator) -> N
 
 
 def _apply_savestate_settings(config: dict[str, object], system: Emulator) -> None:
-    """Set the savestate and autosave options."""
+    """Set the savestate and autosave options.
+
+    The automatic state (``.state.auto``) is retrobox-overlay's: "Save and
+    quit" saves it, quitting without saving removes it. RetroArch never
+    saves it by itself (on quitting it would undo the latter), and loads it
+    on start when the game's auto save is on, or when EmulationStation
+    starts the game from it.
+    """
     autosave = system.config.get_bool("autosave", False, return_values=("true", "false"))
-    config["savestate_auto_save"] = autosave
+    config["savestate_auto_save"] = "false"
     config["savestate_auto_load"] = autosave
 
     # Fixed slots, chosen in retrobox-overlay: saving never picks a new slot
