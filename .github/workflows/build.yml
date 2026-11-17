@@ -36,7 +36,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Check out (full history, for version detection)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
           submodules: false
@@ -85,7 +85,7 @@ jobs:
           done
 
       - name: Upload the packages
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: retrobox-dist
           path: |
@@ -106,13 +106,13 @@ jobs:
     container: ${{ matrix.image }}
     steps:
       - name: Check out (for the test script only)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           sparse-checkout: packaging/deb/smoke-test.sh
           sparse-checkout-cone-mode: false
 
       - name: Download the packages
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: retrobox-dist
           path: dist
@@ -133,13 +133,13 @@ jobs:
         run: dnf install -y -q git
 
       - name: Check out (for the test script only)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           sparse-checkout: packaging/rpm/smoke-test.sh
           sparse-checkout-cone-mode: false
 
       - name: Download the packages
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: retrobox-dist
           path: dist
@@ -157,7 +157,7 @@ jobs:
     container: ${{ matrix.image }}
     steps:
       - name: Download the packages
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: retrobox-dist
           path: dist
@@ -204,7 +204,7 @@ jobs:
           fi
 
       - name: Check out
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       # The distribution's own Python packages, as the .deb/.rpm use them, plus
       # what the tests need: jeepney and a session bus for the screen saver
@@ -230,12 +230,12 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Check out
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       # The Python version and the pinned pylint must match the ones
       # dev/pylint-baseline.json was recorded with.
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.13"
 
@@ -259,7 +259,7 @@ jobs:
       contents: write
     steps:
       - name: Download the packages
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: retrobox-dist
           path: dist

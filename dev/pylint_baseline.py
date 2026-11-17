@@ -31,8 +31,15 @@ BASELINE = REPO_ROOT / "dev" / "pylint-baseline.json"
 def current_messages() -> dict[str, dict[str, int]]:
     """Run pylint on the target: {file: {message symbol: count}}."""
     environment = {**os.environ, "PYTHONPATH": str(REPO_ROOT / "lib")}
+    # duplicate-code is left out: pylint reports a duplicated block in only
+    # one of the files that share it, and which one depends on the order the
+    # files are found in, so the count moves between files from one machine
+    # to the next. The code outside configgen is still checked for it.
     result = subprocess.run(
-        [sys.executable, "-m", "pylint", "--output-format=json", "--score=n", TARGET],
+        [
+            sys.executable, "-m", "pylint", "--output-format=json", "--score=n",
+            "--disable=duplicate-code", TARGET,
+        ],
         cwd=REPO_ROOT,
         env=environment,
         capture_output=True,

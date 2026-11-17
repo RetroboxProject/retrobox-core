@@ -555,9 +555,6 @@
   "missing-module-docstring": 1,
   "unused-import": 2
  },
- "lib/retrobox/configgen/utils/logger.py": {
-  "duplicate-code": 1
- },
  "lib/retrobox/configgen/utils/metadata.py": {
   "chained-comparison": 2,
   "line-too-long": 2,

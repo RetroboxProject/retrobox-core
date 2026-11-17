@@ -44,7 +44,7 @@ EmulationStation (separate package)
             └── retrobox-inputd  (retrobox-overlay package: hotkeys and pad2key profiles while the game runs)
 ```
 
-This repo can be cloned and used from anywhere, or installed into `/opt/retrobox` with the `.deb`, the `.rpm` or `install.sh`. Paths have been adapted to replace the `/userdata` hierarchy: see [Paths](#paths).
+This repo can be cloned and used from anywhere, or installed into `/opt/retrobox` with the `.deb`, the `.rpm` or `install.sh`. Its paths replace batocera's `/userdata` hierarchy: see [Paths](#paths).
 
 ## Key changes vs upstream batocera-configgen
 
@@ -54,7 +54,7 @@ Configuration is layered, read-only code and writable user data are separate, an
 
 **Read-only install** (`/opt/retrobox`, the `install.sh` prefix, or a checkout) is never written to.
 
-**Configuration layers**, lowest priority first. Each mirrors the `share/` tree (`systems/`, `emulator_options/`, `hooks/retrohook.d/`, ...) and a file with the same relative path replaces the one below it; extra files add systems, emulator options or hooks (the first two folders were called `systems_config/` and `emu_features/` in earlier versions: move any override you keep under the old names):
+**Configuration layers**, lowest priority first. Each mirrors the `share/` tree (`systems/`, `emulator_options/`, `hooks/retrohook.d/`, ...) and a file with the same relative path replaces the one below it; extra files add systems, emulator options or hooks:
 
 1. `<install dir>/share` — shipped defaults
 2. `/etc/retrobox` — administrator (optional; `RETROBOX_SYSCONFDIR`)
@@ -80,8 +80,6 @@ Other `[core]` keys: `create_rom_folders` (`true` by default: see below), `ignor
 | `on-base-dir` | always `<data dir>/roms/<launcher>`, wherever `roms_dir` points |
 | `follow-roms-dir` | `<roms_dir>/<launcher>` (which may be `<data dir>/roms` or anywhere else) |
 
-They replace the old `--pcgames-sync` flag, which is now ignored with a warning; the `true`/`false` values of v0.0.25 still work (as `follow-roms-dir`/`none`), with a warning.
-
 **ROM folders.** On every start, each system gets `<roms_dir>/<system>` if it does not exist yet, with an `_info.txt` as in batocera: the file extensions the system accepts, its emulators and cores (and the extensions some cores do not take) and a few tips, in English (`lib/retrobox/startup/frontend_conf/roms_dirs.py`). An `_info.txt` that already exists is never rewritten (edit or delete it freely; delete it and it comes back on the next start), it holds no paths of this machine, and an existing folder is not touched otherwise. Not created: the systems with a `path` of their own in their YAML (Retrobox's own entries, or one you moved), the PC-games stores (`steam_sync` and friends manage those) and the groups. Nothing is created if the `roms_dir` itself is missing (an unmounted drive, say), and `create_rom_folders = false` turns it all off.
 
 `lib/retrobox/paths` is the single place where all of this is resolved. Shell scripts get the result as `RETROBOX_*` variables (`PYTHONPATH=<install dir>/lib python3 -m retrobox.paths` prints them, `--get section.key` reads a merged ini value; `tools/lib/paths.sh` loads them).
@@ -97,7 +95,7 @@ Compared with batocera:
 | `/usr/share/batocera` | `<install dir>/share` |
 | `/usr/share/batocera/evmapy` | `<install dir>/share/pad2key/profiles` (user profiles: `~/.config/retrobox/pad2key/profiles`) |
 
-Emulators that keep their binary and their config together (redream, supermodel) still use `~/.local/share/retrobox/emulators/<emu>`.
+Emulators that keep their binary and their config together (redream, supermodel) use `~/.local/share/retrobox/emulators/<emu>`.
 
 ### Systems and emulator options
 
@@ -126,7 +124,7 @@ The Eden and Ryujinx generators were adapted from a third-party batocera package
 
 ### Pad-to-keyboard mappings
 
-A replacement for evmapy: the input daemon of the overlay (`retrobox-inputd`, in the [`retrobox-overlay`](https://github.com/RetroboxProject/retrobox-overlay) package, 0.5.5 or later; it took over from the former [`gamepadly`](https://github.com/RetroboxProject/gamepadly), whose profiles it reads the same way). For each game the launcher composes its profile (see below) and names it in `session.json` (`pad_profile`); while the game runs, the daemon maps each player's controller with it to keys, shortcuts, commands and mouse events, using evmapy-style JSON profiles (`share/pad2key/profiles/*.keys`, overridable in `~/.config/retrobox/pad2key/profiles`). Without the overlay the game still runs, but with no gamepad hotkeys.
+A replacement for evmapy: the input daemon of the overlay (`retrobox-inputd`, in the [`retrobox-overlay`](https://github.com/RetroboxProject/retrobox-overlay) package, 0.5.5 or later). For each game the launcher composes its profile (see below) and names it in `session.json` (`pad_profile`); while the game runs, the daemon maps each player's controller with it to keys, shortcuts, commands and mouse events, using evmapy-style JSON profiles (`share/pad2key/profiles/*.keys`, overridable in `~/.config/retrobox/pad2key/profiles`). Without the overlay the game still runs, but with no gamepad hotkeys.
 
 **The daemon.** Retrobox runs it as long as EmulationStation runs. Where systemd is the init and the user manager is reachable, as the user unit `retrobox-inputd.service` (installed by the overlay, never enabled): before starting it, Retrobox writes `$XDG_RUNTIME_DIR/retrobox/inputd.env` (the environment EmulationStation runs with, and `RETROBOX_PARENT_PID`), and stops it when EmulationStation ends; its log is in the journal (`journalctl --user -u retrobox-inputd`). Elsewhere it runs as a child of Retrobox (`retrobox-inputd --parent PID`, log in `<state dir>/logs/inputd.log`). Either way it stops on its own if Retrobox's process ends without stopping it.
 
@@ -207,10 +205,10 @@ When a game needs an emulator that has an installer in `tools/emulators/` but is
 
 ### Sega arcade (Keisho)
 
-[Keisho](https://github.com/Keisho-Emu/Keisho) (formerly sm2-emu) is a native emulator of the Sega Model 1, 2 and 3 boards. Install it with `retrobox --setup-emulator keisho` (the upstream release for x86_64 and aarch64, or a build from source with `tools/emulators/keisho.sh -s`). It is the default emulator of `model1` and `model2`; `model3` keeps Supermodel as its default and lists Keisho next to it, and MAME is listed on all three. The Wine-based Model 2 Emulator is gone.
+[Keisho](https://github.com/Keisho-Emu/Keisho) is a native emulator of the Sega Model 1, 2 and 3 boards. Install it with `retrobox --setup-emulator keisho` (the upstream release for x86_64 and aarch64, or a build from source with `tools/emulators/keisho.sh -s`). It is the default emulator of `model1` and `model2`; `model3` keeps Supermodel as its default and lists Keisho next to it, and MAME is listed on all three.
 
 - **ROMs:** `roms/model1`, `roms/model2` and `roms/model3`. Keisho identifies a game by the CRC32 of its chips, not by the archive name, so a merged archive can hold several revisions and the archive name picks one (`vf2o.zip`). The *Keisho* entry of the emulator menu opens its own game picker, which lists the three folders.
-- **Saves and configuration:** NVRAM, save states and screenshots go to `saves/<system>/keisho` (and `screenshots/keisho`), the configuration to `~/.config/retrobox/emulators/keisho/keisho.ini`. On every launch Retrobox rewrites only the keys it manages (renderer, scaling, audio, pads, wheels, ROM folders), so what you set in Keisho's overlay (F10) stays, such as a pad layout saved for a game. Data of sm2-emu is moved to the new names the first time Keisho runs.
+- **Saves and configuration:** NVRAM, save states and screenshots go to `saves/<system>/keisho` (and `screenshots/keisho`), the configuration to `~/.config/retrobox/emulators/keisho/keisho.ini`. On every launch Retrobox rewrites only the keys it manages (renderer, scaling, audio, pads, wheels, ROM folders), so what you set in Keisho's overlay (F10) stays, such as a pad layout saved for a game.
 - **Options:** renderer (OpenGL, Vulkan or software), render scale up to 8x, aspect ratio, scaling, texture filtering, 2D upscale, CRT filter, rewind, rumble and wheel force feedback. Translucency and the extended draw distance only apply to Model 1 and 2; on `model3` there are two more: *Speakers* (stereo or surround, for the four-speaker cabinets) and *Threaded frame building*.
 - **Pad layout:** per game for the Model 2 games (taken from RetroBat); Model 1 and 3 games use the default layout, or one of the arcade panel layouts, from *Button layout*.
 
@@ -269,7 +267,7 @@ It installs the same layout as the package: `/opt/retrobox` (or `/var/opt/retrob
 
 The core is modular. EmulationStation ([`retrobox-emulationstation`](https://github.com/RetroboxProject/retrobox-emulationstation)) and the patched MangoHud ([`retrobox-mangohud`](https://github.com/RetroboxProject/retrobox-mangohud)) are separate projects; so is the overlay ([`retrobox-overlay`](https://github.com/RetroboxProject/retrobox-overlay)), with its input daemon and pad-to-keyboard mapper. `retrobox-core` ships no frontend, no MangoHud, no theme and compiles nothing. If EmulationStation finds no theme at all (neither in `<install dir>/frontend/themes` nor in `<data dir>/themes`), `retrobox` downloads the latest commit of [*es-theme-iconic*](https://github.com/manu-creative-411/es-theme-iconic) into `<data dir>/themes` before starting; `retrobox --update-default-theme` downloads it again (update, or reinstall if it was removed) and then starts. The [RetroBat bezels](https://github.com/RetroBat-Official/retrobat-bezels) (the default decorations) are downloaded the same way into `<data dir>/decorations-default`, and [Retrobox's shaders](https://github.com/RetroboxProject/retrobox-shaders) into the shaders folder (`<data dir>/shaders`, or `SHADERS_DIR`), but only on the first start (the bezels, only if their folder holds no files yet); `retrobox --update-default-bezels` / `--update-default-shaders` get them again. The bezels replace their folder, which belongs to Retrobox; the shaders are merged into theirs, so your own shaders there are kept. All these downloads show their progress on the setup screen (see *Emulator setup screen*), can be cancelled with B / Esc, never replace a working copy with a broken one, and if they fail Retrobox says so and starts anyway.
 
-- **Packages (.deb/.rpm):** `retrobox-core` only *recommends* `retrobox-emulationstation`, `retrobox-mangohud` and `retrobox-overlay` (0.5.5 or later; it *breaks* older ones); install them with the package manager. Those packages are built per architecture (amd64, arm64); the core is architecture-independent (`_all.deb`, `noarch.rpm`).
+- **Packages (.deb/.rpm):** `retrobox-core` only *recommends* `retrobox-emulationstation`, `retrobox-mangohud` and `retrobox-overlay` (0.5.5 or later); install them with the package manager. Those packages are built per architecture (amd64, arm64); the core is architecture-independent (`_all.deb`, `noarch.rpm`).
 - **install.sh:** `--with emulationstation` / `--with mangohud` downloads the component's own `install.sh` (the one at the root of its repository, or `--with NAME=<URL or local path>`) and runs it:
 
   ```
@@ -306,7 +304,7 @@ dev/check.sh tests | pylint | shell       # one part
 ```
 
 - **tests:** `tests/` (pytest) covers the parts that run without hardware: the configuration layers and `[paths]` of `retrobox.ini`, the bezel lookup order, the systems and emulator options and the `es_systems.cfg` / `es_features.cfg` built from them (every emulator a system offers must have a working generator), the ROM folders, the store's unpacking of untrusted packages, the idle inhibitor and the desktop notifications. They never touch your home: every run gets its own home, XDG and `/etc/retrobox` in a temporary directory. CI runs them on Ubuntu 24.04, Debian 13 and Fedora with the distribution's own Python packages.
-- **pylint:** strict for all the Python code except `lib/retrobox/configgen`, which comes from batocera and is held to `dev/pylint-baseline.json` instead: a file may not get a message it didn't have, so it only gets cleaner. After cleaning some of it, lower the baseline with `python3 dev/pylint_baseline.py --update`.
+- **pylint:** strict for all the Python code except `lib/retrobox/configgen`, which comes from batocera and is held to `dev/pylint-baseline.json` instead (all messages but `duplicate-code`): a file may not get a message it didn't have, so it only gets cleaner. After cleaning some of it, lower the baseline with `python3 dev/pylint_baseline.py --update`.
 - **shell:** `bash -n` and `shellcheck --severity=warning` on every shell script.
 
 A release can only be published once all of them pass.
