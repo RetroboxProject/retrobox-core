@@ -16,20 +16,6 @@ class Resolution(TypedDict):
     height: int
 
 
-class BezelInfo(TypedDict):
-    """Where the game picture sits inside a bezel image (its .info file)."""
-
-    width: int
-    height: int
-    top: int
-    left: int
-    bottom: int
-    right: int
-    opacity: NotRequired[float]
-    messagex: NotRequired[float]
-    messagey: NotRequired[float]
-
-
 class ScreenInfo(TypedDict):
     """Size and position of a screen."""
 

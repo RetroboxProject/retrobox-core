@@ -12,23 +12,6 @@ def _runtime_dir() -> Path:
     return Path(os.environ.get("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}"))
 
 
-def pipewire_is_available() -> bool:
-    socket = _runtime_dir() / "pipewire-0"
-    if not socket.exists():
-        _logger.debug("No PipeWire socket at %s", socket)
-        return False
-    try:
-        result = subprocess.run(
-            ["pw-cli", "info", "0"],
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-            timeout=1,
-        )
-    except (OSError, subprocess.TimeoutExpired):
-        # without pw-cli, trust the socket
-        return True
-    return result.returncode == 0
-
-
 def pulse_is_available() -> bool:
     socket = _runtime_dir() / "pulse" / "native"
     if socket.exists():
@@ -42,7 +25,3 @@ def pulse_is_available() -> bool:
     except (OSError, subprocess.TimeoutExpired):
         return False
     return result.returncode == 0
-
-
-def alsa_is_available() -> bool:
-    return Path("/proc/asound/cards").exists()

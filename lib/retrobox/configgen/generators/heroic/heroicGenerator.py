@@ -59,9 +59,6 @@ class HeroicGenerator(Generator):
             array=command, env=launcher_environment(system, playersControllers)
         )
 
-    def getMouseMode(self, config, rom):
-        """The mouse is only grabbed when the user asks for it."""
-        return config.get_bool("force_mouse")
 
     def exit_env(self, system, rom):
         """Heroic (2.9.2 and later) puts the game id in the environment of the game."""

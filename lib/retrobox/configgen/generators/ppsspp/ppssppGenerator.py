@@ -96,9 +96,6 @@ class PPSSPPGenerator(Generator):
             },
         )
 
-    def getMouseMode(self, config, rom):
-        """Show the mouse on screen, for PPSSPP's own config screen."""
-        return True
 
     def getInGameRatio(self, config, gameResolution, rom):
         """The PSP screen is 16:9."""

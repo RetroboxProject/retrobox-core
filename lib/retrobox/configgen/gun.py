@@ -9,11 +9,10 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from .Emulator import Emulator
+    pass
 
 
 @dataclass(slots=True, kw_only=True)
@@ -27,12 +26,6 @@ class Gun:
     name: str
     buttons: list[str]
     button_map: Mapping[str, int] = field(default_factory=dict)
-
-    @classmethod
-    def get_and_precalibrate_all(cls, system: Emulator, rom: str | Path, /) -> GunList:
-        """Return the detected guns: always none, light guns are unsupported."""
-        del system, rom
-        return []
 
 
 GunList = list[Gun]

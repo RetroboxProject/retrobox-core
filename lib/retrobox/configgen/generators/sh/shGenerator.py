@@ -4,7 +4,6 @@ from __future__ import annotations
 from retrobox.configgen import Command
 from retrobox.configgen.controller import generate_sdl_game_controller_config, write_sdl_controller_db
 from retrobox.configgen.generators.Generator import Generator
-from retrobox.paths import EMULATORS
 
 
 class ShGenerator(Generator):
@@ -22,6 +21,3 @@ class ShGenerator(Generator):
             #"XDG_CONFIG_HOME": EMULATORS,
             "SDL_GAMECONTROLLERCONFIG": generate_sdl_game_controller_config(playersControllers)
         })
-
-    def getMouseMode(self, config, rom):
-        return True

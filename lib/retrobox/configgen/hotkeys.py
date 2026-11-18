@@ -327,8 +327,3 @@ def load_table(
             _logger.debug("hotkeys table, %s: %s", section, path)
             return [entry for entry in entries if entry.applies_to(emulator)]
     return []
-
-
-def pad_buttons(table: list[HotkeyEntry], action: HotkeyAction) -> list[tuple[str, ...]]:
-    """The combinations the table gives an action (taps excluded)."""
-    return [entry.trigger for entry in table if entry.action is action and not entry.tap]

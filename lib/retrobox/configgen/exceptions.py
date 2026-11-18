@@ -23,11 +23,6 @@ class UnexpectedEmulatorExit(BaseRetroboxException):
 class BadCommandLineArguments(BaseRetroboxException):
     EXIT_CODE = 201
 
-class InvalidConfiguration(BaseRetroboxException):
-    EXIT_CODE = 202
-
-class UnknownEmulator(BaseRetroboxException):
-    EXIT_CODE = 203
 
 class MissingEmulator(BaseRetroboxException):
     EXIT_CODE = 204

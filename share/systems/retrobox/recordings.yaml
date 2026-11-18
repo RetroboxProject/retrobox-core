@@ -3,7 +3,7 @@ recordings:
   manufacturer: Retrobox
   release: None
   hardware: system
-  path: /var/penguintb/juegos/recordings
+  path: "{recordings}"
   extension:
   - .mkv
   - .mp4

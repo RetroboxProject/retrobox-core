@@ -24,7 +24,7 @@ from ...utils.discrete_gpu import discrete_gpu_property
 from .cemuPaths import CEMU_ROMDIR, CEMU_SAVES
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping, Sequence
+    from collections.abc import Mapping
 
     from ...config import SystemConfig
     from ...Emulator import Emulator

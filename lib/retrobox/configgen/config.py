@@ -100,19 +100,6 @@ class Config:
 
         return int(value)
 
-    @overload
-    def get_float(self, key: str, default: MissingType = ..., /) -> float | MissingType: ...
-
-    @overload
-    def get_float(self, key: str, default: float, /) -> float: ...
-
-    def get_float(self, key: str, default: float | MissingType = MISSING, /) -> float | MissingType:
-        value = self.data.get(key, MISSING)
-
-        if value is MISSING:
-            return default
-
-        return float(value)
 
     def items(self, /, *, starts_with: str | None = None) -> Iterator[tuple[str, Any]]:
         if starts_with is None:

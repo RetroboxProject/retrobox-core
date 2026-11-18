@@ -82,12 +82,6 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
     shutil.rmtree(_SESSION_ROOT, ignore_errors=True)
 
 
-@pytest.fixture(name="session_root")
-def fixture_session_root() -> Path:
-    """The sandbox the in-process modules of Retrobox resolved their directories in."""
-    return _SESSION_ROOT
-
-
 def run_retrobox_module(
     root: Path,
     module: str,

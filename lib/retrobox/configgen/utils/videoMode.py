@@ -1,19 +1,14 @@
 from __future__ import annotations
 
 import csv
-from ctypes import CDLL
-from ctypes.util import find_library
-import glob
 import logging
 import re
 import subprocess
 import sys
-import time
 from pathlib import Path
 from typing import TYPE_CHECKING, Final
 
 from retrobox.paths import ROTATION_FILE, DEFAULTS_DIR, LIBEXEC_DIR
-from ..exceptions import RetroboxException
 
 if TYPE_CHECKING:
     from ..config import SystemConfig
@@ -24,40 +19,6 @@ _logger = logging.getLogger(__name__)
 _ROTATION_FILE: Final = ROTATION_FILE
 _GLXINFO_BIN: Final = Path("/usr/bin/glxinfo")
 
-# Set a specific video mode
-def changeMode(videomode: str) -> None:
-    if checkModeExists(videomode):
-        cmd = [f"{LIBEXEC_DIR}/stubs/batocera-resolution", "setMode", videomode]
-        _logger.debug("setVideoMode(%s): %s", videomode, cmd)
-        max_tries = 2  # maximum number of tries to set the mode
-        for i in range(max_tries):
-            try:
-                result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-                _logger.debug(result.stdout.strip())
-                return
-            except subprocess.CalledProcessError as e:
-                _logger.error("Error setting video mode: %s", e.stderr)
-                if i == max_tries - 1:
-                    raise RetroboxException("Error setting video mode") from e
-                time.sleep(1)
-
-def getCurrentMode() -> str:  # noqa: RET503
-    proc = subprocess.Popen([f"{LIBEXEC_DIR}/stubs/batocera-resolution currentMode"], stdout=subprocess.PIPE, shell=True)
-    (out, _) = proc.communicate()
-    for val in out.decode().splitlines():
-        return val # return the first line
-
-    if TYPE_CHECKING:
-        raise AssertionError("unreachable")
-
-def getRefreshRate() -> str:  # noqa: RET503
-    proc = subprocess.Popen([f"{LIBEXEC_DIR}/stubs/batocera-resolution refreshRate"], stdout=subprocess.PIPE, shell=True)
-    (out, _) = proc.communicate()
-    for val in out.decode().splitlines():
-        return val # return the first line
-
-    if TYPE_CHECKING:
-        raise AssertionError("unreachable")
 
 def getScreensInfos(config: SystemConfig) -> list[ScreenInfo]:
     outputs = getScreens()
@@ -128,9 +89,6 @@ def getScreens() -> list[str]:
     (out, _) = proc.communicate()
     return out.decode().splitlines()
 
-def minTomaxResolution() -> None:
-    proc = subprocess.Popen([f"{LIBEXEC_DIR}/stubs/batocera-resolution minTomaxResolution"], stdout=subprocess.PIPE, shell=True)
-    proc.communicate()
 
 def getCurrentResolution(name: str | None = None) -> Resolution:
     if name is None:
@@ -162,13 +120,6 @@ def getCurrentOutput() -> str:
     (out, _) = proc.communicate()
     return out.decode().strip()
 
-def supportSystemRotation() -> bool:
-    proc = subprocess.Popen([f"{LIBEXEC_DIR}/stubs/batocera-resolution supportSystemRotation"], stdout=subprocess.PIPE, shell=True)
-    proc.communicate()
-    return proc.returncode == 0
-
-def isResolutionReversed():
-    return _ROTATION_FILE.exists()
 
 def checkModeExists(videomode: str) -> bool:
     # max resolution given
@@ -188,10 +139,6 @@ def checkModeExists(videomode: str) -> bool:
     _logger.error("invalid video mode %s", videomode)
     return False
 
-def changeMouse(mode: bool) -> None:
-    _logger.debug("changeMouseMode(%s)", mode)
-    proc = subprocess.Popen([f"batocera-mouse {'show' if mode else 'hide'}"], stdout=subprocess.PIPE, shell=True)
-    proc.communicate()
 
 def getGLVersion() -> float:
     try:

@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Any
 from pathlib import Path
 import yaml
 
-from retrobox.paths import CONFIG_LAYERS, DEFAULTS_DIR, layered_file, ES_SETTINGS_CFG, _SHADERS_DIR, configure_emulator
+from retrobox.paths import CONFIG_LAYERS, layered_file, ES_SETTINGS_CFG, _SHADERS_DIR, configure_emulator
 
 from .config import Config, SystemConfig
 from .exceptions import MissingEmulator, RetroboxException
@@ -172,7 +172,6 @@ def generate_bash_wrapper(
     emu_args: list[str],
     unset_vars: list[str] | None = None,
     force_x11: bool = False,
-    force_gamescope: bool = False
     ) -> str:
     """This function is used to wrap emulator commands to bash scripts.
     Useful when an emulator needs to run on a pure shell context
@@ -187,10 +186,6 @@ def generate_bash_wrapper(
         env_lines += "export GDK_BACKEND=x11\n"
         env_lines += "export WAYLAND_DISPLAY=\n"
 
-    gamescope_run = ""
-    if force_gamescope:
-        gamescope_run = "gamescope -f -- "
-    
     if unset_vars:
         for var in unset_vars:
             env_lines += f'unset {shlex.quote(var)}\n'
@@ -384,8 +379,6 @@ class Emulator:
         @deprecated('Use config.get_bool()')
         def getOptBoolean(self, key: str) -> bool: ...
 
-        @deprecated('Use config.get_str()')
-        def getOptString(self, key: str) -> str: ...
 
     else:
         def isOptSet(self, key: str) -> bool:
@@ -399,9 +392,3 @@ class Emulator:
                 value = value.lower()
 
             return value in true_values
-
-        def getOptString(self, key: str) -> str:
-            if key in self.config:  # noqa: SIM102
-                if self.config[key]:
-                    return self.config[key]
-            return ""

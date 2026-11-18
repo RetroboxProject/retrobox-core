@@ -121,9 +121,6 @@ class SettingsModel:
         system = self._get(self._system, setting)
         return system if system else self.builtin_default(setting)
 
-    def system_value(self, setting: Setting) -> str | None:
-        """The system-wide value of ``setting``, if /etc/retrobox sets it."""
-        return self._get(self._system, setting) or None
 
     def _dropin(self, setting: Setting) -> tuple[Path, str] | None:
         """The last user drop-in that sets ``setting``, with its value."""

@@ -131,6 +131,3 @@ class ChromeGenerator(Generator):
                 user_agent = lines[1].strip() if len(lines) >= 2 and lines[1].strip() else None
         wrapper_path = _make_wrapper(chrome_bin, url, user_data_dir, playersControllers, user_agent)
         return Command.Command(array=[wrapper_path], env={})
-
-    def getMouseMode(self, config, rom):
-        return False

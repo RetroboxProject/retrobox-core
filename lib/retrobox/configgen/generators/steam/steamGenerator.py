@@ -106,9 +106,6 @@ class SteamGenerator(Generator):
         # The launcher waits for the monitor, which waits for the game.
         return Command.Command(array=command, env={})
 
-    def getMouseMode(self, config, rom):
-        """Steam games are driven by the mouse too."""
-        return True
 
     def exit_env(self, system, rom):
         """Steam gives every process of the game its AppId in the environment."""

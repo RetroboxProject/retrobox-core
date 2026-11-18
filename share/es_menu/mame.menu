@@ -1,2 +1,5 @@
+# Note: the command below is RetroBat's (Windows), kept for reference only.
+# Retrobox never runs it: it only reads this file's name, so mame.menu
+# opens the settings of the mame emulator.
 \mame\mame.exe
 -skip_gameinfo -rp ..\..\roms\mame;..\..\bios -sp ..\..\bios\mame\samples -artpath ..\..\bios\mame\artwork;artwork;..\..\saves\mame\artwork -snapshot_directory ..\..\screenshots -cfg_directory ..\..\saves\mame\cfg -inipath ..\..\bios\mame\ini -hash ..\..\bios\mame\hash -state_directory ..\..\saves\mame\states -nvram_directory ..\..\saves\mame\nvram -ctrlrpath ..\..\saves\mame\ctrlr -v

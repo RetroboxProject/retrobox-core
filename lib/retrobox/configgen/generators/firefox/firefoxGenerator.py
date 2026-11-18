@@ -75,6 +75,3 @@ class FirefoxGenerator(Generator):
         }
 
         return Command.Command(array=command_array, env=env)
-
-    def getMouseMode(self, config, rom):
-        return False

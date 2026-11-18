@@ -3,7 +3,7 @@ apps:
   manufacturer: _Retrobox
   release: None
   hardware: system
-  path: ../resources/apps
+  path: "{data}/apps"
   extension:
   - .webapp
   - .kodi

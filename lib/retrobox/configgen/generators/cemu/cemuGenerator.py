@@ -91,7 +91,3 @@ class CemuGenerator(Generator):
                 "SDL_JOYSTICK_HIDAPI": "0",
             },
         )
-
-    def getMouseMode(self, config, rom):
-        """Show the mouse, for the touchscreen actions."""
-        return config.get_bool("cemu_touchpad")

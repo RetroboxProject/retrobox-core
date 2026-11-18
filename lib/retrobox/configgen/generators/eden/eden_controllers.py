@@ -1,6 +1,5 @@
 
 from ctypes import create_string_buffer
-import glob
 import logging
 import os
 
@@ -60,28 +59,6 @@ def hidraw_get_guid(devpath) -> str:
     except Exception:
         return "00000000000000000000000000000000"
 
-def list_hidraw_devices():
-    devices = []
-    for h in glob.glob("/sys/class/hidraw/hidraw*"):
-        dev = os.path.basename(h)
-        devpath = os.path.realpath(os.path.join(h, "device"))
-        name = "unknown"
-        try:
-            with open(os.path.join(devpath, "uevent")) as f:
-                for line in f:
-                    if line.startswith("HID_NAME="):
-                        name = line.strip().split("=", 1)[1]
-        except:
-            pass
-        bus = os.path.basename(devpath).split(":")[0]
-        guid = hidraw_get_guid(devpath)
-        devices.append({
-            "hidraw": f"/dev/{dev}",
-            "name": name,
-            "bus": bus,
-            "guid": guid
-        })
-    return devices
 
 def apply_rare_dpad_fix(inputs: dict, guid: str) -> None:
     """Some controllers (EDEN_RARE_DPAD_GUIDS) do not expose the D-pad as a

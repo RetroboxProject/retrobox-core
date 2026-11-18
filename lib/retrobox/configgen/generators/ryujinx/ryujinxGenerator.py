@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 import shutil
-import subprocess
 import stat
 import hashlib
 from shutil import copyfile
@@ -22,7 +21,7 @@ from ...controller import generate_sdl_game_controller_config
 from ... import Command
 
 from ..Generator import Generator
-from ..eden.edenPaths import SWITCH_FIRMWARE, SWITCH_KEYS, SWITCH_MODS_DIR, SWITCH_ROMS
+from ..eden.edenPaths import SWITCH_FIRMWARE, SWITCH_KEYS, SWITCH_MODS_DIR
 from .ryujinxPaths import (
     _RYUJINX_XDG,
     RYUJINX_BIN,
@@ -39,7 +38,6 @@ from .ryujinxPaths import (
     RYUJINX_SYSTEM_SAVES,
     RYUJINX_USER_SAVES
 )
-from ...input import Input
 
 _logger = logging.getLogger(__name__)
 
@@ -92,12 +90,6 @@ def sync_firmware(src: Path, registered: Path, checksum_file: Path):
 
     checksum_file.parent.mkdir(parents=True, exist_ok=True)
     checksum_file.write_text(new_checksum)
-
-def getCurrentCard() -> str | None:
-    proc = subprocess.Popen([f"{DEFAULTS_DIR}/data/switch/detectvideo.sh"], stdout=subprocess.PIPE, shell=True)
-    (out, err) = proc.communicate()
-    for val in out.decode().splitlines():
-        return val # return the first line
 
 
 class RyujinxGenerator(Generator):

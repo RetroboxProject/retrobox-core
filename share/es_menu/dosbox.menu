@@ -1,2 +1,5 @@
+# Note: the command below is RetroBat's (Windows), kept for reference only.
+# Retrobox never runs it: it only reads this file's name, so dosbox.menu
+# opens the settings of the dosbox emulator.
 \dosbox\dosbox.exe
 -fullscreen -noconsole -exit -conf .\..\..\emulators\dosbox\run.dosbox

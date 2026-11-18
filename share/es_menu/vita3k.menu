@@ -1,1 +1,4 @@
+# Note: the command below is RetroBat's (Windows), kept for reference only.
+# Retrobox never runs it: it only reads this file's name, so vita3k.menu
+# opens the settings of the vita3k emulator.
 \vita3k\Vita3K.exe

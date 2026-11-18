@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # retrobox-launch: run the emulator launcher for one ROM (this is the command
-# EmulationStation puts in es_systems.cfg; the emuconfig-* helpers use it too).
+# EmulationStation puts in es_systems.cfg).
 #
 #   retrobox-launch %CONTROLLERSCONFIG% -system <system> -rom <rom> ...
 #

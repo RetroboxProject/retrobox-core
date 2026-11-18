@@ -3,7 +3,7 @@ library:
   manufacturer: Retrobox
   release: None
   hardware: system
-  path: /var/penguintb/juegos/library
+  path: "{data}/library"
   extension:
   - .jpg
   - .jpeg

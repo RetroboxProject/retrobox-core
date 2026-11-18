@@ -46,6 +46,3 @@ class EdenGenerator(Generator):
 
         return Command.Command(array=commandArray, env=environment)
     
-
-    def getMouseMode(self, config, rom):
-        return True

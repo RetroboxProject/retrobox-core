@@ -13,9 +13,13 @@ import yaml
 
 from conftest import SHARE_DIR
 from retrobox.configgen.generators import get_generator
-from retrobox.paths import ES_FEATURES_CFG, ES_SYSTEMS_CFG
+from retrobox.paths import DATA_DIR, ES_FEATURES_CFG, ES_SYSTEMS_CFG, RECORDINGS, SCREENSHOTS
+from retrobox.paths import SHARE_DIR as INSTALLED_SHARE_DIR
 from retrobox.startup.frontend_conf.features_list_generator import generate_es_features
-from retrobox.startup.frontend_conf.system_list_generator import generate_es_systems
+from retrobox.startup.frontend_conf.system_list_generator import (
+    expand_system_path,
+    generate_es_systems,
+)
 from retrobox.utils.features_yaml import load_feature_yaml
 
 SYSTEM_FILES = sorted((SHARE_DIR / "systems").rglob("*.yaml"))
@@ -109,7 +113,9 @@ def test_es_systems_cfg(es_home: Path, tmp_path: Path) -> None:
     listed = {system.findtext("name"): system for system in root.iter("system")}
     assert set(listed) == set(SYSTEMS)
     for name, system in listed.items():
-        assert system.findtext("path"), f"{name}: no path"
+        # ES doesn't resolve relative paths: they would follow its working directory
+        assert Path(system.findtext("path") or "").is_absolute(), f"{name}: path not absolute"
+        assert "{" not in (system.findtext("path") or ""), f"{name}: unexpanded placeholder"
         assert system.findtext("command"), f"{name}: no command"
     assert (es_home / "es_systems.cfg").resolve() == output.resolve()
 
@@ -182,3 +188,38 @@ def test_standalone_emulators_offer_achievements(es_home: Path, tmp_path: Path) 
     }
     for emulator in ("pcsx2", "dolphin", "flycast"):
         assert "cheevos" in features[emulator], emulator
+
+
+def test_retrobox_systems_use_the_data_folders(es_home: Path, tmp_path: Path) -> None:
+    """Image viewer, recordings, library and apps live in the user's data folders."""
+    del es_home
+    output = tmp_path / "es_systems.cfg"
+    generate_es_systems(output_path=output)
+    systems = ET.parse(output).getroot().iter("system")
+    paths = {system.findtext("name"): system.findtext("path") for system in systems}
+    assert paths["imageviewer"] == str(SCREENSHOTS)
+    assert paths["recordings"] == str(RECORDINGS)
+    assert paths["library"] == str(DATA_DIR / "library")
+    assert paths["apps"] == str(DATA_DIR / "apps")
+    assert paths["emuconfig"] == str(INSTALLED_SHARE_DIR / "es_menu")
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("{screenshots}", SCREENSHOTS),
+        ("{data}/library", DATA_DIR / "library"),
+        ("games/extra", DATA_DIR / "games" / "extra"),
+        ("/srv/games", Path("/srv/games")),
+    ],
+)
+def test_expand_system_path(text: str, expected: Path) -> None:
+    """Placeholders become Retrobox's folders; relative paths start at the data folder."""
+    assert expand_system_path(text) == expected
+
+
+def test_expand_system_path_home_and_unknown() -> None:
+    """``~`` is the home; an unknown placeholder is an error, not a literal folder."""
+    assert expand_system_path("~/games") == Path.home() / "games"
+    with pytest.raises(ValueError, match="unknown placeholder"):
+        expand_system_path("{nowhere}/games")

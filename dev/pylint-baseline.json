@@ -2,21 +2,17 @@
  "lib/retrobox/configgen/Emulator.py": {
   "bare-except": 1,
   "broad-exception-caught": 2,
-  "invalid-name": 7,
+  "invalid-name": 5,
   "line-too-long": 4,
   "missing-class-docstring": 1,
-  "missing-function-docstring": 7,
+  "missing-function-docstring": 5,
   "missing-module-docstring": 1,
   "reimported": 1,
-  "too-many-arguments": 1,
   "too-many-branches": 2,
   "too-many-locals": 2,
-  "too-many-positional-arguments": 1,
   "too-many-statements": 2,
-  "trailing-whitespace": 3,
-  "unused-argument": 3,
-  "unused-import": 1,
-  "unused-variable": 1
+  "trailing-whitespace": 2,
+  "unused-argument": 2
  },
  "lib/retrobox/configgen/__init__.py": {
   "missing-module-docstring": 1
@@ -25,7 +21,7 @@
   "line-too-long": 3,
   "logging-fstring-interpolation": 1,
   "missing-class-docstring": 2,
-  "missing-function-docstring": 16,
+  "missing-function-docstring": 15,
   "missing-module-docstring": 1,
   "trailing-whitespace": 2
  },
@@ -42,8 +38,6 @@
   "no-else-break": 1,
   "pointless-string-statement": 1,
   "redefined-builtin": 5,
-  "redefined-outer-name": 2,
-  "reimported": 2,
   "too-many-arguments": 1,
   "too-many-instance-attributes": 1,
   "too-many-locals": 1,
@@ -64,7 +58,7 @@
   "too-many-locals": 1
  },
  "lib/retrobox/configgen/exceptions.py": {
-  "missing-class-docstring": 8,
+  "missing-class-docstring": 6,
   "missing-function-docstring": 1,
   "missing-module-docstring": 1
  },
@@ -84,7 +78,6 @@
   "too-many-branches": 1,
   "too-many-positional-arguments": 1,
   "too-many-statements": 1,
-  "unused-import": 1,
   "wrong-import-order": 1
  },
  "lib/retrobox/configgen/generators/azahar/azahar_paths.py": {
@@ -142,8 +135,7 @@
   "unused-argument": 3
  },
  "lib/retrobox/configgen/generators/dolphin/dolphin_paths.py": {
-  "missing-module-docstring": 1,
-  "unused-import": 1
+  "missing-module-docstring": 1
  },
  "lib/retrobox/configgen/generators/dosbox/dosboxGenerator.py": {
   "invalid-name": 2,
@@ -183,21 +175,20 @@
   "unspecified-encoding": 2
  },
  "lib/retrobox/configgen/generators/eden/eden_controllers.py": {
-  "bare-except": 3,
+  "bare-except": 2,
   "broad-exception-caught": 2,
   "consider-using-dict-items": 2,
   "consider-using-f-string": 4,
   "invalid-name": 8,
   "line-too-long": 15,
-  "missing-final-newline": 1,
-  "missing-function-docstring": 8,
+  "missing-function-docstring": 7,
   "missing-module-docstring": 1,
   "no-else-return": 1,
   "too-many-branches": 1,
   "too-many-locals": 1,
   "too-many-statements": 1,
   "trailing-whitespace": 6,
-  "unspecified-encoding": 3,
+  "unspecified-encoding": 2,
   "unused-argument": 1,
   "unused-variable": 1,
   "wrong-import-order": 1
@@ -315,8 +306,7 @@
   "too-many-locals": 1,
   "too-many-positional-arguments": 1,
   "too-many-statements": 1,
-  "trailing-whitespace": 1,
-  "unused-import": 1
+  "trailing-whitespace": 1
  },
  "lib/retrobox/configgen/generators/melonds/melonds_paths.py": {
   "missing-module-docstring": 1
@@ -394,28 +384,23 @@
   "too-many-positional-arguments": 1,
   "too-many-statements": 1,
   "trailing-whitespace": 1,
-  "unused-import": 1,
   "wrong-import-order": 2
  },
  "lib/retrobox/configgen/generators/rpcs3/rpcs3Paths.py": {
   "invalid-name": 1,
-  "missing-module-docstring": 1,
-  "unused-import": 1
+  "missing-module-docstring": 1
  },
  "lib/retrobox/configgen/generators/ryujinx/ryujinxGenerator.py": {
   "consider-using-f-string": 2,
-  "consider-using-with": 1,
-  "invalid-name": 3,
-  "line-too-long": 4,
+  "invalid-name": 2,
+  "line-too-long": 3,
   "logging-format-interpolation": 2,
   "missing-class-docstring": 1,
-  "missing-function-docstring": 4,
+  "missing-function-docstring": 3,
   "missing-module-docstring": 1,
   "too-many-arguments": 1,
   "too-many-positional-arguments": 1,
-  "trailing-whitespace": 4,
-  "unused-import": 2,
-  "unused-variable": 1
+  "trailing-whitespace": 4
  },
  "lib/retrobox/configgen/generators/ryujinx/ryujinxPaths.py": {
   "invalid-name": 1,
@@ -464,8 +449,7 @@
   "missing-class-docstring": 1,
   "missing-module-docstring": 1,
   "too-many-arguments": 1,
-  "too-many-positional-arguments": 1,
-  "unused-import": 1
+  "too-many-positional-arguments": 1
  },
  "lib/retrobox/configgen/generators/shadps4/shadps4Generator.py": {
   "bad-indentation": 3,
@@ -480,7 +464,6 @@
   "too-many-positional-arguments": 1,
   "too-many-statements": 1,
   "trailing-whitespace": 1,
-  "unused-import": 1,
   "wrong-import-order": 1
  },
  "lib/retrobox/configgen/generators/shadps4/shadps4_paths.py": {
@@ -534,10 +517,9 @@
   "unspecified-encoding": 1
  },
  "lib/retrobox/configgen/utils/audio.py": {
-  "missing-final-newline": 1,
-  "missing-function-docstring": 3,
+  "missing-function-docstring": 1,
   "missing-module-docstring": 1,
-  "subprocess-run-check": 2
+  "subprocess-run-check": 1
  },
  "lib/retrobox/configgen/utils/bios_files.py": {
   "missing-final-newline": 1,
@@ -551,9 +533,7 @@
  "lib/retrobox/configgen/utils/language.py": {
   "broad-exception-caught": 1,
   "missing-class-docstring": 1,
-  "missing-final-newline": 1,
-  "missing-module-docstring": 1,
-  "unused-import": 2
+  "missing-module-docstring": 1
  },
  "lib/retrobox/configgen/utils/metadata.py": {
   "chained-comparison": 2,
@@ -577,19 +557,17 @@
  },
  "lib/retrobox/configgen/utils/videoMode.py": {
   "broad-exception-caught": 5,
-  "consider-using-with": 9,
+  "consider-using-with": 4,
   "import-outside-toplevel": 1,
-  "invalid-name": 27,
-  "line-too-long": 13,
-  "missing-function-docstring": 15,
+  "invalid-name": 20,
+  "line-too-long": 8,
+  "missing-function-docstring": 8,
   "missing-module-docstring": 1,
   "reimported": 1,
-  "superfluous-parens": 1,
-  "unused-import": 3
+  "superfluous-parens": 1
  },
  "lib/retrobox/configgen/utils/vulkan.py": {
-  "missing-final-newline": 1,
-  "missing-function-docstring": 6,
+  "missing-function-docstring": 5,
   "missing-module-docstring": 1
  },
  "lib/retrobox/configgen/utils/wheelsUtils.py": {

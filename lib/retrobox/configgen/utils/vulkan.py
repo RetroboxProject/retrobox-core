@@ -72,11 +72,6 @@ def get_discrete_gpu_uuid() -> str | None:
     return d.get('deviceUUID') if d else None
 
 
-def get_default_gpu_name() -> str | None:
-    devices = _devices()
-    return devices[0].get('deviceName') if devices else None
-
-
 def get_version() -> str:
     device = _discrete_device() or (_devices()[0] if _devices() else None)
     if not device:

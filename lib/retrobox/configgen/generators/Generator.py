@@ -47,13 +47,6 @@ class Generator(metaclass=ABCMeta):
         if not what.exists():
             raise RetroboxException(f"Path for {emuname} does not exist: {what}")
 
-    def getResolutionMode(self, config: SystemConfig) -> str:
-        """Return the video mode the emulator runs in."""
-        return config["videomode"]
-
-    def getMouseMode(self, config: SystemConfig, rom: Path) -> bool:
-        """Tell whether the emulator needs the mouse."""
-        return False
 
     def executionDirectory(self, config: SystemConfig, rom: Path) -> Path | None:
         """Return the folder to run the emulator from, or None to keep the current one."""

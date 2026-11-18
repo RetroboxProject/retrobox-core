@@ -13,7 +13,12 @@ from yaml.parser import ParserError
 from retrobox.configgen.utils.logger import OK
 from retrobox.paths import (
     BIN_DIR,
+    DATA_DIR,
     IGNORED_SYSTEMS,
+    RECORDINGS,
+    RETROBOX_ROOTDIR,
+    SCREENSHOTS,
+    SHARE_DIR,
     layered_files,
     ES_SYSTEMS_CFG,
     ES_SYSTEMS_TMP,
@@ -151,6 +156,40 @@ def load_systems(base_path: Path | None = None) -> list[tuple[str, dict]]:
     return [system for system in loaded if system is not None]
 
 
+# The placeholders a system's ``path`` may use. EmulationStation does not
+# resolve relative paths (they would follow its working directory), so every
+# path is made absolute here.
+PATH_PLACEHOLDERS: Final[Mapping[str, Path]] = {
+    "data": DATA_DIR,
+    "roms": ROMS,
+    "screenshots": SCREENSHOTS,
+    "recordings": RECORDINGS,
+    "share": SHARE_DIR,
+    "root": RETROBOX_ROOTDIR,
+}
+
+
+def expand_system_path(text: str) -> Path:
+    """A system's ``path`` from its YAML, as the absolute path ES gets.
+
+    ``{data}``, ``{roms}``, ``{screenshots}``, ``{recordings}``, ``{share}``
+    and ``{root}`` stand for Retrobox's folders (as retrobox.ini or the
+    environment set them), and ``~`` for the home; what is still relative is
+    taken from the data folder.
+
+    Raises:
+        ValueError: The path names a placeholder that doesn't exist.
+    """
+    expanded = text
+    for name, folder in PATH_PLACEHOLDERS.items():
+        expanded = expanded.replace(f"{{{name}}}", str(folder))
+    if "{" in expanded and "}" in expanded:
+        raise ValueError(f"unknown placeholder in path {text!r} "
+                         f"(known: {', '.join(PATH_PLACEHOLDERS)})")
+    path = Path(expanded).expanduser()
+    return path if path.is_absolute() else DATA_DIR / path
+
+
 def system_roms_path(sys_name: str, sys_content: Mapping[str, Any]) -> Path:
     """The folder EmulationStation reads a system's games from (its ``path``).
 
@@ -160,18 +199,20 @@ def system_roms_path(sys_name: str, sys_content: Mapping[str, Any]) -> Path:
 
     Returns:
         The PC-games folder of the store systems (where their sync writes), the
-        ``path`` of the YAML if it has one, else ``<roms_dir>/<system>``.
+        ``path`` of the YAML if it has one (see ``expand_system_path``), else
+        ``<roms_dir>/<system>``.
     """
     if sys_name in PCGAMES_SYSTEMS:
         # Must match where the PC-games sync writes ([core] <system>_sync).
         return pcgames_roms_dir(sys_name)
-    return Path(str(sys_content.get("path") or ROMS / sys_name))
+    if path := sys_content.get("path"):
+        return expand_system_path(str(path))
+    return ROMS / sys_name
 
 
 def _append_system(root: ET.Element, sys_name: str, sys_content: dict) -> None:
     """Append the <system> node of one system to `root`, filling in defaults."""
-    if sys_name in PCGAMES_SYSTEMS or "path" not in sys_content:
-        sys_content["path"] = str(system_roms_path(sys_name, sys_content))
+    sys_content["path"] = str(system_roms_path(sys_name, sys_content))
     sys_content.setdefault("command", " ".join(DEFAULT_COMMAND))
 
     system_elem = ET.SubElement(root, "system")

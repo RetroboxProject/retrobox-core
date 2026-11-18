@@ -39,8 +39,7 @@ This project brings the parts that matter most to a desktop Linux installation:
 EmulationStation (separate package)
     └── on game launch → bin/retrobox-launch      (python3 -m retrobox.launcher)
             ├── configgen   (lib/retrobox/configgen: writes emulator configs, builds the command)
-            │       ├── libexec/stubs/batocera-resolution  (stub → kscreen-doctor / wlr-randr / xrandr)
-            │       └── libexec/stubs/batocera-vulkan      (stub → vulkaninfo)
+            │       └── libexec/stubs/batocera-resolution  (stub → kscreen-doctor / wlr-randr / xrandr)
             └── retrobox-inputd  (retrobox-overlay package: hotkeys and pad2key profiles while the game runs)
 ```
 
@@ -102,17 +101,18 @@ Emulators that keep their binary and their config together (redream, supermodel)
 Two folders of `share/` describe what EmulationStation offers; both are layered (see above), so a file of the same name in `/etc/retrobox` or `~/.config/retrobox` replaces the shipped one and a new file adds to it:
 
 - `share/systems/<manufacturer>/<system>.yaml`: one system per file (the key is the system name and must match the file name): full name, ROM extensions, theme and the emulators and cores that can run it, with the default one. `share/systems/defaults.yml` holds the options every system starts from. `retrobox` turns the tree into EmulationStation's `es_systems.cfg` at every start.
+- A system's `path` (where EmulationStation finds its games) defaults to `<roms_dir>/<system>`. Set in the YAML, it may use `{data}`, `{roms}`, `{screenshots}`, `{recordings}`, `{share}` and `{root}` for Retrobox's folders (as retrobox.ini and the environment set them) and `~` for the home; a relative path starts at the data folder. EmulationStation gets it absolute. Retrobox's own entries use them: the image viewer shows `{screenshots}`, *Recordings* `{recordings}`, *Library* `{data}/library` and *Apps* `{data}/apps`.
 - `share/emulator_options/<emulator>[_<core>].yaml`: the options menu of an emulator or of one of its cores (the `emulator_name` and `core_name` keys), with the shared ones listed in `_global_config.yaml`. An emulator file can also hold a `systems:` block with options for one system only. They become `es_features.cfg`.
 
 Arcade coverage is deliberately small: `mame` (with the older `mame2003` and `mame2010`), `fbneo`, `dice`, Sega `model1`, `model2`, `model3`, `naomi`, `atomiswave` and `systemsp`, and `triforce`. Game-specific engines (fantasy consoles, the Quake, Doom 3 and Cave Story ports...) are not shipped, except `prboom`; drop a system file in your configuration layer to add one.
 
 ### Stubs for batocera-only binaries
 
-batocera ships several system-specific binaries that don't exist on a standard Linux install. Replacements (in `libexec/stubs/`):
+batocera ships system-specific binaries that don't exist on a standard Linux install. configgen still calls one of them, replaced in `libexec/stubs/`:
 
 - **`batocera-resolution`**: bash wrapper over `kscreen-doctor` (KDE Wayland), `wlr-randr` (wlroots compositors) or `xrandr` (X11)
-- **`batocera-vulkan`**: reimplemented with `vulkaninfo`
-- **`batocera-keyboard`**, **`getLocalXDisplay`**: minimal replacements for the configgen calls that expect them
+
+The Vulkan checks run `vulkaninfo` from Python (`configgen/utils/vulkan.py`).
 
 ### Emulator configuration
 
@@ -338,7 +338,7 @@ Install directory (read-only):
 
 ```
 <install dir>/                 # a checkout, or /opt/retrobox: the repo IS the installed tree
-├── bin/                       # commands: retrobox (/usr/bin/retrobox in the packages), retrobox-launch, retrobox-emukill, retrobox-exit, retrobox-screenshot...
+├── bin/                       # commands: retrobox (/usr/bin/retrobox in the packages), retrobox-launch, retrobox-emukill, retrobox-screenshot...
 ├── lib/
 │   └── retrobox/              # the Python package: paths, startup, launcher, configgen, utils
 ├── libexec/                   # internal helpers: emuconfig/ (per-emulator config launchers), stubs/, mangohud/ (from the retrobox-mangohud component)

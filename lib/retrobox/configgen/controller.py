@@ -9,7 +9,6 @@ from dataclasses import InitVar, dataclass, field, replace
 from pathlib import Path
 from typing import TYPE_CHECKING, Final, Literal, Self, TypedDict, Unpack, cast
 
-import evdev
 
 from retrobox.paths import FRONTEND_DIR, _USER_HOME, ES_INPUT_CFG, RUNTIME_DIR
 

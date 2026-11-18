@@ -8,7 +8,7 @@ from retrobox.configgen.generators.azahar.azahar_paths import _AZAHAR_XDG, AZAHA
 from retrobox.configgen.hotkeys import HotkeyAction, Keys
 
 from ... import Command
-from retrobox.paths import CACHE, SAVES, SCREENSHOTS, ensure_parents_and_open
+from retrobox.paths import CACHE, SCREENSHOTS, ensure_parents_and_open
 from ...controller import Controller, generate_sdl_game_controller_config
 from ...utils import vulkan
 from ...utils.configparser import CaseSensitiveRawConfigParser
@@ -50,9 +50,6 @@ class AzaharGenerator(Generator):
             }
         )
 
-    # Show mouse on screen
-    def getMouseMode(self, config, rom):
-        return config.get("azahar_screen_layout") != '1-false'
 
     @staticmethod
     def writeAZAHARConfig(
