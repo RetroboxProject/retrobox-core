@@ -25,3 +25,11 @@ dreamcast:
     redream:
       cores:
         redream: {}
+  # md5 of the known good dump: batocera-systems (batocera.linux)
+  bios:
+  # Flycast and Redream boot without it (a replacement BIOS of their own),
+  # but a few games need the real one
+  - file: dc/dc_boot.bin
+    md5: e10c53c2f8b90bab96ead2d368858623
+    note: Dreamcast BIOS
+    optional: true

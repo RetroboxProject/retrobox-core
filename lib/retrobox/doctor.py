@@ -28,13 +28,19 @@ from collections.abc import Callable, Iterator
 from dataclasses import asdict, dataclass
 from enum import StrEnum
 from pathlib import Path
-from typing import Final
+from typing import TYPE_CHECKING, Final
 
 from retrobox import paths
+
+if TYPE_CHECKING:
+    from types import ModuleType
+
+    from retrobox.bios import Requirement
 
 _COMMAND_TIMEOUT: Final = 10.0
 _LOW_SPACE_BYTES: Final = 2 * 1024**3
 _OVERLAY_MIN_VERSION: Final = (0, 5, 5)
+_BIOS_SECTION: Final = "BIOS"
 
 # import name -> what needs it
 _REQUIRED_MODULES: Final = {
@@ -396,6 +402,98 @@ def check_emulators() -> Iterator[Check]:
                     "retrobox --install-emulator NAME (or a game offers it)")
 
 
+def _has_roms(system: str) -> bool:
+    """Whether the ROM folder of ``system`` holds anything but its _info.txt."""
+    try:
+        return any(
+            not entry.name.startswith(".") and entry.name != "_info.txt"
+            for entry in (paths.ROMS / system).iterdir()
+        )
+    except OSError:
+        return False
+
+
+def _bios_hint(requirement: Requirement) -> str:
+    """Where to put the files that meet a requirement."""
+    files = requirement.files
+    if len(files) == 1 and files[0].is_glob:
+        pattern = Path(files[0].path)
+        return f"put a dump (any {pattern.name}) in {paths.BIOS / pattern.parent}"
+    names = [f"{file.path} ({file.note})" if file.note else file.path for file in files]
+    if len(names) == 1:
+        return f"put {names[0]} in {paths.BIOS}"
+    shown = ", ".join(names[:3]) + (f" (or {len(names) - 3} more)" if len(names) > 3 else "")
+    return f"put one of {shown} in {paths.BIOS}"
+
+
+def check_bios() -> Iterator[Check]:
+    """The BIOS of the systems that have ROMs, for the emulator each one runs with."""
+    section = _BIOS_SECTION
+    try:
+        # pylint: disable-next=import-outside-toplevel  # needs PyYAML
+        from retrobox import bios
+        # pylint: disable-next=import-outside-toplevel
+        from retrobox.startup.frontend_conf.system_list_generator import load_systems
+        # pylint: disable-next=import-outside-toplevel
+        from retrobox.utils.es_settings import read_es_settings
+
+        systems = [(name, content) for name, content in load_systems() if _has_roms(name)]
+    except (ImportError, OSError) as error:
+        yield Check(section, "Systems", Status.INFO, f"not checked ({error})")
+        return
+
+    settings = read_es_settings(paths.ES_SETTINGS_CFG)
+    requirements = bios.load_requirements(systems)
+    if not requirements:
+        yield Check(section, "Systems", Status.OK, "no system with ROMs needs a BIOS")
+        return
+    for name, content in sorted(systems):
+        if name not in requirements:
+            continue
+        emulator = settings.get(f"{name}.emulator", "")
+        core = settings.get(f"{name}.core", "") if emulator else ""
+        if not emulator or emulator == "auto":
+            emulator, core = bios.default_emulator(content)
+        yield from _check_system_bios(bios, name, emulator, core, requirements[name])
+
+
+def _check_system_bios(bios: ModuleType, name: str, emulator: str, core: str,
+                       requirements: list[Requirement]) -> Iterator[Check]:
+    """The BIOS lines of one system run with ``emulator``: its problems, or one OK line."""
+    section = _BIOS_SECTION
+    chosen = emulator if core in ("", emulator) else f"{emulator}/{core}"
+    found: list[str] = []
+    reported: set[Path] = set()
+    problems = False
+    for result in bios.check(requirements):
+        requirement = result.requirement
+        needed = requirement.required_by(emulator, core)
+        if result.state is bios.State.FOUND:
+            found.append(result.files[0].name)
+        elif result.state is bios.State.WRONG:
+            problems = True
+            wrong = [path for path in result.files if path not in reported]
+            reported.update(wrong)
+            if wrong:
+                yield Check(section, name, Status.WARN if needed else Status.INFO,
+                            f"{', '.join(path.name for path in wrong)}: not a known dump "
+                            f"of the {requirement.name}",
+                            "games may not start with it: use a good dump (its MD5 is checked)")
+        elif needed:
+            problems = True
+            yield Check(section, name, Status.ERROR,
+                        f"{requirement.name} missing, {chosen} needs it", _bios_hint(requirement))
+        elif not requirement.optional and requirement.required_for:
+            problems = True
+            yield Check(section, name, Status.INFO,
+                        f"{requirement.name} missing: {chosen} runs without it, "
+                        f"{', '.join(requirement.required_for)} need it",
+                        _bios_hint(requirement))
+    if not problems:
+        detail = f"{', '.join(found)} ({chosen})" if found else f"nothing needed by {chosen}"
+        yield Check(section, name, Status.OK, detail)
+
+
 def check_achievements() -> Iterator[Check]:
     """RetroAchievements, as EmulationStation's menu set it (no secret is shown)."""
     section = "RetroAchievements"
@@ -432,6 +530,7 @@ CHECKS: Final[tuple[Callable[[], Iterator[Check]], ...]] = (
     check_power,
     check_folders,
     check_emulators,
+    check_bios,
     check_achievements,
 )
 

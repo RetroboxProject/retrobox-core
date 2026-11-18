@@ -40,7 +40,7 @@ DEFAULT_COMMAND = [
     "-systemname", "%SYSTEMNAME%"
 ]
 # Keys of a system's YAML for Retrobox itself, not for EmulationStation.
-RETROBOX_ONLY_KEYS: Final = frozenset({"disc_drive"})
+RETROBOX_ONLY_KEYS: Final = frozenset({"disc_drive", "bios"})
 
 def _build_core_attributes(core_props):
     """Extract and format a core's attributes (default, incompatible_extensions)."""

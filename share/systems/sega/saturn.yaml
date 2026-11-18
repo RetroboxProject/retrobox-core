@@ -36,3 +36,28 @@ saturn:
           - .iso
           - .zip
           - .mds
+  # md5 of the known good dumps: batocera-systems (batocera.linux)
+  bios:
+  - name: Saturn BIOS
+    one_of:
+    - file: mpr-17933.bin
+      md5: 3240872c70984b6cbfda1586cab68dbe
+      note: USA and Europe
+    - file: sega_101.bin
+      md5: 85ec9ca47d8f6807718151cbcca8b964
+      note: Japan
+    # it wants the one of each game's region; Kronos and YabaSanshiro have a
+    # replacement BIOS of their own
+    required_for: [libretro/mednafen_saturn, ares]
+  - file: saturn_bios.bin
+    md5: af5828fdff51384f99b3c4926be27762
+    note: the BIOS Kronos and YabaSanshiro use instead of their own
+    optional: true
+  - file: mpr-18811-mx.ic1
+    md5: 255113ba943c92a54facd25a10fd780c
+    note: The King of Fighters '95 cartridge (Beetle Saturn)
+    optional: true
+  - file: mpr-19367-mx.ic1
+    md5: 1cd19988d1d72a3e7caa0b73234c96b4
+    note: Ultraman cartridge (Beetle Saturn)
+    optional: true

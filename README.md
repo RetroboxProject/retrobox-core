@@ -114,6 +114,12 @@ batocera ships system-specific binaries that don't exist on a standard Linux ins
 
 The Vulkan checks run `vulkaninfo` from Python (`configgen/utils/vulkan.py`).
 
+### BIOS
+
+A system declares the BIOS files it needs in its own YAML, under `bios:` (the format is described in `lib/retrobox/bios.py`, the only code that reads it). Each entry is a requirement met by one file, or by any of its `one_of` alternatives (one per region, say), with the MD5 of the known good dumps (taken from batocera's list) or a glob such as `pcsx2/bios/*.bin` when any dump will do. `required_for` names the emulators or cores that can't run the system without it (none: all of them), and `optional: true` marks a file that only helps. Like the rest of a system's YAML, a copy in `~/.config/retrobox/systems/` replaces the shipped one.
+
+`retrobox --doctor` checks the BIOS of every system that has ROMs, for the emulator it runs with (its default, or the one chosen in EmulationStation): an error when that emulator needs a file that is missing, a warning when a file is there but is not a known dump, a note when only other emulators of the system need it. The MD5s are cached in `~/.cache/retrobox/bios-md5.json`, so only new or changed files are read. PlayStation, PlayStation 2, Saturn, Dreamcast and Nintendo DS have their BIOS declared so far.
+
 ### Emulator configuration
 
 Each emulator gets its own `XDG_CONFIG_HOME` under `~/.config/retrobox/emulators/<emu>` (RetroArch: `~/.config/retrobox/emulators/retroarch/retroarch/retroarch.cfg`), so nothing in your regular `~/.config` is touched. Controller configs use SDL device names instead of batocera's evdev ones where the emulator supports it (Dolphin, Azahar...).
@@ -331,7 +337,7 @@ dev/check.sh                              # everything CI checks
 dev/check.sh tests | pylint | shell       # one part
 ```
 
-- **tests:** `tests/` (pytest) covers the parts that run without hardware: the configuration layers and `[paths]` of `retrobox.ini`, the bezel lookup order, the systems and emulator options and the `es_systems.cfg` / `es_features.cfg` built from them (every emulator a system offers must have a working generator), the ROM folders, the store's unpacking of untrusted packages, the idle inhibitor, the desktop notifications, RetroAchievements (the shared account, PCSX2, Dolphin and RetroArch), the doctor, the `retrobox` command line, the installers' shared library and where emulators are found. They never touch your home: every run gets its own home, XDG and `/etc/retrobox` in a temporary directory. CI runs them on Ubuntu 24.04, Debian 13 and Fedora with the distribution's own Python packages.
+- **tests:** `tests/` (pytest) covers the parts that run without hardware: the configuration layers and `[paths]` of `retrobox.ini`, the bezel lookup order, the systems and emulator options and the `es_systems.cfg` / `es_features.cfg` built from them (every emulator a system offers must have a working generator), the ROM folders, the store's unpacking of untrusted packages, the idle inhibitor, the desktop notifications, RetroAchievements (the shared account, PCSX2, Dolphin and RetroArch), the BIOS declarations and their check, the doctor, the `retrobox` command line, the installers' shared library and where emulators are found. They never touch your home: every run gets its own home, XDG and `/etc/retrobox` in a temporary directory. CI runs them on Ubuntu 24.04, Debian 13 and Fedora with the distribution's own Python packages.
 - **pylint:** strict for all the Python code except `lib/retrobox/configgen`, which comes from batocera and is held to `dev/pylint-baseline.json` instead (all messages but `duplicate-code`): a file may not get a message it didn't have, so it only gets cleaner. After cleaning some of it, lower the baseline with `python3 dev/pylint_baseline.py --update`.
 - **shell:** `bash -n` and `shellcheck --severity=warning` on every shell script.
 
@@ -353,7 +359,7 @@ retrobox --version | --help
 
 One action per call: anything else on the command line is an error, and so is an unknown option (arguments for EmulationStation go after `--`). Each start also warns, without stopping, when something essential is missing (Python modules, EmulationStation, the overlay's input daemon).
 
-`retrobox --doctor` checks, without changing anything, what Retrobox needs on this computer: the Python modules, EmulationStation, the overlay and MangoHud, a theme, the graphical session and the tool that changes screen modes on it, Vulkan, controllers, the `input` group, `/dev/uinput` and the udev rules, what keeps the computer awake during games, the ROMs and BIOS folders and free space, the installed emulators and the RetroAchievements account. Each line says `[ OK ]`, `[INFO]`, `[WARN]` (works worse, or not in every game) or `[ERR ]` (games won't start), with how to fix it; it exits with 1 when there is an error. `--json` prints the same for a bug report; the RetroAchievements token and password are never printed, only whether they are set.
+`retrobox --doctor` checks, without changing anything, what Retrobox needs on this computer: the Python modules, EmulationStation, the overlay and MangoHud, a theme, the graphical session and the tool that changes screen modes on it, Vulkan, controllers, the `input` group, `/dev/uinput` and the udev rules, what keeps the computer awake during games, the ROMs and BIOS folders and free space, the installed emulators, the BIOS of the systems you have ROMs for and the RetroAchievements account. Each line says `[ OK ]`, `[INFO]`, `[WARN]` (works worse, or not in every game) or `[ERR ]` (games won't start), with how to fix it; it exits with 1 when there is an error. `--json` prints the same for a bug report; the RetroAchievements token and password are never printed, only whether they are set.
 
 The settings window (PySide6 or PyQt6) covers the folders, the hidden systems, the PC games sync and the advanced keys of `retrobox.ini`, and saves them in the user layer. It is also the *Settings* action of the application menu entry.
 

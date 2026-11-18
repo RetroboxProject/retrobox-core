@@ -21,3 +21,32 @@ nds:
     melonds:
       cores:
         melonds: {}
+  # md5 of the known good dumps: batocera-systems (batocera.linux)
+  bios:
+  # melonDS has free replacements for the DS ones; the real dumps are more
+  # compatible (and needed for the DS menu), the DSi ones only for DSi mode
+  - file: bios7.bin
+    md5: df692a80a5b1bc90728bc3dfc76cd948
+    note: DS ARM7 BIOS
+    optional: true
+  - file: bios9.bin
+    md5: a392174eb3e572fed6447e956bde4b25
+    note: DS ARM9 BIOS
+    optional: true
+  - file: firmware.bin
+    note: DS firmware (each console's own dump)
+    optional: true
+  - file: dsi_bios7.bin
+    md5: 559dae4ea78eb9d67702c56c1d791e81
+    note: DSi ARM7 BIOS
+    optional: true
+  - file: dsi_bios9.bin
+    md5: 87b665fce118f76251271c3732532777
+    note: DSi ARM9 BIOS
+    optional: true
+  - file: dsi_firmware.bin
+    note: DSi firmware
+    optional: true
+  - file: dsi_nand.bin
+    note: DSi NAND
+    optional: true

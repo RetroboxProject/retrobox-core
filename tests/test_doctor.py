@@ -43,7 +43,7 @@ def test_every_section_reports(tmp_path: Path) -> None:
     sections = {check["section"] for check in report["checks"]}
     assert sections == {
         "Retrobox", "Components", "Display", "Input", "Power", "Folders", "Emulators",
-        "RetroAchievements",
+        "BIOS", "RetroAchievements",
     }
     assert {check["status"] for check in report["checks"]} <= {"OK", "INFO", "WARN", "ERR"}
 

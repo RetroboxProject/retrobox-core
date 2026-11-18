@@ -35,3 +35,11 @@ ps2:
           - .m3u
           options:
             hud_support: true
+  bios:
+  - name: PlayStation 2 BIOS
+    one_of:
+    # any dump does; PCSX2 prefers ps2-0230e-20080220.bin (Europe, 2008), and
+    # a game can ask for another one (pcsx2_forcebios)
+    - file: pcsx2/bios/*.bin
+    # Play! runs without one
+    required_for: [pcsx2, libretro/pcsx2]
