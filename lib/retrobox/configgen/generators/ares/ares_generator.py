@@ -12,12 +12,9 @@ from ..Generator import Generator
 from . import ares_config
 from .ares_paths import (
     _ARES_CFGDIR,
-    _ARES_LIBDIR,
     _ARES_SAVES,
-    _ARES_SHADERS_DIR,
-    _ARES_SHARE,
     _ARES_XDG,
-    ARES_BIN,
+    ARES,
 )
 from .ares_systems import ares_system_name
 
@@ -59,8 +56,10 @@ class AresGenerator(Generator):
         gameResolution,  # name fixed by the Generator interface
     ):
         """Write settings.bml and return the command that starts Ares."""
-        self.check_if_exists(ARES_BIN, system.config.emulator)
-        self.check_if_exists(_ARES_SHARE, system.config.emulator)
+        ares = ARES.require()
+        # its data and librashader, under the prefix it was installed in
+        share = ARES.prefix_of(ares) / "share" / "ares"
+        self.check_if_exists(share, system.config.emulator)
 
         # make sure the config and save folders exist
         mkdir_if_not_exists(_ARES_CFGDIR)
@@ -70,12 +69,12 @@ class AresGenerator(Generator):
         # write settings.bml before starting
         ares_config.write_ares_config(system, playersControllers)
 
-        command_array = [str(ARES_BIN)]
+        command_array = [str(ares)]
         args_array: list[str] = []
 
         # the shader must be loaded from the command line
         shader_cfg = system.renderconfig.get("shader")
-        if ares_config.resolve_shader(shader_cfg, _ARES_SHADERS_DIR) != "None":
+        if ares_config.resolve_shader(shader_cfg, share / "Shaders") != "None":
             args_array = ["--shader", shader_cfg]
 
         # systems that share file extensions are told apart by name
@@ -93,6 +92,6 @@ class AresGenerator(Generator):
         env = {
             "XDG_DATA_HOME": str(_ARES_XDG),
             "XDG_CONFIG_HOME": str(_ARES_XDG),
-            "LD_LIBRARY_PATH": str(_ARES_LIBDIR),
+            "LD_LIBRARY_PATH": str(share.parent.parent / "lib"),
         }
         return Command.Command(array=command_array, env=env)

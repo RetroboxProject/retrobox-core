@@ -16,7 +16,7 @@ from ..Generator import Generator
 from . import cemu_config, cemuControllers
 from .cemuPaths import (
     _CEMU_XDG,
-    CEMU_BIN,
+    CEMU,
     CEMU_BIOS,
     CEMU_CONFIG,
     CEMU_CONTROLLER_PROFILES,
@@ -76,9 +76,9 @@ class CemuGenerator(Generator):
         cemuControllers.generateControllerConfig(system, playersControllers)
 
         if configure_emulator(rom):
-            command_array = [CEMU_BIN]
+            command_array = [CEMU.require()]
         else:
-            command_array = [CEMU_BIN, "-f", "-g", rom, "--force-no-menubar"]
+            command_array = [CEMU.require(), "-f", "-g", rom, "--force-no-menubar"]
 
         return Command.Command(
             array=command_array,

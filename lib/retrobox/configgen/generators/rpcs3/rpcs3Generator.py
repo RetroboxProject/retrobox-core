@@ -14,7 +14,7 @@ from ...utils import vulkan
 from ...utils.configparser import CaseSensitiveConfigParser
 from ..Generator import Generator
 from . import rpcs3Controllers
-from .rpcs3Paths import _RPCS3_XDG, RPCS3_BIN, RPCS3_CONFIG, _RPCS3_CFGDIR, RPCS3_CURRENT_CONFIG
+from .rpcs3Paths import _RPCS3_XDG, RPCS3, RPCS3_CONFIG, _RPCS3_CFGDIR, RPCS3_CURRENT_CONFIG
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -262,16 +262,16 @@ class Rpcs3Generator(Generator):
             rom_name = rom / "PS3_GAME" / "USRDIR" / "EBOOT.BIN"
 
         if rom_name:
-            command_array: list[Path | str] = [RPCS3_BIN, rom_name]
+            command_array: list[Path | str] = [RPCS3.require(), rom_name]
         else:
-            command_array: list[Path | str] = [RPCS3_BIN]
+            command_array: list[Path | str] = [RPCS3.require()]
 
         if not system.config.get_bool("rpcs3_gui") and rom_name:
             command_array.append("--no-gui")
 
         # firmware not installed and available : instead of starting the game, install it
         if Rpcs3Generator.getFirmwareVersion() is None and (BIOS / "PS3UPDAT.PUP").exists():
-            command_array = [RPCS3_BIN, "--installfw", BIOS / "PS3UPDAT.PUP"]
+            command_array = [RPCS3.require(), "--installfw", BIOS / "PS3UPDAT.PUP"]
 
         return Command.Command(
             array=command_array,

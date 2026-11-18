@@ -11,7 +11,7 @@ from retrobox.paths import BIOS, MAME_SOFTWARE_DIR, mkdir_if_not_exists
 
 from .mame_autorun import autorun_options
 from .mame_game import SUBDIR_SOFT_LISTS
-from .mamePaths import MAME_SAVES
+from .mamePaths import MAME_SAVES, mame_data_dir
 
 if TYPE_CHECKING:
     from .mame_command import CommandLine
@@ -22,7 +22,6 @@ _logger = logging.getLogger(__name__)
 _MAC_FLOPPY_BOOTS = ("macos30", "macos608", "macos701", "macos75")
 _APPLE2_DISK_EXTENSIONS = {".hdv", ".2mg", ".chd", ".iso", ".bin", ".cue"}
 _MAC_RAM_MODELS = ("maciix", "maclc3")
-_MAME_HASH_DIR = "/usr/bin/mame/hash"
 _BLANK_DISK_DEFAULT = Path("/usr/share/mame/blank.default")
 _BLANK_DISK_FMTOWNS = Path("/usr/share/mame/blank.fmtowns")
 _MAX_MACLC3_RAM = 80
@@ -180,7 +179,8 @@ def _prepare_soft_list(game: MameGame) -> CommandLine:
         if check_file.is_dir():
             shutil.rmtree(check_file)
     mkdir_if_not_exists(soft_dir / "hash")
-    (soft_dir / "hash" / f"{soft_list}.xml").symlink_to(f"{_MAME_HASH_DIR}/{soft_list}.xml")
+    hash_file = f"{soft_list}.xml"
+    (soft_dir / "hash" / hash_file).symlink_to(mame_data_dir() / "hash" / hash_file)
 
     rom_dir = game.rom.parent
     if soft_list in SUBDIR_SOFT_LISTS:

@@ -21,11 +21,9 @@ where there is one, see retrobox.startup.input_daemon): it opens Retrobox's
 overlay when a controller's hotkey is held, in a game or not, and maps the
 game's controllers to keys while a game runs.
 
-Accepts three flags of its own, "--update-default-theme",
-"--update-default-bezels" and "--update-default-shaders", which download
-that content again (updating or reinstalling it) before startup. Every
-other argument is forwarded to EmulationStation untouched, except the
-retired "--pcgames-sync" flag, which is dropped with a warning.
+Every argument is forwarded to EmulationStation untouched (``retrobox --
+ARGS...``). Before anything else, what Retrobox needs is checked and what is
+missing is reported (see retrobox.doctor.startup_warnings), without stopping.
 """
 
 from __future__ import annotations
@@ -62,6 +60,7 @@ from retrobox.paths import (
     mkdir_if_not_exists,
 )
 from retrobox.configgen.utils.logger import setup_logging
+from retrobox.doctor import startup_warnings
 from retrobox.launcher.hooks import call_retrohook
 from retrobox.startup.frontend_conf.audio_settings import ensure_audio_mixer
 from retrobox.startup.frontend_conf.es_ini_generator import (
@@ -168,18 +167,15 @@ def setup_emulationstation_config() -> None:
     ensure_audio_mixer()
 
 
-def download_before_start(updates: frozenset[str]) -> None:
+def download_before_start() -> None:
     """Download the default theme, bezels and shaders if due (see downloads.pending).
 
     The download runs on the overlay's task screen, so its progress is visible
     (and it can be cancelled). Without the overlay installed nothing is
-    downloaded (``retrobox --download-default`` does it by hand); if it is
-    there but cannot open a screen, it runs here, in the log.
-
-    Args:
-        updates: Packages to download again anyway ("theme", "bezels", "shaders").
+    downloaded (``retrobox --download`` does it by hand); if it is there but
+    cannot open a screen, it runs here, in the log.
     """
-    keys = pending(updates)
+    keys = pending()
     if not keys:
         return
     if not overlay_available():
@@ -197,14 +193,12 @@ def download_before_start(updates: frozenset[str]) -> None:
         install_all(keys)
 
 
-def run_emulationstation(args: list[str], updates: frozenset[str] = frozenset()) -> int:
+def run_emulationstation(args: list[str]) -> int:
     """
     Execute the EmulationStation binary with the provided arguments.
 
     Args:
         args: List of command-line arguments to pass to EmulationStation.
-        updates: Default content to download again before starting
-            ("theme", "bezels", "shaders").
 
     Returns:
         The return code of the EmulationStation process.
@@ -222,7 +216,7 @@ def run_emulationstation(args: list[str], updates: frozenset[str] = frozenset())
         _logger.error("EmulationStation binary not found at %s", ES_EXECUTABLE)
         return 1
 
-    download_before_start(updates)
+    download_before_start()
 
     # Force SDL2 to use the native Wayland backend instead of falling back
     # to XWayland/XRandR. "wayland,x11" keeps x11 as a fallback in case the
@@ -304,17 +298,6 @@ def _handle_sigterm(signum: int, frame: types.FrameType | None) -> None:
     """
     raise SystemExit(128 + signum)
 
-# Replaced by the [core] *_sync keys of retrobox.ini; still dropped so that
-# old shortcuts don't pass it on to EmulationStation.
-_RETIRED_PCGAMES_SYNC_FLAG = "--pcgames-sync"
-# flag -> package of retrobox.startup.downloads
-_UPDATE_FLAGS = {
-    "--update-default-theme": "theme",
-    "--update-default-bezels": "bezels",
-    "--update-default-shaders": "shaders",
-}
-
-
 def main() -> int:
     """Run the Retrobox startup script, logging to stdout/stderr and
     LOGS/retrobox-startup.log.
@@ -328,10 +311,9 @@ def main() -> int:
 def _main() -> int:
     """Run the main entry point for the Retrobox startup script.
 
-    Syncs the installed PC games as retrobox.ini says (see sync_pcgames())
-    and passes every argument straight through to the "emulationstation"
-    binary, except the --update-default-* flags (consumed here) and the
-    retired "--pcgames-sync".
+    Reports what is missing (see startup_warnings()), syncs the installed PC
+    games as retrobox.ini says (see sync_pcgames()) and passes every argument
+    straight through to the "emulationstation" binary.
 
     Returns:
         The exit code of the application.
@@ -340,15 +322,8 @@ def _main() -> int:
     signal.signal(signal.SIGTERM, _handle_sigterm)
 
     args = sys.argv[1:]
-    updates = frozenset(_UPDATE_FLAGS[arg] for arg in args if arg in _UPDATE_FLAGS)
-    args = [arg for arg in args if arg not in _UPDATE_FLAGS]
-    if _RETIRED_PCGAMES_SYNC_FLAG in args:
-        args = [arg for arg in args if arg != _RETIRED_PCGAMES_SYNC_FLAG]
-        _logger.warning(
-            "%s is gone: set steam_sync, heroic_sync and lutris_sync under [core] "
-            "in retrobox.ini instead. Ignoring it.",
-            _RETIRED_PCGAMES_SYNC_FLAG,
-        )
+    for warning in startup_warnings():
+        _logger.warning("%s", warning)
 
     if not RETROBOX_ROOTDIR.is_dir():
         _logger.error("Invalid Retrobox directory: %s", RETROBOX_ROOTDIR)
@@ -368,7 +343,7 @@ def _main() -> int:
     create_roms_dirs()
 
     try:
-        return run_emulationstation(args, updates=updates)
+        return run_emulationstation(args)
     finally:
         teardown()
 

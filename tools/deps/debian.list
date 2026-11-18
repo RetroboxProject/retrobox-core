@@ -23,7 +23,6 @@ libxtst6
 libxi6
 libnotify-bin
 inotify-tools
-jq
 unzip
 wget
 zstd

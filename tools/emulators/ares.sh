@@ -1,105 +1,48 @@
 #!/usr/bin/env bash
-## ARES INSTALLER (+ librashader)
-## Created: 3 August 2026
-set -eo pipefail
-
-## VARIABLES
-
-RETROBOX_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/../.. >/dev/null 2>&1 && pwd -P)"
-source "${RETROBOX_ROOT}/tools/lib/paths.sh"
-INSTALL_DIR="${RETROBOX_EMULATORS_DIR}/ares"
-SRC_DIR="${RETROBOX_EMULATORS_DIR}/_src"
-ARES_SRC="${SRC_DIR}/ares"
-LIBRASHADER_SRC="${SRC_DIR}/librashader"
-ARES_REPO="https://github.com/ares-emulator/ares.git"
-LIBRASHADER_REPO="https://github.com/SnowflakePowered/librashader.git"
-
-## FUNCTIONS
-
-function error() {
-  echo "[ERROR] $*."
-  exit 1
-}
-
-function ares_uninstall() {
-  rm -r "${INSTALL_DIR}"
-}
-
-function check_deps() {
-  local -a pkgs=(
-    git cmake ninja-build build-essential pkg-config
-    libsdl3-dev libgtk-3-dev libx11-dev libxext-dev libice-dev
-    libgl-dev libglu1-mesa-dev
-  )
-  echo "[INFO] Checking build dependencies..."
-  sudo apt-get install -y "${pkgs[@]}"
-
-  if ! command -v rustup &> /dev/null; then
-    error "rustup is not installed. librashader needs a nightly Rust toolchain. Install it from https://rustup.rs and run the script again"
-  fi
-  rustup toolchain list | grep -q '^nightly' || rustup toolchain install nightly
-}
-
-function build_ares() {
-  echo "[INFO] Cloning ares..."
-  git clone --depth 1 "${ARES_REPO}" "${ARES_SRC}"
-
-  echo "[INFO] Building ares..."
-  cmake -S "${ARES_SRC}" -B "${ARES_SRC}/build" -G Ninja \
-    -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}" \
-    -DCMAKE_BUILD_TYPE=Release
-  ninja -C "${ARES_SRC}/build"
-
-  echo "[INFO] Installing ares into ${INSTALL_DIR}..."
-  ninja -C "${ARES_SRC}/build" install
-
-  # Safety net: if CMake's install() does not put sourcery/ares in bin/,
-  # look for them in the build tree and copy them by hand.
-  mkdir -p "${INSTALL_DIR}/bin"
-  for bin in ares sourcery; do
-    if [[ ! -x "${INSTALL_DIR}/bin/${bin}" ]]; then
-      local found
-      found="$(find "${ARES_SRC}/build" -maxdepth 4 -type f -name "${bin}" -perm -u+x | head -n1)"
-      [[ -n "${found}" ]] && cp "${found}" "${INSTALL_DIR}/bin/${bin}"
-    fi
-  done
-}
+# ares (multi-system), built from source with librashader for its shaders.
+# librashader needs a nightly Rust toolchain (https://rustup.rs).
+EMULATOR="ares"
+LABEL="ares"
+# the layout before app/
+LEGACY=(bin lib share)
+# shellcheck source=tools/lib/installer.sh
+source "$(dirname "$(readlink -f "$0")")/../lib/installer.sh"
 
 function build_librashader() {
-  echo "[INFO] Cloning librashader..."
-  git clone --depth 1 "${LIBRASHADER_REPO}" "${LIBRASHADER_SRC}"
-
-  echo "[INFO] Building librashader (nightly, optimized profile)..."
-  (
-    cd "${LIBRASHADER_SRC}"
-    rustup run nightly cargo run -p librashader-build-script -- --profile optimized
-  )
-
-  local so_file
-  so_file="$(find "${LIBRASHADER_SRC}/target" -maxdepth 2 -type f -name 'librashader.so' | head -n1)"
-  [[ -n "${so_file}" ]] || error "librashader.so was not produced by the build"
-
-  mkdir -p "${INSTALL_DIR}/lib"
-  cp "${so_file}" "${INSTALL_DIR}/lib/librashader.so"
+    command -v rustup &>/dev/null \
+        || die "librashader needs a nightly Rust toolchain: install rustup (https://rustup.rs) and run this again"
+    rustup toolchain list | grep -q '^nightly' || rustup toolchain install nightly
+    local source="${TMP_DIR}/librashader" library
+    git clone --depth 1 https://github.com/SnowflakePowered/librashader.git "${source}" \
+        || die "Could not clone librashader"
+    log_info "Building librashader..."
+    (cd "${source}" && rustup run nightly cargo run -p librashader-build-script -- --profile optimized) \
+        || die "The librashader build failed"
+    library="$(find "${source}/target" -maxdepth 2 -type f -name librashader.so | head -n 1)"
+    [[ -n "${library}" ]] || die "The librashader build produced no librashader.so"
+    mkdir -p "${STAGE}/lib"
+    cp "${library}" "${STAGE}/lib/librashader.so"
 }
 
-function ares_source_inst() {
-  mkdir -p "${INSTALL_DIR}" "${SRC_DIR}"
-  check_deps
-  build_ares
-  build_librashader
-
-  echo "[INFO] Cleaning up temporary sources..."
-  rm -rf "${SRC_DIR}"
-
-  echo "[INFO] Installation completed."
+function install_source() {
+    install_packages \
+        "build-essential cmake ninja-build git pkg-config libsdl3-dev libgtk-3-dev
+         libx11-dev libxext-dev libice-dev libgl-dev libglu1-mesa-dev" \
+        "gcc-c++ cmake ninja-build git pkgconf-pkg-config SDL3-devel gtk3-devel
+         libX11-devel libXext-devel libICE-devel mesa-libGL-devel mesa-libGLU-devel"
+    git_clone https://github.com/ares-emulator/ares.git
+    cmake_build
+    cmake_install
+    # older CMake files left the binaries out of the install
+    local binary found
+    for binary in ares sourcery; do
+        [[ -x "${STAGE}/bin/${binary}" ]] && continue
+        found="$(find "${SRC_DIR}/build" -maxdepth 4 -type f -name "${binary}" -perm -u+x | head -n 1)"
+        [[ -n "${found}" ]] && install -D "${found}" "${STAGE}/bin/${binary}"
+    done
+    require_executable bin/ares
+    build_librashader
+    remove_sources
 }
 
-## ENTRY POINT
-case "$1" in
-  "-s") ares_source_inst;;
-  "-u") ares_uninstall;;
-  *)  exit 1;;
-esac
-
-exit 0
+installer_main "$@"

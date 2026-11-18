@@ -15,7 +15,7 @@ from ... import Command
 from ...controller import Controller, generate_sdl_game_controller_config
 from ..Generator import Generator
 from . import ppssppConfig, ppssppControllers
-from .ppssppPaths import _PPSSPP_CFGDIR, _PPSSPP_PSPDIR, _PPSSPP_XDG, PPSSPP_BIN
+from .ppssppPaths import _PPSSPP_CFGDIR, _PPSSPP_PSPDIR, _PPSSPP_XDG, PPSSPP
 
 if TYPE_CHECKING:
     from ...typedefs import Resolution
@@ -82,7 +82,9 @@ class PPSSPPGenerator(Generator):
         if state_filename := system.config.get("state_filename"):
             args_array.append(f"--state={state_filename}")
 
-        command_wrapper = [generate_bash_wrapper(system.config.emulator, PPSSPP_BIN, args_array)]
+        command_wrapper = [
+            generate_bash_wrapper(system.config.emulator, PPSSPP.require(), args_array)
+        ]
 
         return Command.Command(
             array=command_wrapper,

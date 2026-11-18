@@ -25,7 +25,7 @@ from .pcsx2_controllers import (
     use_emulator_wheels,
     wheelTypeMapping,
 )
-from .pcsx2_paths import PCSX2_BIN, PCSX2_DBFILE, _PCSX2_CFGDIR, PCSX2_PATCHES, _PCSX2_XDG
+from .pcsx2_paths import PCSX2, PCSX2_DBFILE, _PCSX2_CFGDIR, PCSX2_PATCHES, _PCSX2_XDG
 
 if TYPE_CHECKING:
     from ...config import SystemConfig
@@ -121,5 +121,5 @@ class Pcsx2Generator(Generator):
         if state_slot := system.config.get_str("state_slot"):
             args.extend(["-stateindex", state_slot])
 
-        command_wrapper = [generate_bash_wrapper(system.config.emulator, PCSX2_BIN, args)]
+        command_wrapper = [generate_bash_wrapper(system.config.emulator, PCSX2.require(), args)]
         return Command.Command(array=command_wrapper, env=env)

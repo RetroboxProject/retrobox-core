@@ -18,7 +18,7 @@ from retrobox.paths import (
 
 from ...utils import videoMode
 from .mame_game import SUBDIR_SOFT_LISTS
-from .mamePaths import MAME_BIOS, MAME_CHEATS, MAME_CONFIG, MAME_ROMS, MAME_SAVES
+from .mamePaths import MAME_BIOS, MAME_CHEATS, MAME_CONFIG, MAME_ROMS, MAME_SAVES, mame_data_dir
 
 if TYPE_CHECKING:
     from ...typedefs import Resolution
@@ -27,8 +27,6 @@ if TYPE_CHECKING:
 
 CommandLine = list[str | Path]
 
-MAME_BIN = "/usr/bin/mame/mame"
-_MAME_DIR = "/usr/bin/mame"
 _ROTATIONS = ("autoror", "autorol")
 _POINTER_OPTIONS = (
     "-dial_device",
@@ -82,8 +80,9 @@ def base_options(game: MameGame) -> CommandLine:
     MAME options used here are explained as it's not always straightforward. A
     lot more options can be configured, just run ``mame -showusage``.
     """
+    data = mame_data_dir()
     art_path = (
-        f"{MAME_ARTWORK_DIR}/;/usr/bin/mame/artwork/;{MAME_BIOS / 'artwork'};"
+        f"{MAME_ARTWORK_DIR}/;{data / 'artwork'}/;{MAME_BIOS / 'artwork'};"
         f"{_DECORATIONS_DEF_DIR};{_DECORATIONS_DIR}"  # first for systems ; second for overlays
     )
     return [
@@ -91,10 +90,10 @@ def base_options(game: MameGame) -> CommandLine:
         "-skip_gameinfo",  # skip game info at start
         "-rompath", _rom_path(game),
         # MAME various paths we can probably do better
-        "-bgfx_path", "/usr/bin/mame/bgfx/",  # core bgfx files can be left on ROM filesystem
-        "-fontpath", "/usr/bin/mame/",  # fonts can be left on ROM filesystem
-        "-languagepath", "/usr/bin/mame/language/",  # translations can be left on ROM filesystem
-        "-pluginspath", f"/usr/bin/mame/plugins/;{MAME_SAVES / 'plugins'}",
+        "-bgfx_path", f"{data / 'bgfx'}/",
+        "-fontpath", f"{data}/",
+        "-languagepath", f"{data / 'language'}/",
+        "-pluginspath", f"{data / 'plugins'}/;{MAME_SAVES / 'plugins'}",
         "-samplepath", MAME_BIOS / "samples",  # current storage location for MAME samples
         "-artpath", art_path,
         "-cheat",  # enable cheats
@@ -252,4 +251,4 @@ def screen_options(system: Emulator) -> CommandLine:
 
 def working_directory() -> str:
     """Return the MAME folder (it lets the data plugin load properly)."""
-    return _MAME_DIR
+    return str(mame_data_dir())

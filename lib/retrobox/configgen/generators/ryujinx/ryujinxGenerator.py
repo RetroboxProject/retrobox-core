@@ -24,7 +24,7 @@ from ..Generator import Generator
 from ..eden.edenPaths import SWITCH_FIRMWARE, SWITCH_KEYS, SWITCH_MODS_DIR
 from .ryujinxPaths import (
     _RYUJINX_XDG,
-    RYUJINX_BIN,
+    RYUJINX,
     RYUJINX_BIS,
     RYUJINX_CONFIG,
     RYUJINX_CONFIG_FILE,
@@ -153,7 +153,7 @@ class RyujinxGenerator(Generator):
         }
 
         commandArray = []
-        commandArray.extend([f"{RYUJINX_BIN}"])
+        commandArray.extend([str(RYUJINX.require())])
         if not configure_emulator(rom):
             commandArray.extend([rom])
 

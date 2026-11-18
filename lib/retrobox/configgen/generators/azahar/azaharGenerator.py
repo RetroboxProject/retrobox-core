@@ -4,7 +4,12 @@ import logging
 from os import environ
 from typing import TYPE_CHECKING
 
-from retrobox.configgen.generators.azahar.azahar_paths import _AZAHAR_XDG, AZAHAR_INI, AZAHAR_SAVES
+from retrobox.configgen.generators.azahar.azahar_paths import (
+    _AZAHAR_XDG,
+    AZAHAR,
+    AZAHAR_INI,
+    AZAHAR_SAVES,
+)
 from retrobox.configgen.hotkeys import HotkeyAction, Keys
 
 from ... import Command
@@ -38,7 +43,7 @@ class AzaharGenerator(Generator):
     def generate(self, system, rom, playersControllers, metadata, guns, wheels, gameResolution):
         AzaharGenerator.writeAZAHARConfig(AZAHAR_INI, system, playersControllers)
 
-        commandArray = ['/usr/bin/azahar', rom]
+        commandArray = [AZAHAR.require(), rom]
 
         return Command.Command(array=commandArray, env={
             "XDG_CONFIG_HOME": _AZAHAR_XDG,

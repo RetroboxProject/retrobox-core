@@ -2,11 +2,14 @@ from __future__ import annotations
 
 from typing import Final
 
+from retrobox.configgen.utils.emulator_binary import EmulatorBinary
 from retrobox.paths import EMULATORS, EMULATORS_CONFIG
 
 # RetroArch's folders, executable and configuration
 _RETROARCH_DIR: Final = EMULATORS / "retroarch"
-_RETROARCH_BIN: Final = _RETROARCH_DIR / "app" / "bin" / "retroarch"
+# only Retrobox's install: the cores and assets are read from it
+RETROARCH: Final = EmulatorBinary("retroarch", ("retroarch",), installer="retroarch",
+                                  outside=False)
 _RETROARCH_XDG: Final = EMULATORS_CONFIG / 'retroarch'
 _RETROARCH_CFGDIR: Final = _RETROARCH_XDG / "retroarch"
 

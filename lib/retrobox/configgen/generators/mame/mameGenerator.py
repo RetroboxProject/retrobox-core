@@ -21,7 +21,7 @@ from .mame_bezel import MameBezelRequest, write_bezel_config
 from .mame_control_scheme import get_control_scheme
 from .mame_game import MameGame, create_game
 from .mame_media import game_arguments
-from .mamePaths import _MAME_XDG
+from .mamePaths import _MAME_XDG, MAME
 
 if TYPE_CHECKING:
     from ...config import Config
@@ -85,7 +85,7 @@ def _build_command_line(
 
     # finally we pass the game name
     cmd += game_arguments(game)
-    return [mame_command.MAME_BIN, *cmd], cfg_path, input_options
+    return [MAME.require(), *cmd], cfg_path, input_options
 
 
 def _custom_command(rom: Path) -> list[str] | None:

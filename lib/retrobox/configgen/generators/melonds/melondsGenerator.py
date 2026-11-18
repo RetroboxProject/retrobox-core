@@ -7,7 +7,7 @@ import tomlkit
 from retrobox.configgen import Command
 from retrobox.configgen.controller import Controller
 from retrobox.configgen.generators.Generator import Generator
-from retrobox.configgen.generators.melonds.melonds_paths import _MELONDS_CHEATS, _MELONDS_CFGDIR, _MELONDS_ROMS, _MELONDS_SAVES, _MELONDS_XDG, DSI_ARM7_BIOS, DSI_ARM9_BIOS, DSI_FIRMWARE, DSI_NAND, MELONDS_CFG, NDS_ARM7_BIOS, NDS_ARM9_BIOS, NDS_FIRMWARE
+from retrobox.configgen.generators.melonds.melonds_paths import _MELONDS_CHEATS, _MELONDS_CFGDIR, _MELONDS_ROMS, _MELONDS_SAVES, _MELONDS_XDG, MELONDS, DSI_ARM7_BIOS, DSI_ARM9_BIOS, DSI_FIRMWARE, DSI_NAND, MELONDS_CFG, NDS_ARM7_BIOS, NDS_ARM9_BIOS, NDS_FIRMWARE
 from retrobox.paths import BIOS, mkdir_if_not_exists
 
 
@@ -219,7 +219,7 @@ class MelonDSGenerator(Generator):
         with MELONDS_CFG.open("w") as toml_file:
             tomlkit.dump(config, toml_file)
 
-        commandArray = ["/usr/bin/melonDS", "-f", rom]
+        commandArray = [MELONDS.require(), "-f", rom]
         return Command.Command(
             array=commandArray,
             env={

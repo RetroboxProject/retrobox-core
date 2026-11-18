@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from typing import Final
 
-from retrobox.paths import BIOS, DEFAULTS_DIR, EMULATORS, EMULATORS_CONFIG, SAVES
+from retrobox.configgen.utils.emulator_binary import EmulatorBinary
+from retrobox.paths import BIOS, DEFAULTS_DIR, EMULATORS_CONFIG, SAVES
 
-_FLYCAST_EMUDIR: Final = EMULATORS / 'flycast'
-FLYCAST_BIN: Final = _FLYCAST_EMUDIR / 'app' / 'bin' / 'flycast'
+FLYCAST: Final = EmulatorBinary("flycast", ("flycast",), installer="flycast")
 _FLYCAST_XDG: Final = EMULATORS_CONFIG / 'flycast'
 FLYCAST_CONFIG_DIR: Final = _FLYCAST_XDG / 'flycast'
 FLYCAST_MAPPING: Final = FLYCAST_CONFIG_DIR / 'mappings'

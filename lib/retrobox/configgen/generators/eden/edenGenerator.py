@@ -7,7 +7,7 @@ from ..Generator import Generator
 from ... import Command
 from retrobox.paths import DEFAULTS_DIR, SAVES, configure_emulator
 from retrobox.configgen.hotkeys import CLOSE_WINDOW, HotkeyAction
-from .edenPaths import _EDEN_INI, _EDEN_XDG, EDEN_BIN, setup_eden_environments
+from .edenPaths import _EDEN_INI, _EDEN_XDG, EDEN, setup_eden_environments
 
 _logger = logging.getLogger(__name__)
 
@@ -30,7 +30,7 @@ class EdenGenerator(Generator):
         edenConfigTemplate = f'{DEFAULTS_DIR}/data/switch/qt-config.ini.template'
         _eden_write_config(edenConfig, edenConfigTemplate, system, playersControllers, emulator)
 
-        commandArray = [f"{EDEN_BIN}"]
+        commandArray = [str(EDEN.require())]
 
         if configure_emulator(rom):
             commandArray.extend(["-qlaunch"])

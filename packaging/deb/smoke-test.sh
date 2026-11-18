@@ -75,9 +75,9 @@ grep -q 'system.themes={FRONTEND_DIR}/themes' /opt/retrobox/lib/retrobox/startup
 
 echo "--- installer helpers work from the read-only install"
 as_user() { runuser -u nobody -- env -i HOME="${user_home}" PATH="${PATH}" "$@"; }
-listing="$(as_user retrobox --setup-emulator 2>&1)"
+listing="$(as_user retrobox --install-emulator 2>&1)"
 grep -q retroarch <<<"${listing}" \
-    || fail "retrobox --setup-emulator did not list the installers"
+    || fail "retrobox --install-emulator did not list the installers"
 
 echo "--- the package ships nothing but what runs"
 for gone in LICENSE README.md requirements.txt install.sh .gitmodules system dev packaging \

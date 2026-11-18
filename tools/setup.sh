@@ -1,150 +1,50 @@
-#!/usr/bin/env bash
-# Retrobox setup orchestrator.
-# Meant to be sourced by retrobox (not executed directly), which is why
-# there's no shebang and no `set -euo pipefail` here: those would leak into
-# whatever sources this file. Callers are expected to check return codes.
-# Exposes:
-# setup_emulator <name>      -> builds tools/emulators/<name>.sh from
-#                               source, auto-detecting which flag it wants
-# list_available_emulators   -> prints every tools/emulators/*.sh found,
-#                               with the flag each would be called with
-# setup_bezeles <name>         -> runs tools/decorations/<name>.sh, auto-detecting
-#                                which flag it wants (same convention as
-#                                setup_emulator)
-# list_available_bezels        -> prints every tools/decorations/*.sh found, with
-#                                the flag each would be called with
+# shellcheck shell=bash
+# Install and remove emulators and bezel packs with their installers:
+# tools/emulators/<name>.sh and tools/decorations/<name>.sh, which all take
+# -i (install) and -u (uninstall). Sourced by bin/retrobox.
+#
+#   run_installer <emulators|decorations> <name> <-i|-u>
+#   list_installers <emulators|decorations>
 
-TOOLS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd -P)"
-# shellcheck disable=SC2034  # exported by bin/retrobox, which sources this file
-RETROBOX_ROOTDIR="$(cd "${TOOLS_DIR}/.." >/dev/null 2>&1 && pwd -P)"
+SETUP_TOOLS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd -P)"
 
-# shellcheck source=lib/log.sh
-source "${TOOLS_DIR}/lib/log.sh"
+# shellcheck source=tools/lib/log.sh
+source "${SETUP_TOOLS_DIR}/lib/log.sh"
 
-# ---------------------------------------------------------------------------
-# Flag detection.
-# No per-emulator table to keep in sync: each installer's accepted flags are
-# read straight from its own `case "$1" in ... esac` dispatch block.
-# We use a simple POSIX ERE grep to extract flags like "-i", '"-u"', etc.
-# This is far more robust than PCRE lookarounds across different OS/grep versions.
-# ---------------------------------------------------------------------------
-readonly -a _SOURCE_BUILD_FLAG_PRIORITY=("-s" "-c")
-readonly -a _INSTALL_FALLBACK_FLAG_PRIORITY=("-i" "-a" "-b")
-
-function _installer_flags() {
-    local script="$1"
-    # Extract the case block, then find any quoted or unquoted single-letter flag
-    sed -n -E '/case[[:space:]]+"?\$1"?[[:space:]]+in/,/esac/p' "${script}" \
-    | grep -oE '"?-[a-zA-Z]"?' \
-    | tr -d '"' \
-    | sort -u
-}
-
-function _pick_flag() {
-    local script="$1"
-    shift
-    local -a available
-    mapfile -t available < <(_installer_flags "${script}")
-    local candidate
-    for candidate in "$@"; do
-        local a
-        for a in "${available[@]}"; do
-            [[ "${a}" == "${candidate}" ]] && { echo "${candidate}"; return 0; }
-        done
-    done
-    return 1
-}
-
-function _source_build_flag() {
-    local script="$1"
-    _pick_flag "${script}" "${_SOURCE_BUILD_FLAG_PRIORITY[@]}" || echo "none"
-}
-
-function _fallback_install_flag() {
-    local script="$1"
-    local flag
-    if flag="$(_pick_flag "${script}" "${_INSTALL_FALLBACK_FLAG_PRIORITY[@]}")"; then
-        echo "${flag}"
-        return 0
-    fi
-    local a
-    while IFS= read -r a; do
-        [[ "${a}" == "-u" || "${a}" == "-d" ]] && continue
-        echo "${a}"
-        return 0
-    done < <(_installer_flags "${script}")
-    return 1
-}
-
-function _run_installer() {
-    local kind="$1" script="$2" name="$3"
-    local flag
-    flag="$(_source_build_flag "${script}")"
-    if [[ "${flag}" == "none" ]]; then
-        local fallback
-        if ! fallback="$(_fallback_install_flag "${script}")"; then
-            log_err "Could not find any usable flag for '${name}' (checked its case \"\$1\" dispatch)."
-            return 1
-        fi
-        log_warn "'${name}' has no source-build option in its installer, falling back to ${fallback} (prebuilt/AppImage)."
-        flag="${fallback}"
-    fi
-    log_info "Running ${kind} installer for '${name}' (${flag})..."
-    if bash "${script}" "${flag}"; then
-        log_ok "'${name}' installed."
-    else
-        log_err "Installer for '${name}' failed."
-        return 1
-    fi
-}
-
-function setup_emulator() {
-    local name="$1"
-    local script="${TOOLS_DIR}/emulators/${name}.sh"
+function run_installer() {
+    local kind="$1" name="$2" flag="$3"
+    local script="${SETUP_TOOLS_DIR}/${kind}/${name}.sh"
     if [[ ! -f "${script}" ]]; then
-        log_err "No installer found for emulator '${name}' (expected ${script})."
+        log_err "There is no installer for '${name}' (see: retrobox --install-$(_installer_noun "${kind}"))."
         return 1
     fi
-    _run_installer "emulator" "${script}" "${name}"
+    bash "${script}" "${flag}"
 }
 
-function setup_bezeles() {
-    local name="$1"
-    local script="${TOOLS_DIR}/decorations/${name}.sh"
-    if [[ ! -f "${script}" ]]; then
-        log_err "No installer found for bezel pack '${name}' (expected ${script})."
-        return 1
-    fi
-    _run_installer "bezel" "${script}" "${name}"
-}
-
-function _list_available_installers() {
-    local dir="$1" label="$2"
+function list_installers() {
+    local kind="$1" script name
     shopt -s nullglob
-    local -a scripts=("${dir}"/*.sh)
+    local -a scripts=("${SETUP_TOOLS_DIR}/${kind}"/*.sh)
     shopt -u nullglob
-    if [[ "${#scripts[@]}" -eq 0 ]]; then
-        log_warn "No ${label} installers found in ${dir}/."
+    if [[ ${#scripts[@]} -eq 0 ]]; then
+        log_warn "No installers in ${SETUP_TOOLS_DIR}/${kind}/."
         return 0
     fi
-    log_info "Available ${label} installers:"
-    local f name flag
-    for f in "${scripts[@]}"; do
-        name="$(basename "${f}" .sh)"
-        flag="$(_source_build_flag "${f}")"
-        if [[ "${flag}" == "none" ]]; then
-            flag="$(_fallback_install_flag "${f}")" || flag="?"
-            printf '  - %-14s (no source build; installs with %s)\n' "${name}" "${flag}"
+    if [[ "${kind}" == "emulators" ]]; then
+        echo "Available emulators (how each installs, preferred first):"
+    else
+        echo "Available bezel packs:"
+    fi
+    for script in "${scripts[@]}"; do
+        name="$(basename "${script}" .sh)"
+        if [[ "${kind}" == "emulators" ]]; then
+            printf '  %-14s %s\n' "${name}" "$(bash "${script}" -l 2>/dev/null | tr ' ' ',')"
         else
-            printf '  - %-14s (source build: %s)\n' "${name}" "${flag}"
+            printf '  %s\n' "${name}"
         fi
     done
 }
 
-function list_available_emulators() {
-    _list_available_installers "${TOOLS_DIR}/emulators" "emulator"
-}
-
-function list_available_bezels() {
-    _list_available_installers "${TOOLS_DIR}/decorations" "bezel"
+function _installer_noun() {
+    [[ "$1" == "emulators" ]] && echo "emulator" || echo "bezels"
 }

@@ -6,7 +6,7 @@ a sudo password) and the buttons, with EmulationStation's look. It runs in a
 process of its own, so none of it stays resident while a game runs. Without
 the overlay installed nothing is run: whoever prefers that installs and
 updates the emulators and the default content by hand
-(``retrobox --setup-emulator NAME``, ``retrobox --update-default-theme``...).
+(``retrobox --install-emulator NAME``, ``retrobox --download theme``...).
 
 The overlay also tells whether L1 and R1, or Ctrl and Shift, are held down (``--held``), which is
 how a game's start asks for its emulator to be installed again.

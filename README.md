@@ -202,13 +202,38 @@ EmulationStation runs it through a patch of [retrobox-emulationstation](https://
 
 When a game needs an emulator that has an installer in `tools/emulators/` but isn't installed, a full-screen dialog offers to install it, shows the installer's output (and takes keyboard input, e.g. a sudo password) and launches the game afterwards. The dialog is the *task screen* of [retrobox-overlay](https://github.com/RetroboxProject/retrobox-overlay) (`retrobox-overlay --task`), drawn with EmulationStation's menu style (its fonts, colours and language; EmulationStation's defaults when there is no theme yet), with buttons usable from a controller, the keyboard, the mouse or a touch screen. Its background is `share/emusetup/background.png`, replaceable from `/etc/retrobox` or `~/.config/retrobox` like any shared file. The same screen shows the downloads done before EmulationStation starts (default theme, bezels and shaders). Its confirm and back buttons are EmulationStation's, as the overlay reads them from `es_input.cfg`.
 
-**Without the overlay** nothing is offered, installed or downloaded when a game or Retrobox starts: whoever prefers to live without it installs and updates the emulators and the default content by hand, with `retrobox --setup-emulator NAME` and `retrobox --download-default theme|bezels|shaders` (both run in the terminal, with no screen of their own).
+**Without the overlay** nothing is offered, installed or downloaded when a game or Retrobox starts: whoever prefers to live without it installs and updates the emulators and the default content by hand, with `retrobox --install-emulator NAME` and `retrobox --download theme|bezels|shaders` (both run in the terminal, with no screen of their own).
 
 **Updating an emulator:** hold **L1 and R1** (or **Ctrl and Shift** on a keyboard) while a game starts, until the task screen appears, and it offers to install that game's emulator again, to get its latest version. The installer then works in a separate folder (`<data dir>/emulators/.update-<name>/`) and the installed emulator is only replaced once the new one is complete: its configuration and data are carried over (the `config` folder, files the new version doesn't ship, and a few known files such as Redream's `redream.cfg` or Supermodel's `NVRAM`), and if anything fails, or the screen is closed halfway, the installed version is left untouched. Either way the game starts afterwards. The overlay reads the controllers' and keyboards' state from the kernel (`retrobox-overlay --held`; keyboards need the `input` group, the packages and `install.sh` add you to it), with the button numbers of `es_input.cfg`; `RETROBOX_REINSTALL_EMULATOR=1` in the environment has the same effect.
 
+### Installing emulators
+
+Each installer in `tools/emulators/` (they share `tools/lib/installer.sh`) takes the same options. `-i`, which `retrobox --install-emulator` and the setup screen use, installs the best way the machine allows: the release **AppImage, extracted** when there is one for its architecture, else the **release archive** (tarball or zip), else a **build from source**. `-a`, `-t` and `-s` pick one of them, `-u` uninstalls (what `retrobox --remove-emulator` runs) and `-l` lists what the installer has. `retrobox --install-emulator` with no name lists them all:
+
+| Emulator | AppImage | Archive | Source |
+| --- | --- | --- | --- |
+| ares | | | ✓ (with librashader) |
+| Cemu, Eden, PCSX2, PPSSPP, RPCS3, Ryujinx | ✓ | | |
+| Dolphin | ✓ | | ✓ |
+| Flycast, RetroArch | ✓ (x86_64) | | ✓ |
+| Keisho | | ✓ | ✓ |
+| Redream, Supermodel | | ✓ | |
+| Vita3K | ✓ | ✓ | ✓ |
+
+Everything goes into `<data dir>/emulators/<emulator>/app/`, swapped in only once the new version is complete, so a failed install keeps the previous one. Redream and Supermodel keep their data next to the executable, so their files go at the top of their folder instead, listed in `.retrobox-files` so that an uninstall removes exactly those. An uninstall never touches the configuration (`~/.config/retrobox/emulators/<emulator>`) or the saves. Source builds need `sudo` for their build dependencies (apt or dnf) and honour `JOBS`; `KEEP_SRC=1` keeps the source tree.
+
+**Finding an emulator.** A generator doesn't need Retrobox's own install: it looks for its emulator (`lib/retrobox/configgen/utils/emulator_binary.py`) in this order and runs the first one it finds:
+
+1. Retrobox's install: `app/bin/<name>` or `app/<name>` (a build or an archive), `app/AppRun` (an extracted AppImage), `app/usr/bin/<name>`;
+2. the top of the emulator's folder (portable emulators and older layouts), including an `*.AppImage` dropped there;
+3. an AppImage of yours in `~/Applications`, `~/AppImages` or `~/.local/bin` whose name starts with the emulator's (`Cemu-2.6-x86_64.AppImage`), the newest if there are several;
+4. the distribution's package (`PATH`).
+
+A game only offers to install its emulator when none of them has it, and `retrobox --doctor` says which one each emulator uses. RetroArch, Redream, Supermodel and Keisho are only taken from Retrobox's install, since Retrobox relies on files of that install (RetroArch's cores, the others' data folders). Flatpaks are not looked for: a Flatpak keeps its configuration under `~/.var/app` and only sees the folders it was granted, so the configuration and the paths Retrobox writes for each game would not reach it. MAME, ScummVM, DOSBox, melonDS, Azahar and shadPS4 have no installer and are found the same way (MAME's data, such as `hash/` and `plugins/`, next to its executable or in `/usr/share/games/mame` or `/usr/share/mame`).
+
 ### Sega arcade (Keisho)
 
-[Keisho](https://github.com/Keisho-Emu/Keisho) is a native emulator of the Sega Model 1, 2 and 3 boards. Install it with `retrobox --setup-emulator keisho` (the upstream release for x86_64 and aarch64, or a build from source with `tools/emulators/keisho.sh -s`). It is the default emulator of `model1` and `model2`; `model3` keeps Supermodel as its default and lists Keisho next to it, and MAME is listed on all three.
+[Keisho](https://github.com/Keisho-Emu/Keisho) is a native emulator of the Sega Model 1, 2 and 3 boards. Install it with `retrobox --install-emulator keisho` (the upstream release for x86_64 and aarch64, or a build from source with `tools/emulators/keisho.sh -s`). It is the default emulator of `model1` and `model2`; `model3` keeps Supermodel as its default and lists Keisho next to it, and MAME is listed on all three.
 
 - **ROMs:** `roms/model1`, `roms/model2` and `roms/model3`. Keisho identifies a game by the CRC32 of its chips, not by the archive name, so a merged archive can hold several revisions and the archive name picks one (`vf2o.zip`). The *Keisho* entry of the emulator menu opens its own game picker, which lists the three folders.
 - **Saves and configuration:** NVRAM, save states and screenshots go to `saves/<system>/keisho` (and `screenshots/keisho`), the configuration to `~/.config/retrobox/emulators/keisho/keisho.ini`. On every launch Retrobox rewrites only the keys it manages (renderer, scaling, audio, pads, wheels, ROM folders), so what you set in Keisho's overlay (F10) stays, such as a pad layout saved for a game.
@@ -268,7 +293,7 @@ It installs the same layout as the package: `/opt/retrobox` (or `/var/opt/retrob
 
 ### Components
 
-The core is modular. EmulationStation ([`retrobox-emulationstation`](https://github.com/RetroboxProject/retrobox-emulationstation)) and the patched MangoHud ([`retrobox-mangohud`](https://github.com/RetroboxProject/retrobox-mangohud)) are separate projects; so is the overlay ([`retrobox-overlay`](https://github.com/RetroboxProject/retrobox-overlay)), with its input daemon and pad-to-keyboard mapper. `retrobox-core` ships no frontend, no MangoHud, no theme and compiles nothing. If EmulationStation finds no theme at all (neither in `<install dir>/frontend/themes` nor in `<data dir>/themes`), `retrobox` downloads the latest commit of [*es-theme-iconic*](https://github.com/manu-creative-411/es-theme-iconic) into `<data dir>/themes` before starting; `retrobox --update-default-theme` downloads it again (update, or reinstall if it was removed) and then starts. The [RetroBat bezels](https://github.com/RetroBat-Official/retrobat-bezels) (the default decorations) are downloaded the same way into `<data dir>/decorations-default`, and [Retrobox's shaders](https://github.com/RetroboxProject/retrobox-shaders) into the shaders folder (`<data dir>/shaders`, or `SHADERS_DIR`), but only on the first start (the bezels, only if their folder holds no files yet); `retrobox --update-default-bezels` / `--update-default-shaders` get them again. The bezels replace their folder, which belongs to Retrobox; the shaders are merged into theirs, so your own shaders there are kept. All these downloads show their progress on the setup screen (see *Emulator setup screen*), can be cancelled with B / Esc, never replace a working copy with a broken one, and if they fail Retrobox says so and starts anyway.
+The core is modular. EmulationStation ([`retrobox-emulationstation`](https://github.com/RetroboxProject/retrobox-emulationstation)) and the patched MangoHud ([`retrobox-mangohud`](https://github.com/RetroboxProject/retrobox-mangohud)) are separate projects; so is the overlay ([`retrobox-overlay`](https://github.com/RetroboxProject/retrobox-overlay)), with its input daemon and pad-to-keyboard mapper. `retrobox-core` ships no frontend, no MangoHud, no theme and compiles nothing. If EmulationStation finds no theme at all (neither in `<install dir>/frontend/themes` nor in `<data dir>/themes`), `retrobox` downloads the latest commit of [*es-theme-iconic*](https://github.com/manu-creative-411/es-theme-iconic) into `<data dir>/themes` before starting; `retrobox --download theme` downloads it again (update, or reinstall if it was removed). The [RetroBat bezels](https://github.com/RetroBat-Official/retrobat-bezels) (the default decorations) are downloaded the same way into `<data dir>/decorations-default`, and [Retrobox's shaders](https://github.com/RetroboxProject/retrobox-shaders) into the shaders folder (`<data dir>/shaders`, or `SHADERS_DIR`), but only on the first start (the bezels, only if their folder holds no files yet); `retrobox --download bezels` / `shaders` get them again. The bezels replace their folder, which belongs to Retrobox; the shaders are merged into theirs, so your own shaders there are kept. All these downloads show their progress on the setup screen (see *Emulator setup screen*), can be cancelled with B / Esc, never replace a working copy with a broken one, and if they fail Retrobox says so and starts anyway.
 
 - **Packages (.deb/.rpm):** `retrobox-core` only *recommends* `retrobox-emulationstation`, `retrobox-mangohud` and `retrobox-overlay` (0.5.5 or later); install them with the package manager. Those packages are built per architecture (amd64, arm64); the core is architecture-independent (`_all.deb`, `noarch.rpm`).
 - **install.sh:** `--with emulationstation` / `--with mangohud` downloads the component's own `install.sh` (the one at the root of its repository, or `--with NAME=<URL or local path>`) and runs it:
@@ -306,7 +331,7 @@ dev/check.sh                              # everything CI checks
 dev/check.sh tests | pylint | shell       # one part
 ```
 
-- **tests:** `tests/` (pytest) covers the parts that run without hardware: the configuration layers and `[paths]` of `retrobox.ini`, the bezel lookup order, the systems and emulator options and the `es_systems.cfg` / `es_features.cfg` built from them (every emulator a system offers must have a working generator), the ROM folders, the store's unpacking of untrusted packages, the idle inhibitor, the desktop notifications, RetroAchievements (the shared account, PCSX2, Dolphin and RetroArch) and the doctor. They never touch your home: every run gets its own home, XDG and `/etc/retrobox` in a temporary directory. CI runs them on Ubuntu 24.04, Debian 13 and Fedora with the distribution's own Python packages.
+- **tests:** `tests/` (pytest) covers the parts that run without hardware: the configuration layers and `[paths]` of `retrobox.ini`, the bezel lookup order, the systems and emulator options and the `es_systems.cfg` / `es_features.cfg` built from them (every emulator a system offers must have a working generator), the ROM folders, the store's unpacking of untrusted packages, the idle inhibitor, the desktop notifications, RetroAchievements (the shared account, PCSX2, Dolphin and RetroArch), the doctor, the `retrobox` command line, the installers' shared library and where emulators are found. They never touch your home: every run gets its own home, XDG and `/etc/retrobox` in a temporary directory. CI runs them on Ubuntu 24.04, Debian 13 and Fedora with the distribution's own Python packages.
 - **pylint:** strict for all the Python code except `lib/retrobox/configgen`, which comes from batocera and is held to `dev/pylint-baseline.json` instead (all messages but `duplicate-code`): a file may not get a message it didn't have, so it only gets cleaner. After cleaning some of it, lower the baseline with `python3 dev/pylint_baseline.py --update`.
 - **shell:** `bash -n` and `shellcheck --severity=warning` on every shell script.
 
@@ -315,18 +340,18 @@ A release can only be published once all of them pass.
 ### Command line
 
 ```
-retrobox                              start Retrobox (EmulationStation and the input daemon)
+retrobox [-- ARGS...]                 start Retrobox; ARGS go to EmulationStation
+retrobox --install-emulator [NAME...] install or update emulators (no name: list the installers)
+retrobox --remove-emulator NAME...    uninstall emulators (configuration and saves are kept)
+retrobox --install-bezels [NAME...]   install or update bezel packs (no name: list them)
+retrobox --remove-bezels NAME...      remove bezel packs
+retrobox --download [WHAT...]         download the default theme, bezels or shaders again (no name: list)
 retrobox --settings                   open the settings window (edits ~/.config/retrobox/retrobox.ini)
 retrobox --doctor [--json]            check what Retrobox needs on this computer, and how to fix it
-retrobox --setup-emulator [NAME]      install or update an emulator (no name: list the installers)
-retrobox --setup-bezel [NAME]         install a bezel pack (no name: list them)
-retrobox --download-default WHAT      download the default theme, bezels or shaders and exit
-retrobox --update-default-theme       download the default theme again, then start
-retrobox --update-default-bezels      likewise for the RetroBat bezels
-retrobox --update-default-shaders     likewise for Retrobox's shaders
 retrobox --version | --help
-retrobox -- ARGS...                   pass ARGS to EmulationStation
 ```
+
+One action per call: anything else on the command line is an error, and so is an unknown option (arguments for EmulationStation go after `--`). Each start also warns, without stopping, when something essential is missing (Python modules, EmulationStation, the overlay's input daemon).
 
 `retrobox --doctor` checks, without changing anything, what Retrobox needs on this computer: the Python modules, EmulationStation, the overlay and MangoHud, a theme, the graphical session and the tool that changes screen modes on it, Vulkan, controllers, the `input` group, `/dev/uinput` and the udev rules, what keeps the computer awake during games, the ROMs and BIOS folders and free space, the installed emulators and the RetroAchievements account. Each line says `[ OK ]`, `[INFO]`, `[WARN]` (works worse, or not in every game) or `[ERR ]` (games won't start), with how to fix it; it exits with 1 when there is an error. `--json` prints the same for a bug report; the RetroAchievements token and password are never printed, only whether they are set.
 
@@ -341,9 +366,9 @@ Install directory (read-only):
 ├── bin/                       # commands: retrobox (/usr/bin/retrobox in the packages), retrobox-launch, retrobox-emukill, retrobox-screenshot...
 ├── lib/
 │   └── retrobox/              # the Python package: paths, startup, launcher, configgen, utils
-├── libexec/                   # internal helpers: emuconfig/ (per-emulator config launchers), stubs/, mangohud/ (from the retrobox-mangohud component)
+├── libexec/                   # internal helpers: stubs/, mangohud/ (from the retrobox-mangohud component)
 ├── share/                     # read-only defaults (the lowest config layer): systems/, emulator_options/, configgen/, hooks/, pad2key/...
-├── tools/                     # installers (emulators/, decorations/), deps/*.list, setup.sh
+├── tools/                     # installers (emulators/, decorations/, lib/installer.sh), deps/*.list, setup.sh
 ├── frontend/                  # EmulationStation seed config (the retrobox-emulationstation component installs here)
 ├── VERSION                    # (packages only)
 └── venv/                      # (install.sh on immutable systems only)
@@ -360,10 +385,10 @@ System and user directories (see [Paths](#paths)):
 ~/.local/share/retrobox/
 ├── roms/  saves/  bios/       # moveable from retrobox.ini
 ├── themes/  music/            # your themes and menu music
-├── decorations/               # your bezels (and --setup-bezel packs)
-├── decorations-default/       # RetroBat bezels (first start; retrobox --update-default-bezels)
-├── emulators/                 # installed by retrobox --setup-emulator
-├── shaders/                   # Retrobox shaders (first start; retrobox --update-default-shaders) and yours
+├── decorations/               # your bezels (and --install-bezels packs)
+├── decorations-default/       # RetroBat bezels (first start; retrobox --download bezels)
+├── emulators/                 # installed by retrobox --install-emulator (<emulator>/app/)
+├── shaders/                   # Retrobox shaders (first start; retrobox --download shaders) and yours
 └── screenshots/  recordings/  cheats/  overlay/
 ~/.local/state/retrobox/       # logs/, packages/ (installer manifests)
 ```

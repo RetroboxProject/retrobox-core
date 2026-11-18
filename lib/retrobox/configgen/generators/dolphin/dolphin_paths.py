@@ -1,17 +1,14 @@
 from __future__ import annotations
 from typing import Final
-from retrobox.paths import BIOS, EMULATORS, EMULATORS_CONFIG, SAVES
+from retrobox.configgen.utils.emulator_binary import EmulatorBinary
+from retrobox.paths import BIOS, EMULATORS_CONFIG, SAVES
 
-_DOLPHIN_DIR:  Final = EMULATORS / 'dolphin-emu'
 _DOLPHIN_XDG:  Final = EMULATORS_CONFIG / 'dolphin-emu'
 _DOLPHIN_CFGDIR:  Final = _DOLPHIN_XDG / 'dolphin-emu'
-_DOLPHIN_DATA:    Final = _DOLPHIN_DIR / 'app' / 'share' / 'dolphin-emu'
-#DOLPHIN_BIN: Final = _DOLPHIN_DIR / "dolphin.AppImage"
-DOLPHIN_BIN:     Final = _DOLPHIN_DIR / 'app' / "bin" / "dolphin-emu"
-DOLPHIN_BIN_NOGUI:     Final = _DOLPHIN_DIR / 'app' / "bin" / "dolphin-emu-nogui"
-#DOLPHIN_BIN:     Final = _DOLPHIN_DIR / "dolphin-emu-nogui"
-#DOLPHIN_BIN: Final = Path("/usr/bin/dolphin-emu")
-_DOLPHIN_LOCALE: Final = _DOLPHIN_DIR / 'app' / 'share' / 'locale'
+DOLPHIN: Final = EmulatorBinary("dolphin-emu", ("dolphin-emu",), installer="dolphin-emu")
+# the frontend without a GUI, for games: an AppImage only starts the GUI one
+DOLPHIN_NOGUI: Final = EmulatorBinary("dolphin-emu", ("dolphin-emu-nogui",),
+                                      installer="dolphin-emu", appimage=False)
 
 DOLPHIN_INI:     Final = _DOLPHIN_CFGDIR / 'Dolphin.ini'
 DOLPHIN_GFX_INI: Final = _DOLPHIN_CFGDIR / 'GFX.ini'
@@ -19,10 +16,11 @@ DOLPHIN_QT_INI:  Final = _DOLPHIN_CFGDIR / 'Qt.ini'
 DOLPHIN_ACHIEVEMENTS_INI: Final = _DOLPHIN_CFGDIR / 'RetroAchievements.ini'
 
 DOLPHIN_SAVES:   Final = SAVES / 'dolphin-emu'
-DOLPHIN_SYSCONF: Final = _DOLPHIN_DATA / 'Wii' / 'shared2' / 'sys' / 'SYSCONF'
 DOLPHIN_BIOS:    Final = BIOS / 'GC'
 
 _DOLPHIN_WII_NAND = SAVES / "wii" / "nand"
+# the Wii settings, in the NAND Dolphin.ini points it at (NANDRootPath)
+DOLPHIN_SYSCONF: Final = _DOLPHIN_WII_NAND / "shared2" / "sys" / "SYSCONF"
 _DOLPHIN_WII_RESPACKS = SAVES / "wii" / "resource_packs"
 _DOLPHIN_WII_WFSDIR = SAVES / "wii" / "wfs_dir"
 _DOLPHIN_WII_SDCARD_DIR: Final = SAVES / "wii" / "sdcard"

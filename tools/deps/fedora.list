@@ -14,7 +14,6 @@ freeimage
 SDL2_mixer
 libnotify
 inotify-tools
-jq
 unzip
 wget
 zstd

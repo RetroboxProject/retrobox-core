@@ -10,12 +10,11 @@ from typing import TYPE_CHECKING
 
 from .mame_game import MameGame
 from .mameCommon import is_atom_floppy
-from .mamePaths import MAME_CONFIG, MAME_DEFAULT_DATA
+from .mamePaths import MAME_CONFIG, MAME_DEFAULT_DATA, mame_data_dir
 
 if TYPE_CHECKING:
     from .mame_command import CommandLine
 
-_HASH_DIR = Path("/usr/bin/mame/hash")
 _COCO_LIKE = ("coco", "dragon64")
 _BBC_FLOPPY_BOOT = "*cat\\n\\n\\n\\n*exec !boot\\n"  # "\n" are typed into the emulator
 _BBC_TAPE_BOOT = '*tape\\nchain""\\n'
@@ -60,7 +59,7 @@ def _overrides(csv_file: Path, rom_name: str, *, strict: bool, first_only: bool)
 
 def _soft_list_usage(game: MameGame) -> str:
     """Return the "usage" a software list gives for the game, or an empty string."""
-    soft_list_file = _HASH_DIR / f"{game.soft_list}.xml"
+    soft_list_file = mame_data_dir() / "hash" / f"{game.soft_list}.xml"
     usage = ""
     if game.soft_list != "" and soft_list_file.exists():
         for software in ET.parse(soft_list_file).findall("software"):

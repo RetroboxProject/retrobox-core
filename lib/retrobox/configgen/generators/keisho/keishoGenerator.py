@@ -1,7 +1,7 @@
 """Generator of the Keisho (Sega Model 1, 2 and 3) command.
 
 Keisho is a native Sega Model 1, 2 and 3 emulator (https://github.com/Keisho-Emu/Keisho),
-installed with ``retrobox --setup-emulator keisho``.
+installed with ``retrobox --install-emulator keisho``.
 """
 
 # the module name follows the <emulator>Generator convention of generators/importer.py
@@ -15,12 +15,11 @@ from retrobox.paths import configure_emulator, mkdir_if_not_exists
 
 from ... import Command
 from ...controller import generate_sdl_game_controller_config
-from ...exceptions import RetroboxException
 from ..Generator import Generator
 from . import keisho_config
 from .keisho_games import game_set
 from .keisho_paths import (
-    KEISHO_BIN,
+    KEISHO,
     KEISHO_CFGDIR,
     KEISHO_SCREENSHOTS,
     migrate_legacy_data,
@@ -63,10 +62,7 @@ class KeishoGenerator(Generator):
         wheels,
         gameResolution,  # name fixed by the Generator interface
     ):
-        if not KEISHO_BIN.exists():
-            raise RetroboxException(
-                f"keisho not found in {KEISHO_BIN}: run 'retrobox --setup-emulator keisho'"
-            )
+        keisho = KEISHO.require()
 
         migrate_legacy_data()
         for directory in (KEISHO_CFGDIR, nvram_dir(system.name), KEISHO_SCREENSHOTS):
@@ -76,7 +72,7 @@ class KeishoGenerator(Generator):
         game = None if configure_emulator(rom) else rom
         keisho_config.write_config(system, game, playersControllers, wheels, gameResolution)
 
-        command: list[str | Path] = [KEISHO_BIN, "--config", KEISHO_CFGDIR]
+        command: list[str | Path] = [keisho, "--config", KEISHO_CFGDIR]
         if game is not None:
             # A merged archive holds every revision of a game and Keisho would
             # boot the first complete one it knows: the archive name picks it.

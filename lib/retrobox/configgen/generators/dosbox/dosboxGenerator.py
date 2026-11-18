@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from ..Generator import Generator
-from .dosbox_paths import DOSBOX_BIN, DOSBOX_CFG
+from .dosbox_paths import DOSBOX, DOSBOX_CFG
 from ...utils.configparser import CaseSensitiveConfigParser
 
 from ... import Command
@@ -46,7 +46,7 @@ class DosBoxGenerator(Generator):
             ini_settings.write(config)
 
         commandArray: list[str | Path] = [
-            DOSBOX_BIN,
+            DOSBOX.require(),
             "-fullscreen",
             # This loads _CONFIG_DIR / dosbox.conf
             "-userconf",

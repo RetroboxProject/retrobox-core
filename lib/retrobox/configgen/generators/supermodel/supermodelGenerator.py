@@ -16,7 +16,7 @@ from ...controller import generate_sdl_game_controller_config
 from ...gun import guns_need_crosses
 from ..Generator import Generator
 from .supermodel_config import configPadsIni
-from .supermodel_paths import _SUPERMODEL_EMUDIR, SUPERMODEL_BIN
+from .supermodel_paths import SUPERMODEL
 
 if TYPE_CHECKING:
     from ...config import SystemConfig
@@ -85,7 +85,8 @@ class SupermodelGenerator(Generator):
         wheels,
         gameResolution,  # name fixed by the Generator interface
     ):
-        command_array: list[str | Path] = [SUPERMODEL_BIN, "-fullscreen", "-channels=2"]
+        supermodel = SUPERMODEL.require()
+        command_array: list[str | Path] = [supermodel, "-fullscreen", "-channels=2"]
         command_array.extend(_graphics_options(system.config))
         command_array.extend(_crosshairs_option(system, guns))
         command_array.extend(_tuning_options(system.config))
@@ -94,7 +95,8 @@ class SupermodelGenerator(Generator):
 
         # controller config
         configPadsIni(system, rom, guns)
-        os.chdir(_SUPERMODEL_EMUDIR)
+        # it reads Config/, NVRAM/ and Saves/ from the folder it runs in
+        os.chdir(supermodel.parent)
         return Command.Command(
             array=command_array,
             env={

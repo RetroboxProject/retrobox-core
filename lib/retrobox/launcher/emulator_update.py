@@ -6,10 +6,11 @@ a game started. The emulator's own installer runs with
 ``RETROBOX_EMULATORS_DIR`` pointing at a staging folder
 (``<emulators>/.update-<installer>/``), so it builds or downloads the new
 version there and never sees the installed one. Only when it succeeds and the
-new binary exists is the installed folder replaced:
+new executable is found in it is the installed folder replaced:
 
 1. user data is carried over from the installed folder into the new one:
-   every top-level entry the new install doesn't have (saves, NVRAM...), and
+   every top-level entry the new install doesn't have (saves, NVRAM...; not
+   the AppImages of older layouts), and
    the emulator's ``keep`` paths (``config`` and the like), which win over
    what the installer shipped;
 2. the installed folder is renamed aside, the new one moved into its place,
@@ -31,11 +32,13 @@ from typing import TYPE_CHECKING, Final
 
 from retrobox.paths import BIN_DIR, EMULATORS
 
-from .emulator_setup import binary_of, installable, unit_of
+from .emulator_setup import detector_of, installable
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
     from types import FrameType
+
+    from retrobox.configgen.utils.emulator_binary import EmulatorBinary
 
     from .emulator_setup import Installable
 
@@ -81,6 +84,9 @@ def _carry_user_data(installed: Path, staged: Path, keep: Iterable[str]) -> None
             _copy(source, staged / name)
             kept.add(Path(name).parts[0])
     for child in installed.iterdir():
+        # an AppImage there is a program of an older layout, not user data
+        if child.suffix.lower() == ".appimage":
+            continue
         if child.name not in kept and not (staged / child.name).exists():
             _copy(child, staged / child.name)
 
@@ -112,7 +118,7 @@ def _run_installer(installer: str, staging: Path) -> int:
         if (EMULATORS / name).is_dir():
             (staging / name).symlink_to(EMULATORS / name)
     environment = {**os.environ, "RETROBOX_EMULATORS_DIR": str(staging)}
-    command = [str(BIN_DIR / "retrobox"), "--setup-emulator", installer]
+    command = [str(BIN_DIR / "retrobox"), "--install-emulator", installer]
     try:
         with subprocess.Popen(command, env=environment) as process:
             try:
@@ -129,18 +135,14 @@ def _run_installer(installer: str, staging: Path) -> int:
                 shutil.move(created, EMULATORS / name)
 
 
-def _resolve(emulator: str) -> tuple[Installable, Path] | None:
-    """The entry of ``emulator`` and its binary relative to the emulators directory."""
+def _resolve(emulator: str) -> tuple[Installable, EmulatorBinary] | None:
+    """The entry of ``emulator`` and how its executable is found."""
     entry = installable(emulator)
-    binary = binary_of(entry) if entry else None
-    if entry is None or binary is None:
+    detector = detector_of(entry) if entry else None
+    if entry is None or detector is None:
         _say(f"'{emulator}' has no installer in Retrobox.")
         return None
-    try:
-        return entry, binary.relative_to(EMULATORS)
-    except ValueError:
-        _say(f"{binary} is outside {EMULATORS}: cannot install it in a separate folder.")
-        return None
+    return entry, detector
 
 
 def update(emulator: str) -> int:
@@ -153,8 +155,8 @@ def update(emulator: str) -> int:
     resolved = _resolve(emulator)
     if resolved is None:
         return 1
-    entry, relative_binary = resolved
-    unit = unit_of(entry, relative_binary)
+    entry, detector = resolved
+    unit = Path(detector.folder)
     installed = EMULATORS / unit
     staging = EMULATORS / f"{_STAGING_PREFIX}{entry.installer}"
 
@@ -169,9 +171,9 @@ def update(emulator: str) -> int:
         if status:
             _say(f"The installer failed (status {status}): {entry.label} was not changed.")
             return 1
-        if not (staging / relative_binary).exists():
-            _say(f"The installer finished but did not produce {relative_binary}: "
-                 f"{entry.label} was not changed.")
+        if detector.find_in(staging / unit) is None:
+            _say(f"The installer finished but no {entry.label} executable is in "
+                 f"{staging / unit}: {entry.label} was not changed.")
             return 1
 
         # from here on the swap must not be cut halfway

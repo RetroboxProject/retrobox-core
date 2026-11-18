@@ -10,9 +10,9 @@ Content Retrobox downloads before EmulationStation starts.
 
 Bezels and shaders are installed once, the first time Retrobox starts with
 them on offer (the bezels only if their directory holds no files yet):
-deleting them later doesn't bring them back. ``retrobox --update-default-theme``,
-``--update-default-bezels`` and ``--update-default-shaders`` download them
-again, updating them or reinstalling them if they were removed.
+deleting them later doesn't bring them back. ``retrobox --download theme``
+(``bezels``, ``shaders``) downloads them again, updating them or reinstalling
+them if they were removed.
 
 Each package is the latest commit of a GitHub repository, streamed as a
 tar.gz archive and unpacked on the fly (no archive is kept on disk, which
@@ -25,7 +25,8 @@ hold the user's own shaders. Nothing here stops the frontend from starting.
 
 Run as ``python3 -m retrobox.startup.downloads PACKAGE...`` it downloads the
 given packages, printing its progress: this is what the overlay's task screen
-(``retrobox-overlay --task --download``) runs and shows.
+(``retrobox-overlay --task --download``) runs and shows, and what
+``retrobox --download`` runs. With no package it lists them.
 """
 
 from __future__ import annotations
@@ -153,11 +154,11 @@ def pending(updates: Iterable[str] = ()) -> list[str]:
     """The packages to download before this start (keys of PACKAGES).
 
     Every "once" package is recorded as offered right away, whatever happens
-    to its download (it can be cancelled): only the update flags bring it
-    back.
+    to its download (it can be cancelled): only ``retrobox --download``
+    brings it back.
 
     Args:
-        updates: Packages to download again anyway (the --update-* flags).
+        updates: Packages to download again anyway.
     """
     updates = set(updates)
     offered = _offered()
@@ -317,13 +318,18 @@ def _handle_sigterm(signum: int, _frame: object) -> None:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    """Download the packages named on the command line; 0 if all went fine."""
+    """Download the packages named on the command line (none: list them); 0 if all went fine."""
     parser = argparse.ArgumentParser(
         prog="python3 -m retrobox.startup.downloads",
         description="Download Retrobox's default content.",
     )
-    parser.add_argument("packages", nargs="+", choices=sorted(PACKAGES))
+    parser.add_argument("packages", nargs="*", choices=sorted(PACKAGES))
     args = parser.parse_args(argv)
+    if not args.packages:
+        print("Available downloads:")
+        for key, package in PACKAGES.items():
+            print(f"  {key:<14} {package.name}")
+        return 0
     signal.signal(signal.SIGTERM, _handle_sigterm)
     signal.signal(signal.SIGHUP, _handle_sigterm)
     with setup_logging():

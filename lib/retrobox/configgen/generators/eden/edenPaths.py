@@ -2,15 +2,15 @@
 import os
 from pathlib import Path
 from typing import Final
-from retrobox.paths import BIOS, EMULATORS, EMULATORS_CONFIG, ROMS, SAVES, ensure_symlink, mkdir_if_not_exists
+from retrobox.configgen.utils.emulator_binary import EmulatorBinary
+from retrobox.paths import BIOS, EMULATORS_CONFIG, ROMS, SAVES, ensure_symlink, mkdir_if_not_exists
 
 # --- Base ---
 SWITCH_BIOS: Final = BIOS / "switch"
 SWITCH_KEYS: Final = SWITCH_BIOS / "keys"
 SWITCH_FIRMWARE: Final = SWITCH_BIOS / "firmware"
 
-_EDEN_EMUDIR: Final = EMULATORS / "eden-emu"
-EDEN_BIN: Final = _EDEN_EMUDIR / "eden-emu.AppImage"
+EDEN: Final = EmulatorBinary("eden-emu", ("eden", "eden-emu"), installer="eden")
 _EDEN_XDG: Final = EMULATORS_CONFIG / 'eden-emu'
 _EDEN_CONFIG: Final = _EDEN_XDG / "eden"
 _EDEN_INI: Final = _EDEN_CONFIG / "qt-config.ini"

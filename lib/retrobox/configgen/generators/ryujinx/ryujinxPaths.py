@@ -1,9 +1,9 @@
 from typing import Final
 
-from retrobox.paths import DEFAULTS_DIR, EMULATORS, EMULATORS_CONFIG, SAVES
+from retrobox.configgen.utils.emulator_binary import EmulatorBinary
+from retrobox.paths import DEFAULTS_DIR, EMULATORS_CONFIG, SAVES
 
-_RYUJINX_EMUDIR: Final = EMULATORS / "ryujinx"
-RYUJINX_BIN: Final = _RYUJINX_EMUDIR / "ryujinx.AppImage"
+RYUJINX: Final = EmulatorBinary("ryujinx", ("Ryujinx", "ryujinx"), installer="ryujinx")
 _RYUJINX_XDG: Final = EMULATORS_CONFIG / 'ryujinx'
 
 RYUJINX_CONFIG: Final = _RYUJINX_XDG / "Ryujinx"

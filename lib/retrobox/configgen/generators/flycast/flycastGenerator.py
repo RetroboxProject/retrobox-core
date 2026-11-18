@@ -10,7 +10,7 @@ from ...controllersConfig import _logger
 from . import flycastControllers
 from .flycastPaths import (
     _FLYCAST_XDG,
-    FLYCAST_BIN,
+    FLYCAST,
     FLYCAST_BIOS,
     FLYCAST_CONFIG,
     FLYCAST_SAVES,
@@ -192,9 +192,9 @@ class FlycastGenerator(Generator):
         commandArray = []
         # the command to run
         if configure_emulator(rom):
-            commandArray.extend([f"{FLYCAST_BIN}"])
+            commandArray.extend([str(FLYCAST.require())])
         else:
-            commandArray.extend([f"{FLYCAST_BIN}", rom])
+            commandArray.extend([str(FLYCAST.require()), rom])
 
         # Here is the trick to make flycast find files :
         # emu.cfg is in $XDG_CONFIG_DIRS or $XDG_CONFIG_HOME.

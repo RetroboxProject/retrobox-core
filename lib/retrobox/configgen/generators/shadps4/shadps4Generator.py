@@ -21,7 +21,7 @@ from pathlib import Path
 
 import tomlkit
 
-from retrobox.configgen.generators.shadps4.shadps4_paths import _SHADPS4_CFGDIR, _SHADPS4_USER_CFGDIR, SHADPS4_BIN, SHADPS4_DLCS, SHADPS4_ROMS, SHADPS4_SAVES, SHADPS4_TOML
+from retrobox.configgen.generators.shadps4.shadps4_paths import _SHADPS4_CFGDIR, _SHADPS4_USER_CFGDIR, SHADPS4, SHADPS4_DLCS, SHADPS4_ROMS, SHADPS4_SAVES, SHADPS4_TOML
 
 from ... import Command
 from retrobox.paths import configure_emulator, mkdir_if_not_exists
@@ -220,9 +220,9 @@ class shadPS4Generator(Generator):
 
         # Run command
         if configure_emulator(rom):
-            command_array: list[str | Path] = [SHADPS4_BIN]
+            command_array: list[str | Path] = [SHADPS4.require()]
         else:
-            command_array: list[str | Path] = [SHADPS4_BIN, rom.parent / "eboot.bin"]
+            command_array: list[str | Path] = [SHADPS4.require(), rom.parent / "eboot.bin"]
 
         return Command.Command(
             array=command_array,

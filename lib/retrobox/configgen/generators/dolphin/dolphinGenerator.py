@@ -17,10 +17,9 @@ from ..Generator import Generator
 from . import dolphin_config, dolphin_controllers
 from .dolphin_paths import (
     _DOLPHIN_CFGDIR,
-    _DOLPHIN_LOCALE,
     _DOLPHIN_XDG,
-    DOLPHIN_BIN,
-    DOLPHIN_BIN_NOGUI,
+    DOLPHIN,
+    DOLPHIN_NOGUI,
     DOLPHIN_SAVES,
     DOLPHIN_SYSCONF,
 )
@@ -61,7 +60,7 @@ class DolphinGenerator(Generator):
         wheels,
         gameResolution,  # name fixed by the Generator interface
     ):
-        self.check_if_exists(DOLPHIN_BIN, system.config.emulator)
+        dolphin = DOLPHIN.require()
 
         # Dirs required for saves
         mkdir_if_not_exists(DOLPHIN_SAVES / "StateSaves")
@@ -91,18 +90,23 @@ class DolphinGenerator(Generator):
         dolphin_exec_env = {
             "XDG_CONFIG_HOME": _DOLPHIN_XDG,
             "XDG_DATA_HOME": _DOLPHIN_XDG,
-            "LOCPATH": str(_DOLPHIN_LOCALE),
+            "LOCPATH": str(DOLPHIN.prefix_of(dolphin) / "share" / "locale"),
             # no HIDAPI: the button numbers of es_input.cfg are evdev's (see startup/run.py)
             "SDL_JOYSTICK_HIDAPI": "0",
             "SDL_JOYSTICK_ALLOW_BACKGROUND_EVENTS": "1",
         }
 
+        selected_bin = dolphin
         if configure_emulator(rom):
-            selected_bin = DOLPHIN_BIN
             dolphin_args = []  # config mode, no -b -e
         else:
-            selected_bin = DOLPHIN_BIN_NOGUI
             dolphin_args = ["-C", "Dolphin.Display.Fullscreen=True", "-e", str(rom)]
+            nogui = DOLPHIN_NOGUI.find()
+            if nogui is not None:
+                selected_bin = nogui
+            else:
+                # no NoGUI frontend (an AppImage): the GUI one in batch mode
+                dolphin_args.insert(0, "-b")
 
         if state_filename := system.config.get("state_filename"):
             dolphin_args.extend(["--save_state", state_filename])

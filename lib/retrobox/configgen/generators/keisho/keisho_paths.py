@@ -10,6 +10,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Final
 
+from retrobox.configgen.utils.emulator_binary import EmulatorBinary
 from retrobox.paths import EMULATORS, EMULATORS_CONFIG, SAVES, SCREENSHOTS
 
 if TYPE_CHECKING:
@@ -19,7 +20,8 @@ KEISHO_NAME: Final = "keisho"
 
 _KEISHO_EMUDIR: Final = EMULATORS / KEISHO_NAME
 KEISHO_PREFIX: Final = _KEISHO_EMUDIR / "app"
-KEISHO_BIN: Final = KEISHO_PREFIX / "bin" / KEISHO_NAME
+KEISHO: Final = EmulatorBinary(KEISHO_NAME, (KEISHO_NAME,), installer=KEISHO_NAME, appimage=False,
+                                outside=False)
 KEISHO_GAMES_DB: Final = KEISHO_PREFIX / "share" / KEISHO_NAME / "games.xml"
 # written by the installer: which optional graphics backends the binary carries
 KEISHO_BUILD_INFO: Final = KEISHO_PREFIX / "retrobox-build.ini"

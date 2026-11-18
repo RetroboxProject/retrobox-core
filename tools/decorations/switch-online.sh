@@ -1,89 +1,49 @@
 #!/usr/bin/env bash
-## SWITCH-ONLINE BEZEL PACK INSTALLER
-## CREATION DATE: September 6, 2026
-set -eo pipefail
+# The "Switch Online" bezel pack, into <bezels>/switch-online.
+#   -i  install (or update)      -u  uninstall
+set -euo pipefail
 
-## VARIABLES
-RETROBOX_ROOTDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")"/../.. >/dev/null 2>&1 && pwd -P)"
-source "${RETROBOX_ROOTDIR}/tools/lib/paths.sh"
-INSTALL_DIR="${RETROBOX_BEZELS_DIR}/switch-online"
-TMP_DIR="$(mktemp -d)"
-# Note: 'main' is the repository's default branch.
-# If it becomes 'master', use refs/heads/master.zip
-ZIP_URL="https://github.com/manu-creative-411/batocera-overlay-switchonline/archive/refs/heads/main.zip"
-PACK_NAME="switch-online"
-MANIFEST_DIR="${RETROBOX_STATEDIR}/packages/decorations"
-MANIFEST_FILE="${MANIFEST_DIR}/${PACK_NAME}"
+ROOT_DIR="$(cd "$(dirname "$(readlink -f "$0")")/../.." >/dev/null 2>&1 && pwd -P)"
+# shellcheck source=tools/lib/paths.sh
+source "${ROOT_DIR}/tools/lib/paths.sh"
+# shellcheck source=tools/lib/log.sh
+source "${ROOT_DIR}/tools/lib/log.sh"
 
-## FUNCTIONS
-function error() {
-    echo "[ERROR] $*." >&2
-    exit 1
+readonly PACK="switch-online"
+readonly URL="https://github.com/manu-creative-411/batocera-overlay-switchonline/archive/refs/heads/main.tar.gz"
+readonly INSTALL_DIR="${RETROBOX_BEZELS_DIR}/${PACK}"
+
+function install_pack() {
+    local work
+    work="$(mktemp -d)"
+    # shellcheck disable=SC2064  # expand now: the folder of this call
+    trap "rm -rf '${work}'" EXIT
+    log_info "Downloading the ${PACK} bezels..."
+    curl -fL --retry 3 --progress-bar -o "${work}/pack.tar.gz" "${URL}" \
+        || { log_err "The download of ${URL} failed"; exit 1; }
+    mkdir -p "${work}/pack"
+    tar -xzf "${work}/pack.tar.gz" -C "${work}/pack" --strip-components=1
+    rm -rf "${INSTALL_DIR}.new"
+    mv "${work}/pack" "${INSTALL_DIR}.new"
+    rm -rf "${INSTALL_DIR}"
+    mkdir -p "$(dirname "${INSTALL_DIR}")"
+    mv "${INSTALL_DIR}.new" "${INSTALL_DIR}"
+    # the file list of the former installer, no longer needed
+    rm -f "${RETROBOX_STATEDIR}/packages/decorations/${PACK}"
+    log_ok "The ${PACK} bezels are in ${INSTALL_DIR}."
 }
 
-function install() {
-    if ! command -v curl &> /dev/null; then
-        echo "[INFO] curl not found. Attempting to install..."
-        sudo dnf install -y curl || sudo apt-get install -y curl || error "Failed to install curl"
-    fi
-    if ! command -v unzip &> /dev/null; then
-        echo "[INFO] unzip not found. Attempting to install..."
-        sudo dnf install -y unzip || sudo apt-get install -y unzip || error "Failed to install unzip"
-    fi
-
-    mkdir -p "${INSTALL_DIR}"
-    mkdir -p "${MANIFEST_DIR}"
-
-    echo "[INFO] Downloading ${PACK_NAME} bezel pack..."
-    curl -sL "${ZIP_URL}" -o "${TMP_DIR}/pack.zip"
-
-    echo "[INFO] Extracting ${PACK_NAME} to ${INSTALL_DIR}..."
-    unzip -q "${TMP_DIR}/pack.zip" -d "${TMP_DIR}"
-    
-    # Find the extracted folder (e.g. batocera-overlay-switchonline-main)
-    local extracted_dir
-    extracted_dir="$(find "${TMP_DIR}" -mindepth 1 -maxdepth 1 -type d | head -n 1)"
-    
-    if [[ -z "${extracted_dir}" ]]; then
-        error "Failed to find extracted directory in zip"
-    fi
-
-    # Copy the contents into the install folder
-    cp -r "${extracted_dir}"/* "${INSTALL_DIR}/"
-
-    echo "[INFO] Generating manifest at ${MANIFEST_FILE}..."
-    # Write the manifest of installed files, relative to the bezels folder
-    find "${INSTALL_DIR}" -type f | sed "s|^${RETROBOX_BEZELS_DIR}/||" > "${MANIFEST_FILE}"
-
-    rm -rf "${TMP_DIR}"
-    echo "[INFO] Installation of ${PACK_NAME} completed."
+function uninstall_pack() {
+    rm -rf "${INSTALL_DIR}"
+    rm -f "${RETROBOX_STATEDIR}/packages/decorations/${PACK}"
+    log_ok "The ${PACK} bezels were removed."
 }
 
-function uninstall() {
-    echo "[INFO] Uninstalling ${PACK_NAME}..."
-    if [[ ! -f "${MANIFEST_FILE}" ]]; then
-        echo "[WARN] Manifest not found at ${MANIFEST_FILE}. Cannot safely uninstall."
-        return 1
-    fi
-
-    while IFS= read -r file; do
-        if [[ -f "${RETROBOX_BEZELS_DIR}/${file}" ]]; then
-            rm -f "${RETROBOX_BEZELS_DIR}/${file}"
-            echo "[INFO] Removed ${file}"
-        fi
-    done < "${MANIFEST_FILE}"
-    
-    # Remove the folder if it is left empty
-    rmdir "${INSTALL_DIR}" 2>/dev/null || true
-    
-    rm -f "${MANIFEST_FILE}"
-    echo "[INFO] Uninstallation of ${PACK_NAME} completed."
-}
-
-## CALLS
-case "$1" in
-    "-i") install;;
-    "-u"|"-d") uninstall;;
-    *) exit 1;;
+case "${1:-}" in
+    -i) install_pack ;;
+    -u) uninstall_pack ;;
+    *)
+        echo "Usage: $(basename "$0") -i | -u" >&2
+        exit 1
+        ;;
 esac
-exit 0

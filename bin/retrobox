@@ -1,33 +1,10 @@
 #!/usr/bin/env bash
-# Retrobox entrypoint.
+# Retrobox entrypoint: starts the frontend, or runs one maintenance action
+# and exits. See usage() below, or run `retrobox --help`.
 #
-# On a normal launch it checks that the essentials are in place (warning,
-# never stopping, if something is missing) and starts the frontend. The
-# install itself is read-only: nothing is written next to this script.
-#
-#   retrobox --setup-emulator <name>      build a single emulator from
-#                                            source (repeatable)
-#   retrobox --setup-emulator             list available emulators
-#   retrobox --setup-bezel <name>         install a bezel/decoration pack
-#   retrobox --download-default <name>    download the default theme, bezels or
-#                                            shaders again (repeatable), in the
-#                                            terminal
-#   retrobox --version                    print the installed version
-#   retrobox --settings                   open the settings window (edits
-#                                            ~/.config/retrobox/retrobox.ini)
-#   retrobox --doctor [--json]            check what Retrobox needs on this
-#                                            computer and say how to fix it
-#
-# All of the above are maintenance operations: they run and then exit,
-# they don't start the frontend afterwards. Any other argument is passed
-# through to retrobox.startup (lib/retrobox/startup/run.py) untouched, which
-# hands it to EmulationStation, except the --update-default-{theme,bezels,
-# shaders} flags: retrobox.startup consumes them, downloads the default theme
-# (es-theme-iconic) / bezels (RetroBat's) / shaders (retrobox-shaders) again
-# and then starts the frontend. Syncing installed PC games (Steam, Heroic, Lutris)
-# before the frontend starts is set in retrobox.ini: steam_sync, heroic_sync
-# and lutris_sync under [core].
+# The install itself is read-only: nothing is written next to this script.
 set -eo pipefail
+
 # readlink -f (not just dirname) so this also works when invoked through a
 # symlink such as /usr/bin/retrobox -> /opt/retrobox/bin/retrobox.
 RETROBOX_SELF="$(readlink -f "${BASH_SOURCE[0]}")"
@@ -56,197 +33,108 @@ else
 fi
 export RETROBOX_PYTHON
 
+# shellcheck source=tools/lib/log.sh
+source "${TOOLS_DIR}/lib/log.sh"
+
+if [[ -z "${RETROBOX_PYTHON}" ]]; then
+    log_err "python3 not found. Install it with your package manager."
+    exit 1
+fi
+
 # shellcheck source=tools/lib/paths.sh
 source "${TOOLS_DIR}/lib/paths.sh"
 # shellcheck source=tools/setup.sh
 source "${TOOLS_DIR}/setup.sh"
 
+function usage() {
+    cat <<EOF
+Usage: retrobox [-- FRONTEND_ARGS...]
+       retrobox ACTION [NAME...]
+
+With no action, Retrobox starts. Arguments after -- go to EmulationStation.
+
+Actions (one per call; each runs and exits):
+  --install-emulator [NAME...]  install or update emulators (no name: list
+                                the installers and how each installs)
+  --remove-emulator NAME...     uninstall emulators (their configuration
+                                and saves are kept)
+  --install-bezels [NAME...]    install or update bezel packs (no name: list)
+  --remove-bezels NAME...       remove bezel packs
+  --download [WHAT...]          download the default theme, bezels or shaders
+                                again, in this terminal (no name: list)
+  --settings                    open the settings window (retrobox.ini)
+  --doctor [--json]             check what Retrobox needs on this computer
+                                and say how to fix what is missing
+  --version                     print the installed version
+  -h, --help                    show this help
+
+Emulators install as an extracted AppImage when one exists for this machine,
+else as the release archive, else built from source; each installer in
+tools/emulators/ also takes -a, -t or -s to choose. With the overlay
+installed, a game offers to install its missing emulator by itself.
+EOF
+}
+
 function retrobox_version() {
     if [[ -r "${RETROBOX_ROOTDIR}/VERSION" ]]; then
         head -n1 "${RETROBOX_ROOTDIR}/VERSION"
-    elif git -C "${RETROBOX_ROOTDIR}" describe --tags --always --dirty 2>/dev/null; then
-        :
-    else
+    elif ! git -C "${RETROBOX_ROOTDIR}" describe --tags --always --dirty 2>/dev/null; then
         echo "unknown"
     fi
 }
 
-# Warn (never abort) about what is missing, so a half-installed system says
-# so up front instead of failing deep inside the launcher.
-function preflight() {
-    if [[ -z "${RETROBOX_PYTHON}" ]]; then
-        log_err "python3 not found. Install it with your package manager."
-        exit 1
-    fi
-    if [[ ! -x "${RETROBOX_ES_EXECUTABLE}" ]]; then
-        log_warn "EmulationStation not found at ${RETROBOX_ES_EXECUTABLE}."
-        log_warn "Install the retrobox-emulationstation package."
-    fi
-    local missing
-    missing="$("${RETROBOX_PYTHON}" -W ignore -c '
-import importlib.util as u
-import retrobox  # adds the bundled modules (PySDL2) to sys.path
-mods = ["yaml", "evdev", "pyudev", "sdl2", "PIL", "ruamel.yaml"]
-print(" ".join(m for m in mods if u.find_spec(m) is None))' 2>/dev/null || true)"
-    if [[ -n "${missing}" ]]; then
-        log_warn "Missing Python modules: ${missing}. Install the dependencies (see README) or re-run install.sh."
-    fi
-    # the overlay's input daemon (overlay hotkeys, and the gamepad hotkeys such as
-    # Hotkey+Start) is optional
-    if ! command -v retrobox-inputd >/dev/null 2>&1; then
-        log_warn "retrobox-inputd not found: no overlay and no gamepad hotkeys."
-        log_warn "Install retrobox-overlay 0.5.5 or later (https://github.com/RetroboxProject/retrobox-overlay)."
-    fi
+function usage_error() {
+    log_err "$1"
+    echo "Run 'retrobox --help' for the options." >&2
+    exit 2
 }
 
-function usage() {
-cat <<EOF
-Usage: $(basename "${BASH_SOURCE[0]}") [OPTIONS] [-- ARGS...]
---setup-emulator <name>     Build/install a single emulator from source
-                            (e.g. --setup-emulator retroarch). Can be
-                            repeated to install several at once. Called
-                            with no name, lists every installer available
-                            under tools/emulators/.
---setup-bezel <name>        Install a single bezel/decoration pack (e.g.
-                            --setup-bezel switch-online). Can be
-                            repeated to install several at once. Called
-                            with no name, lists every installer available
-                            under tools/decorations/.
---download-default <name>   Download the default theme, bezels or shaders
-                            (theme, bezels, shaders) right here, printing
-                            its progress, and exit. Can be repeated. This
-                            is what to use without retrobox-overlay, which
-                            otherwise shows these downloads, and the
-                            emulators' installers, on its task screen
-                            (nothing is downloaded or installed at start
-                            without it).
---version                   Print the installed version and exit.
---settings                  Open the settings window (folders, hidden
-                            systems, PC games sync...), which edits
-                            ~/.config/retrobox/retrobox.ini. Needs PySide6
-                            or PyQt6.
---doctor [--json]           Check what Retrobox needs on this computer
-                            (components, display, GPU, input, folders,
-                            emulators, RetroAchievements) and say how to
-                            fix what is missing. Changes nothing. --json
-                            prints the results for a bug report.
--h, --help                  Show this help and exit.
-
---update-default-theme      Download the default theme (es-theme-iconic)
-                            again, updating it or reinstalling it if it
-                            was removed, then start the frontend. Without
-                            it, the theme is only installed when there is
-                            no theme at all.
---update-default-bezels     The same for the default bezels (RetroBat's).
-                            Without it, they are only installed on the
-                            first start.
---update-default-shaders    The same for Retrobox's shaders, which are
-                            merged into the shaders folder (your own
-                            shaders there are kept). Without it, they are
-                            only installed on the first start.
-
-Anything else is forwarded as-is to retrobox.startup (lib/retrobox/startup/run.py),
-which in turn passes it to the frontend (EmulationStation).
-
-Syncing installed PC games into their EmulationStation ROM directories
-before the frontend starts is set in retrobox.ini, under [core]:
-steam_sync, heroic_sync and lutris_sync, each one of
-  none             don't sync (default)
-  on-base-dir      always <data dir>/roms/<steam|heroic|lutris>
-  follow-roms-dir  <roms_dir>/<steam|heroic|lutris>
-
-The system dependencies and the udev rules are installed by the .deb/.rpm
-packages or by install.sh, not by retrobox.
-EOF
+# Run <installer flag> for each name, or list the installers when none is given.
+function each_installer() {
+    local kind="$1" flag="$2" action="$3"
+    shift 3
+    if [[ $# -eq 0 ]]; then
+        list_installers "${kind}"
+        return 0
+    fi
+    local name status=0
+    for name in "$@"; do
+        [[ "${name}" != -* ]] || usage_error "${action} takes names, not '${name}' (one action per call)."
+    done
+    for name in "$@"; do
+        run_installer "${kind}" "${name}" "${flag}" || status=1
+    done
+    return "${status}"
 }
 
-declare -a emulators_to_setup=()
-declare -a bezels_to_setup=()
-declare -a defaults_to_download=()
-declare -a frontend_args=()
+action="${1:-}"
+[[ $# -gt 0 ]] && shift
 
-while [[ $# -gt 0 ]]; do
-case "$1" in
---setup-emulator)
-    if [[ -z "${2:-}" || "${2:0:1}" == "-" ]]; then
-        list_available_emulators
-        exit 0
-    fi
-    emulators_to_setup+=("$2")
-    shift 2
-    ;;
---setup-bezel)
-    if [[ -z "${2:-}" || "${2:0:1}" == "-" ]]; then
-        list_available_bezels
-        exit 0
-    fi
-    bezels_to_setup+=("$2")
-    shift 2
-    ;;
---download-default)
-    if [[ -z "${2:-}" || "${2:0:1}" == "-" ]]; then
-        echo "Available: theme bezels shaders"
-        exit 0
-    fi
-    defaults_to_download+=("$2")
-    shift 2
-    ;;
---version)
-    retrobox_version
-    exit 0
-    ;;
---settings)
-    exec "${RETROBOX_PYTHON}" -m retrobox.settingsui
-    ;;
---doctor)
-    shift
-    exec "${RETROBOX_PYTHON}" -m retrobox.doctor "$@"
-    ;;
--h | --help)
-    usage
-    exit 0
-    ;;
---)
-    shift
-    frontend_args+=("$@")
-    break
-    ;;
-*)
-    frontend_args+=("$1")
-    shift
-    ;;
+case "${action}" in
+    "" | --)
+        exec "${RETROBOX_PYTHON}" -m retrobox.startup "$@"
+        ;;
+    --install-emulator) each_installer emulators -i "${action}" "$@" ;;
+    --remove-emulator) each_installer emulators -u "${action}" "$@" ;;
+    --install-bezels) each_installer decorations -i "${action}" "$@" ;;
+    --remove-bezels) each_installer decorations -u "${action}" "$@" ;;
+    --download)
+        for name in "$@"; do
+            [[ "${name}" != -* ]] || usage_error "--download takes names, not '${name}' (one action per call)."
+        done
+        exec "${RETROBOX_PYTHON}" -m retrobox.startup.downloads "$@"
+        ;;
+    --settings)
+        [[ $# -eq 0 ]] || usage_error "--settings takes no arguments."
+        exec "${RETROBOX_PYTHON}" -m retrobox.settingsui
+        ;;
+    --doctor) exec "${RETROBOX_PYTHON}" -m retrobox.doctor "$@" ;;
+    --version)
+        [[ $# -eq 0 ]] || usage_error "--version takes no arguments."
+        retrobox_version
+        ;;
+    -h | --help) usage ;;
+    *)
+        usage_error "Unknown option '${action}'. Arguments for EmulationStation go after --."
+        ;;
 esac
-done
-
-did_maintenance=0
-
-if [[ "${#emulators_to_setup[@]}" -gt 0 ]]; then
-    status=0
-    for name in "${emulators_to_setup[@]}"; do
-        setup_emulator "${name}" || status=1
-    done
-    did_maintenance=1
-    [[ "${status}" -eq 0 ]] || exit "${status}"
-fi
-
-if [[ "${#bezels_to_setup[@]}" -gt 0 ]]; then
-    status=0
-    for name in "${bezels_to_setup[@]}"; do
-        setup_bezeles "${name}" || status=1
-    done
-    did_maintenance=1
-    [[ "${status}" -eq 0 ]] || exit "${status}"
-fi
-
-if [[ "${#defaults_to_download[@]}" -gt 0 ]]; then
-    "${RETROBOX_PYTHON}" -m retrobox.startup.downloads "${defaults_to_download[@]}" || exit 1
-    did_maintenance=1
-fi
-
-if [[ "${did_maintenance}" -eq 1 ]]; then
-    exit 0
-fi
-
-preflight
-
-exec "${RETROBOX_PYTHON}" -m retrobox.startup "${frontend_args[@]}"

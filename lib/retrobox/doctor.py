@@ -117,6 +117,22 @@ def retrobox_version() -> str:
     return f"{described.strip()} (checkout)" if described else "unknown"
 
 
+def startup_warnings() -> list[str]:
+    """What a start of Retrobox should warn about: the essentials that are missing."""
+    warnings = []
+    missing = [name for name in _REQUIRED_MODULES if not _has_module(name)]
+    if missing:
+        warnings.append(f"Missing Python modules: {', '.join(missing)}. "
+                        "Run 'retrobox --doctor' to see what to install.")
+    if not os.access(paths.ES_EXECUTABLE, os.X_OK):
+        warnings.append(f"EmulationStation not found at {paths.ES_EXECUTABLE}: "
+                        "install the retrobox-emulationstation package.")
+    if shutil.which("retrobox-inputd") is None:
+        warnings.append("retrobox-inputd not found: no overlay and no gamepad hotkeys. Install "
+                        "retrobox-overlay (https://github.com/RetroboxProject/retrobox-overlay).")
+    return warnings
+
+
 # --- the checks ------------------------------------------------------------------
 
 
@@ -208,7 +224,7 @@ def check_components() -> Iterator[Check]:
         yield Check(section, "Themes", Status.OK, ", ".join(themes))
     else:
         yield Check(section, "Themes", Status.WARN, "none yet",
-                    "retrobox --download-default theme (or it comes on the next start)")
+                    "retrobox --download theme (or it comes on the next start)")
 
 
 def _resolution_tool(session: str, desktop: str) -> str:
@@ -360,22 +376,24 @@ def check_folders() -> Iterator[Check]:
 
 
 def check_emulators() -> Iterator[Check]:
-    """The emulators installed by Retrobox's installers."""
+    """The emulators Retrobox can install, and where each one was found."""
     section = "Emulators"
-    installers = sorted(path.stem for path in (paths.RETROBOX_ROOTDIR / "tools" / "emulators")
-                        .glob("*.sh"))
-    installed = sorted(entry.name for entry in paths.EMULATORS.iterdir()
-                       if entry.is_dir() and not entry.name.startswith(".")) \
-        if paths.EMULATORS.is_dir() else []
-    if installed:
-        yield Check(section, "Installed", Status.OK, ", ".join(installed))
-    else:
-        yield Check(section, "Installed", Status.INFO,
-                    "none yet (a game offers to install its emulator)")
-    others = [name for name in installers if name not in installed]
-    if others:
-        yield Check(section, "Available", Status.INFO, ", ".join(others),
-                    "retrobox --setup-emulator NAME")
+    # pylint: disable-next=import-outside-toplevel  # reads every generator's paths module
+    from retrobox.launcher.emulator_setup import detector_of, installables
+
+    missing = []
+    for entry in installables():
+        detector = detector_of(entry)
+        found = detector.find() if detector is not None else None
+        if found is None:
+            missing.append(entry.installer)
+        elif detector is not None and detector.installed_by_retrobox():
+            yield Check(section, entry.label, Status.OK, str(found))
+        else:
+            yield Check(section, entry.label, Status.OK, f"{found} (not Retrobox's own)")
+    if missing:
+        yield Check(section, "Not installed", Status.INFO, ", ".join(missing),
+                    "retrobox --install-emulator NAME (or a game offers it)")
 
 
 def check_achievements() -> Iterator[Check]:

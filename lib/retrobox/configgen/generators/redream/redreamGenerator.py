@@ -4,7 +4,7 @@ from __future__ import annotations
 from ... import Command
 from ...controller import generate_sdl_game_controller_config
 from ..Generator import Generator
-from .redream_paths import _REDREAM_ROMS, REDREAM_BIN, REDREAM_CFG, REDREAM_DIR
+from .redream_paths import _REDREAM_ROMS, REDREAM, REDREAM_CFG, REDREAM_DIR
 from retrobox.paths import mkdir_if_not_exists
 from retrobox.configgen.hotkeys import CLOSE_WINDOW, HotkeyAction
 
@@ -117,7 +117,7 @@ class RedreamGenerator(Generator):
             f.write(f"broadcast={system.config.get('redreamBroadcast', 'ntsc')}\n")
             f.write(f"cable={system.config.get('redreamCable', 'vga')}\n")
 
-        commandArray = [REDREAM_BIN, rom]
+        commandArray = [REDREAM.require(), rom]
         return Command.Command(
             array=commandArray,
             env={

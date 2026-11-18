@@ -36,13 +36,13 @@ OVERLAYS: Final = check_env_dirs("OVERLAYS_DIR", DATA_DIR / "overlay")
 CHEATS: Final = check_env_dirs("CHEATS_DIR", DATA_DIR / "cheats")
 
 # Shaders are not shipped either: retrobox.startup.downloads merges Retrobox's
-# into this directory on the first start (retrobox --update-default-shaders),
+# into this directory on the first start (retrobox --download shaders),
 # next to the user's own.
 _SHADERS_DIR: Final = check_env_dirs("SHADERS_DIR", DATA_DIR / "shaders")
 
 _DECORATIONS_DIR: Final = check_env_dirs("BEZELS_DIR", DATA_DIR / "decorations")
 # Default (RetroBat) bezels are not shipped: retrobox.startup.downloads
-# downloads them here on the first start (retrobox --update-default-bezels).
+# downloads them here on the first start (retrobox --download bezels).
 _DECORATIONS_DEF_DIR: Final = check_env_dirs("BEZELS_DEFAULT_DIR", DATA_DIR / "decorations-default")
 
 _SYSTEM_SCRIPTS: Final = SHARE_DIR / "scripts"

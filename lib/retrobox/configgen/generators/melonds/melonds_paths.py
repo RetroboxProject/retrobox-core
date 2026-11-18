@@ -1,6 +1,7 @@
 
 from typing import Final
 
+from retrobox.configgen.utils.emulator_binary import EmulatorBinary
 from retrobox.paths import BIOS, CHEATS, EMULATORS_CONFIG, ROMS, SAVES
 
 _MELONDS_DIR: Final = EMULATORS_CONFIG / "melonds"
@@ -9,6 +10,7 @@ _MELONDS_CFGDIR: Final = _MELONDS_XDG / "melonDS"
 _MELONDS_SAVES: Final = SAVES / "nds"
 _MELONDS_ROMS: Final = ROMS / "nds"
 _MELONDS_CHEATS: Final = CHEATS / "melonDS"
+MELONDS: Final = EmulatorBinary("melonds", ("melonDS",))
 
 # Config file path
 MELONDS_CFG = _MELONDS_CFGDIR / "melonDS.toml"

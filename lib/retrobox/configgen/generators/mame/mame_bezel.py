@@ -22,6 +22,7 @@ from retrobox.paths import MAME_ARTWORK_DIR, SHARE_DIR, RUNTIME_DIR
 from ...exceptions import RetroboxException
 from ...utils import bezels as bezels_util
 from ...utils.bezel_policy import BezelSettings, resolve_bezel_settings
+from .mamePaths import MAME
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -31,7 +32,6 @@ if TYPE_CHECKING:
 
 _logger = logging.getLogger(__name__)
 
-_MAME_BIN = "/usr/bin/mame/mame"
 _TATTOOED_BEZEL_PNG = RUNTIME_DIR / "bezel_tattooed.png"
 # below this screen ratio (4:3 and the like) a bezel leaves no room for the game
 _MIN_BEZEL_SCREEN_RATIO = 1.6
@@ -80,7 +80,7 @@ def get_machine_size(machine: str, tmpdir: Path) -> tuple[int, int, int]:
     Raises:
         RetroboxException: If MAME fails or the machine has no display.
     """
-    with subprocess.Popen([_MAME_BIN, "-listxml", machine], stdout=subprocess.PIPE) as proc:
+    with subprocess.Popen([MAME.require(), "-listxml", machine], stdout=subprocess.PIPE) as proc:
         out, _ = proc.communicate()
         exitcode = proc.returncode
 

@@ -1,188 +1,88 @@
 #!/usr/bin/env bash
-## VITA3K INSTALLER
-## Created: 4 August 2026
-set -eo pipefail
+# Vita3K (PlayStation Vita): the AppImage of the continuous build, its plain
+# binary build, or a build from source.
+#
+#   VITA3K_BRANCH   branch of a source build (default: master)
+EMULATOR="vita3k"
+LABEL="Vita3K"
+# shellcheck source=tools/lib/installer.sh
+source "$(dirname "$(readlink -f "$0")")/../lib/installer.sh"
 
-## VARIABLES
+readonly RELEASES="https://github.com/Vita3K/Vita3K/releases/download/continuous"
+# the oldest Qt Vita3K builds with, and where a downloaded one is kept between
+# runs (~300 MB; emulator_update shares it with its staging folder)
+readonly QT_VERSION="6.11.0"
+readonly QT_DIR="${RETROBOX_EMULATORS_DIR}/_qt6"
 
-RETROBOX_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/../.. >/dev/null 2>&1 && pwd -P)"
-source "${RETROBOX_ROOT}/tools/lib/paths.sh"
-INSTALL_DIR="${RETROBOX_EMULATORS_DIR}/vita3k"
-SRC_DIR="${RETROBOX_EMULATORS_DIR}/_src"
-VITA3K_SRC="${SRC_DIR}/Vita3K"
-TMP_DIR="$(mktemp -d)"
-REPO="https://github.com/Vita3K/Vita3K.git"
-RELEASE_BASE="https://github.com/Vita3K/Vita3K/releases/download/continuous"
-ARCH="$(uname -m)"
-
-# Branch to build with "-s". Change it here to follow another branch or fork.
-BRANCH="master"
-
-# Minimum Qt version Vita3K requires, and where it is kept if it has to be
-# downloaded (kept between runs so ~300 MB are not downloaded every time).
-QT_VERSION="6.11.0"
-QT_DIR="${RETROBOX_EMULATORS_DIR}/_qt6"
-
-## FUNCTIONS
-
-function error() {
-  echo "[ERROR] $*." >&2
-  exit 1
-}
-
-function vita3k_uninstall() {
-  rm -r "${INSTALL_DIR}"
-}
-
-function resolve_arch() {
-  case "${ARCH}" in
-    x86_64|amd64)
-      APPIMAGE_NAME="Vita3K-x86_64.AppImage"
-      ZIP_NAME="ubuntu-latest.zip"
-      ;;
-    aarch64|arm64)
-      APPIMAGE_NAME="Vita3K-aarch64.AppImage"
-      ZIP_NAME="ubuntu-aarch64-latest.zip"
-      ;;
-    *)
-      error "Unsupported architecture: ${ARCH}"
-      ;;
-  esac
-}
-
-function vita3k_appimage_inst(){
-  resolve_arch
-
-  if ! command -v curl &> /dev/null; then
-    sudo dnf install -y curl || sudo apt-get install -y curl
-  fi
-
-  mkdir -p "${INSTALL_DIR}"
-
-  echo "[INFO] Downloading ${APPIMAGE_NAME} (continuous)..."
-  curl -L "${RELEASE_BASE}/${APPIMAGE_NAME}" -o "${TMP_DIR}/vita3k.AppImage"
-
-  mv "${TMP_DIR}/vita3k.AppImage" "${INSTALL_DIR}/vita3k.AppImage"
-  chmod +x "${INSTALL_DIR}/vita3k.AppImage"
-
-  echo "[INFO] Extracting the AppImage..."
-  (
-    cd "${INSTALL_DIR}" || exit 1
-    "${INSTALL_DIR}/vita3k.AppImage" --appimage-extract >/dev/null 2>&1
-    mv "${INSTALL_DIR}/squashfs-root" "${INSTALL_DIR}/app"
-    rm "${INSTALL_DIR}/vita3k.AppImage"
-  )
-
-  rm -rf "${TMP_DIR}"
-  echo "[INFO] Installation (extracted AppImage, ${ARCH}) completed."
-}
-
-function vita3k_binary_inst(){
-  resolve_arch
-
-  if ! command -v curl &> /dev/null; then
-    sudo dnf install -y curl || sudo apt-get install -y curl
-  fi
-  if ! command -v unzip &> /dev/null; then
-    sudo dnf install -y unzip || sudo apt-get install -y unzip
-  fi
-
-  mkdir -p "${INSTALL_DIR}/app"
-
-  echo "[INFO] Downloading ${ZIP_NAME} (continuous)..."
-  curl -L "${RELEASE_BASE}/${ZIP_NAME}" -o "${TMP_DIR}/vita3k.zip"
-
-  echo "[INFO] Unzipping..."
-  unzip -q "${TMP_DIR}/vita3k.zip" -d "${INSTALL_DIR}/app"
-  chmod +x "${INSTALL_DIR}/app/Vita3K"
-
-  rm -rf "${TMP_DIR}"
-  echo "[INFO] Installation (ubuntu-latest binary, ${ARCH}) completed."
-}
-
-function check_deps() {
-  echo "[INFO] Checking build dependencies..."
-  sudo dnf install -y \
-    git cmake ninja-build SDL2-devel pkg-config gtk3-devel clang lld \
-    xdg-desktop-portal openssl openssl-devel libstdc++-static qt6-qtbase-devel \
-    || sudo apt-get install -y \
-    git cmake ninja-build libsdl2-dev pkg-config libgtk-3-dev clang lld \
-    xdg-desktop-portal openssl libssl-dev qt6-base-dev
-}
-
-function ensure_qt6() {
-  local system_version
-  system_version="$(pkg-config --modversion Qt6Core 2>/dev/null || echo "0")"
-
-  if [[ "$(printf '%s\n%s\n' "${QT_VERSION}" "${system_version}" | sort -V | head -n1)" == "${QT_VERSION}" && "${system_version}" != "0" ]]; then
-    echo "[INFO] The system Qt6 (${system_version}) meets the minimum (${QT_VERSION})."
-    return
-  fi
-
-  echo "[INFO] The system Qt6 is too old or not installed."
-  echo "[INFO] Downloading a prebuilt Qt ${QT_VERSION} (qtbase) with aqtinstall..."
-
-  if ! command -v python3 &> /dev/null; then
-    sudo dnf install -y python3 python3-pip || sudo apt-get install -y python3 python3-pip python3-venv
-  fi
-
-  if [[ ! -d "${QT_DIR}/${QT_VERSION}" ]]; then
-    mkdir -p "${QT_DIR}"
-    local aqt_arch
+function supported_arch() {
     case "${ARCH}" in
-      x86_64|amd64) aqt_arch="linux_gcc_64";;
-      aarch64|arm64) aqt_arch="linux_arm64";;
-      *) error "Unsupported architecture for a prebuilt Qt6: ${ARCH}";;
+        x86_64 | aarch64) ;;
+        *) unavailable "Vita3K publishes no build for ${ARCH}." ;;
     esac
-    python3 -m venv "${TMP_DIR}/aqt-venv"
-    (
-      source "${TMP_DIR}/aqt-venv/bin/activate"
-      pip install --quiet aqtinstall
-      aqt install-qt linux desktop "${QT_VERSION}" "${aqt_arch}" --outputdir "${QT_DIR}"
-    )
-  fi
-
-  Qt6_ROOT="$(find "${QT_DIR}/${QT_VERSION}" -maxdepth 1 -mindepth 1 -type d | head -n1)"
-  [[ -n "${Qt6_ROOT}" ]] || error "Could not find the downloaded Qt6 installation"
-  export Qt6_ROOT
-  echo "[INFO] Using Qt6_ROOT=${Qt6_ROOT}"
 }
 
-function vita3k_source_build() {
-  mkdir -p "${SRC_DIR}"
-  check_deps
-  ensure_qt6
-
-  echo "[INFO] Cloning Vita3K (branch: ${BRANCH}) with submodules..."
-  git clone --recursive --shallow-submodules --depth 1 -b "${BRANCH}" "${REPO}" "${VITA3K_SRC}"
-
-  echo "[INFO] Generating the project (preset linux-ninja-clang)..."
-  (
-    cd "${VITA3K_SRC}"
-    cmake --preset linux-ninja-clang
-    cmake --build "build/linux-ninja-clang"
-  )
-
-  echo "[INFO] Installing the built binary into ${INSTALL_DIR}..."
-  mkdir -p "${INSTALL_DIR}/app"
-
-  local bin
-  bin="$(find "${VITA3K_SRC}/build/linux-ninja-clang" -maxdepth 6 -type f -name 'Vita3K' -perm -u+x | head -n1)"
-  [[ -n "${bin}" ]] || error "The Vita3K binary was not found after the build"
-  cp "${bin}" "${INSTALL_DIR}/app/Vita3K"
-
-  echo "[INFO] Cleaning up temporary sources..."
-  rm -rf "${SRC_DIR}"
-  echo "[INFO] Build completed (branch: ${BRANCH})."
+function install_appimage() {
+    supported_arch
+    fetch "${RELEASES}/Vita3K-${ARCH}.AppImage" "${TMP_DIR}/vita3k.AppImage"
+    extract_appimage "${TMP_DIR}/vita3k.AppImage"
 }
 
-## ENTRY POINT
-case "$1" in
-  "-i") vita3k_appimage_inst;;
-  "-b") vita3k_binary_inst;;
-  "-s") vita3k_source_build;;
-  "-u") vita3k_uninstall;;
-  *)  exit 1;;
-esac
+function install_archive() {
+    supported_arch
+    local name="ubuntu-latest.zip"
+    [[ "${ARCH}" == "aarch64" ]] && name="ubuntu-aarch64-latest.zip"
+    fetch "${RELEASES}/${name}" "${TMP_DIR}/vita3k.zip"
+    extract_archive "${TMP_DIR}/vita3k.zip" "${STAGE}"
+    chmod +x "${STAGE}/Vita3K"
+    require_executable Vita3K
+}
 
-exit 0
+# Export Qt6_ROOT when the system Qt is older than QT_VERSION.
+function ensure_qt6() {
+    local system_version
+    system_version="$(pkg-config --modversion Qt6Core 2>/dev/null || echo 0)"
+    if [[ "${system_version}" != "0" \
+        && "$(printf '%s\n%s\n' "${QT_VERSION}" "${system_version}" | sort -V | head -n 1)" == "${QT_VERSION}" ]]; then
+        log_info "The system Qt ${system_version} is recent enough."
+        return 0
+    fi
+    if [[ ! -d "${QT_DIR}/${QT_VERSION}" ]]; then
+        local qt_host="linux" qt_arch="linux_gcc_64"
+        if [[ "${ARCH}" == "aarch64" ]]; then
+            qt_host="linux_arm64" qt_arch="linux_gcc_arm64"
+        fi
+        log_info "The system Qt is too old: downloading Qt ${QT_VERSION} with aqtinstall..."
+        python3 -m venv "${TMP_DIR}/aqt" || die "python3-venv is needed to download Qt"
+        "${TMP_DIR}/aqt/bin/pip" install --quiet aqtinstall || die "Could not install aqtinstall"
+        "${TMP_DIR}/aqt/bin/aqt" install-qt "${qt_host}" desktop "${QT_VERSION}" "${qt_arch}" \
+            --outputdir "${QT_DIR}" || die "Could not download Qt ${QT_VERSION}"
+    fi
+    Qt6_ROOT="$(find "${QT_DIR}/${QT_VERSION}" -mindepth 1 -maxdepth 1 -type d | head -n 1)"
+    [[ -n "${Qt6_ROOT}" ]] || die "No Qt ${QT_VERSION} in ${QT_DIR}"
+    export Qt6_ROOT
+    log_info "Using Qt from ${Qt6_ROOT}."
+}
+
+function install_source() {
+    install_packages \
+        "git cmake ninja-build pkg-config clang lld libsdl2-dev libgtk-3-dev libssl-dev
+         openssl xdg-desktop-portal qt6-base-dev python3-venv" \
+        "git cmake ninja-build pkgconf-pkg-config clang lld SDL2-devel gtk3-devel
+         openssl-devel openssl xdg-desktop-portal libstdc++-static qt6-qtbase-devel"
+    ensure_qt6
+    git_clone https://github.com/Vita3K/Vita3K.git "${VITA3K_BRANCH:-master}"
+    log_info "Building Vita3K with ${JOBS} jobs..."
+    (cd "${SRC_DIR}" && cmake --preset linux-ninja-clang \
+        && cmake --build build/linux-ninja-clang -j "${JOBS}") \
+        || die "The Vita3K build failed: check the messages above"
+    local binary
+    binary="$(find "${SRC_DIR}/build/linux-ninja-clang" -maxdepth 6 -type f -name Vita3K -perm -u+x \
+        | head -n 1)"
+    [[ -n "${binary}" ]] || die "The build produced no Vita3K binary"
+    # the binary reads its data/ and lang/ folders from next to it
+    cp -a "$(dirname "${binary}")/." "${STAGE}/"
+    require_executable Vita3K
+    remove_sources
+}
+
+installer_main "$@"

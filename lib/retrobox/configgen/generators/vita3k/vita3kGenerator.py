@@ -9,7 +9,7 @@ import ruamel.yaml.util
 from ... import Command
 from ..Generator import Generator
 from ...controller import generate_sdl_game_controller_config
-from .vita3k_paths import _VITA3K_CFGDIR, _VITA3K_SAVES, _VITA3K_XDG, VITA3K_BIN, VITA3K_CFG
+from .vita3k_paths import _VITA3K_CFGDIR, _VITA3K_SAVES, _VITA3K_XDG, VITA3K, VITA3K_CFG
 from retrobox.paths import CACHE, SAVES, mkdir_if_not_exists
 from retrobox.configgen.hotkeys import CLOSE_WINDOW, HotkeyAction
 
@@ -93,10 +93,10 @@ class Vita3kGenerator(Generator):
         # using the -w & -f options prevents Vita3k from re-writing & prompting the user in GUI
         # we want to avoid that so roms load straight away
         if (_VITA3K_SAVES / 'ux0' / 'app' / smplromname).is_dir():
-            commandArray = [VITA3K_BIN, "-F", "-w", "-f", "-c", VITA3K_CFG, "-r", smplromname]
+            commandArray = [VITA3K.require(), "-F", "-w", "-f", "-c", VITA3K_CFG, "-r", smplromname]
         else:
             # Game not installed yet, let's open the menu
-            commandArray = [VITA3K_BIN, "-F", "-w", "-f", "-c", VITA3K_CFG, rom]
+            commandArray = [VITA3K.require(), "-F", "-w", "-f", "-c", VITA3K_CFG, rom]
 
         return Command.Command(
             array=commandArray,

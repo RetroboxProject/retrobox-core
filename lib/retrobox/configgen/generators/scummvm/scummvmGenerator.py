@@ -6,7 +6,7 @@ import re
 from retrobox.configgen import Command
 from retrobox.configgen.controller import Controller, generate_sdl_game_controller_config
 from retrobox.configgen.generators.Generator import Generator
-from retrobox.configgen.generators.scummvm.scummvm_paths import _SCUMMVM_EXTRA, _SCUMMVM_SAVES, _SCUMMVM_XDG, SCUMMVM_CFG
+from retrobox.configgen.generators.scummvm.scummvm_paths import _SCUMMVM_EXTRA, _SCUMMVM_SAVES, _SCUMMVM_XDG, SCUMMVM, SCUMMVM_CFG
 from retrobox.paths import CACHE, LOGS, SCREENSHOTS, ensure_parents_and_open, mkdir_if_not_exists
 from retrobox.configgen.utils.configparser import CaseSensitiveConfigParser
 
@@ -58,7 +58,7 @@ class ScummVMGenerator(Generator):
         if pad := Controller.find_player_number(playersControllers, 1):
             id = pad.index
 
-        commandArray = ["/usr/bin/scummvm", "-f"]
+        commandArray = [str(SCUMMVM.require()), "-f"]
 
         # set the resolution
         commandArray.append(f"--window-size={gameResolution['width']},{gameResolution['height']}")

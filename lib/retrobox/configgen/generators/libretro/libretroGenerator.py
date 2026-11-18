@@ -20,7 +20,7 @@ from retrobox.configgen.generators.libretro import (
     libretroControllers,
 )
 from retrobox.configgen.generators.libretro.libretroPaths import (
-    _RETROARCH_BIN,
+    RETROARCH,
     _RETROARCH_CFGDIR,
     _RETROARCH_XDG,
     RETROARCH_CFG,
@@ -220,7 +220,7 @@ class LibretroGenerator(Generator):
         wheels,
         gameResolution,  # name fixed by the Generator interface
     ):
-        self.check_if_exists(_RETROARCH_BIN, system.config.emulator)
+        retroarch = RETROARCH.require()
         self.check_if_exists(RETROARCH_CORES, system.config.emulator)
 
         gfx_backend = gfx_backend_get(system)
@@ -278,7 +278,7 @@ class LibretroGenerator(Generator):
             args_array.extend(["-e", state_slot])
 
         command_wrapper = [
-            generate_bash_wrapper(system.config.emulator, _RETROARCH_BIN, args_array)
+            generate_bash_wrapper(system.config.emulator, retroarch, args_array)
         ]
 
         return Command.Command(
