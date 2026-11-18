@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Literal
 import pyudev
 
 from retrobox.configgen.controller import getJoystickHardwareIds
-from retrobox.configgen.generators.libretro.libretro_hotkeys import pad_hotkey_settings
+from retrobox.configgen.generators.libretro.libretro_hotkeys import EMULATOR, pad_hotkey_settings
 from retrobox.configgen.hotkeys import load_table
 from retrobox.configgen.generators.libretro.libretroPaths import _RETROARCH_CFGDIR
 
@@ -140,8 +140,8 @@ def _hotkey_block_delay(controllers: Controllers, /) -> str:
     """How many frames RetroArch's hotkey waits before it blocks the game's input.
 
     A dedicated hotkey (Home/Guide) blocks at once: the other button of a
-    shortcut never reaches the game (Hotkey+B, which opens retrobox-overlay,
-    would press B in the game otherwise). A hotkey shared with Select keeps
+    shortcut never reaches the game (Hotkey+B, RetroArch's menu, would press
+    B in the game otherwise). A hotkey shared with Select keeps
     RetroArch's default delay, which lets a tap of Select through to the game.
     """
     player1 = next((c for c in controllers if c.player_number == 1), None)
@@ -167,7 +167,8 @@ def cleanControllerConfig(retroconfig: UnixSettings, controllers: Controllers, /
             'rewind',               'hold_fast_forward', 'toggle_fast_forward',
             'screenshot',           'disk_prev',         'disk_next',
             'disk_eject_toggle',    'shader_prev',       'shader_next',
-            'ai_service',           'menu_toggle'
+            'ai_service',           'menu_toggle',       'pause_toggle',
+            'fps_toggle',           'audio_mute',        'grab_mouse_toggle',
     ]:
         retroconfig.disable_all(f'input_{x}')
 
@@ -214,7 +215,7 @@ def writeHotKeyConfig(
     if not manual_config:
         hotkeys["input_enable_hotkey_btn"] = getConfigValue(chosen_hotkey)
 
-    for button, setting in pad_hotkey_settings(load_table()).items():
+    for button, setting in pad_hotkey_settings(load_table(emulator=EMULATOR)).items():
         if button in pad:
             key, value = _hotkey_save(setting, pad[button], config)
             if key:

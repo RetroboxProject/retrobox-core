@@ -601,14 +601,28 @@ def _apply_ai_service_settings(config: dict[str, object], system: Emulator) -> N
     )
 
 
+def loads_auto_state(system: Emulator) -> bool:
+    """Whether RetroArch loads the automatic state when the game starts.
+
+    EmulationStation's auto save/load option (``autosave``: global, per
+    system or per game), unless hardcore mode keeps states away. The
+    overlay's Quit follows it (see ``_apply_savestate_settings``).
+    """
+    if not system.config.get_bool("autosave", False):
+        return False
+    cheevos = libretro_achievements.settings(system.config)
+    return cheevos[libretro_achievements.HARDCORE_SETTING] != "true"
+
+
 def _apply_savestate_settings(config: dict[str, object], system: Emulator) -> None:
     """Set the savestate and autosave options.
 
-    The automatic state (``.state.auto``) is retrobox-overlay's: "Save and
-    quit" saves it, quitting without saving removes it. RetroArch never
-    saves it by itself (on quitting it would undo the latter), and loads it
-    on start when the game's auto save is on, or when EmulationStation
-    starts the game from it.
+    The automatic state (``.state.auto``) is retrobox-overlay's. Where the
+    game's auto save/load is on, RetroArch loads it on start, and the
+    overlay's Quit saves it before quitting (held, it quits without saving
+    and removes it); with the option off, Quit only quits. RetroArch never
+    saves it by itself (on quitting it would undo a quit without saving).
+    It is loaded too when EmulationStation starts the game from it.
     """
     autosave = system.config.get_bool("autosave", False, return_values=("true", "false"))
     config["savestate_auto_save"] = "false"

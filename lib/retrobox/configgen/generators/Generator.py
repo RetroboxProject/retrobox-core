@@ -115,9 +115,10 @@ class Generator(metaclass=ABCMeta):
         ``dir`` and ``name`` (states are RetroArch's: ``<dir>/<name>.state``
         for slot 0, ``.state<N>`` for the others and ``.state.auto`` for the
         automatic one, -1, with a ``.png`` preview next to each; the overlay
-        saves in slots 0 to 9, and in -1 for "Save and quit") and ``slot``
-        (the emulator's slot when the game starts). Needs ``pipe_commands``
-        for the slots. Called after ``generate()``.
+        saves in slots 0 to 9), ``slot`` (the emulator's slot when the game
+        starts) and ``autoload`` (whether the emulator loads the automatic
+        state on start: the overlay's Quit saves it then). Needs
+        ``pipe_commands`` for the slots. Called after ``generate()``.
         """
         return None
 

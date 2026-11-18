@@ -21,6 +21,8 @@ if TYPE_CHECKING:
     from retrobox.configgen.hotkeys import Binding, HotkeyEntry
 
 HOTKEY_INPUT: Final = "hotkey"
+EMULATOR: Final = "libretro"
+"""RetroArch's name in the table's ``emulators`` (and in the systems' files)."""
 
 
 class RetroArchAction(NamedTuple):

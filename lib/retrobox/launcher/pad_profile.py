@@ -243,9 +243,12 @@ def build_session_profile(
 ) -> Path | None:
     """Compose the session profile for this game (see the module docstring)."""
     bindings = effective_bindings(generator, system)
+    emulator = system.config.emulator
     return compose_profile(
         base,
-        hotkey_mappings(load_table(), bindings),
+        hotkey_mappings(load_table(emulator=emulator), bindings),
         output,
-        keyboard_mappings(load_table(KEYBOARD_SECTION), bindings, common_bindings(system)),
+        keyboard_mappings(
+            load_table(KEYBOARD_SECTION, emulator=emulator), bindings, common_bindings(system)
+        ),
     )

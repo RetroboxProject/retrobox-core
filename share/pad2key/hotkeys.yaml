@@ -12,13 +12,14 @@
 # "tap: true" fires when the button is released alone (retrobox-overlay's
 # input daemon maps these); a tap on the hotkey is ignored: a dedicated
 # hotkey's opens the overlay, and select is a button the game needs.
+# "emulators" keeps a line to those emulators (libretro is RetroArch).
 #
 # The overlay is not here: retrobox-overlay's daemon opens it everywhere in
-# Retrobox (EmulationStation too) with Hotkey+B on every controller, with a
-# tap on a dedicated hotkey (Home/Guide: an input of its own in es_input.cfg),
-# or on Ctrl+Shift+O or Shift+F7. Where the hotkey is a button the game uses
-# (Select), tapping it opens nothing. Save states and their slots are the
-# overlay's too.
+# Retrobox (EmulationStation too) with a tap on a dedicated hotkey
+# (Home/Guide: an input of its own in es_input.cfg), and nothing else on
+# those controllers; where the hotkey is a button the game uses (Select),
+# which never taps, with Hotkey+A. And on Ctrl+Shift+O or Shift+F7. Save
+# states and their slots are the overlay's too.
 #
 # "keyboard" holds the keyboard chords, as evdev key names (the right-hand
 # modifiers count as the left-hand ones). The input daemon watches every keyboard
@@ -34,6 +35,9 @@
 
 pad:
   - {action: exit, trigger: [hotkey, start]}
+  # RetroArch's menu (it pauses the game: arcade games' pause), on every
+  # controller; Hotkey+A is the overlay's where the hotkey is Select
+  - {action: menu, trigger: [hotkey, b], emulators: [libretro]}
   # Hotkey+X is a screenshot in every emulator and app. Where two lines
   # share a combination, the first one the emulator can perform wins. Exit,
   # screenshot and the on-screen keyboard also win over the combinations of

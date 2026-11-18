@@ -29,7 +29,7 @@ This project brings the parts that matter most to a desktop Linux installation:
 | ![Sonic the Hedgehog 2 inside the Mega Drive bezel](docs/screenshots/bezel-megadrive.webp) | ![Super Metroid inside the Super Nintendo bezel](docs/screenshots/bezel-snes.webp) |
 | **Bezels** from the RetroBat set, downloaded on the first start (see [Bezels and aspect ratios](#bezels-and-aspect-ratios)). | The game is fitted to the bezel's viewport from its `.info` file. |
 | ![The overlay over Super Mario World](docs/screenshots/overlay-menu.webp) | ![The setup screen asking to install an emulator](docs/screenshots/setup-screen.webp) |
-| **The overlay** ([retrobox-overlay](https://github.com/RetroboxProject/retrobox-overlay)), opened with Hotkey+B in any game. | **The setup screen**, when a game needs an emulator that isn't installed yet (see [Emulator setup screen](#emulator-setup-screen)). |
+| **The overlay** ([retrobox-overlay](https://github.com/RetroboxProject/retrobox-overlay)), opened with a tap on Home/Guide (Hotkey+A where the hotkey is Select) in any game. | **The setup screen**, when a game needs an emulator that isn't installed yet (see [Emulator setup screen](#emulator-setup-screen)). |
 | ![EmulationStation's main menu](docs/screenshots/main-menu.webp) | ![The settings window](docs/screenshots/settings-window.webp) |
 | **Main menu** of retrobox-emulationstation, with Bluetooth, network and content downloads. | **Settings window** (`retrobox --settings`) for `retrobox.ini`. |
 
@@ -133,6 +133,7 @@ A replacement for evmapy: the input daemon of the overlay (`retrobox-inputd`, in
 | Combination | Action |
 |---|---|
 | Hotkey+Start | Leave the game (`retrobox-emukill`) |
+| Hotkey+B | RetroArch's menu, which pauses the game (RetroArch only) |
 | Hotkey+X | Screenshot (`retrobox-screenshot`) |
 | Hotkey+Y | On-screen keyboard (where the app has one) |
 | Hotkey+Left / Hotkey+Right | Rewind / fast forward |
@@ -149,7 +150,7 @@ On the keyboard (any keyboard, right or left modifiers):
 
 The daemon does not take these keys from the game, so they use keys emulators leave free (RetroArch's own Shift hotkeys use F1-F6 and F9-F12). Only commands are bound to the keyboard.
 
-**The overlay** (`retrobox-overlay`, when installed) is not in the table: the same input daemon opens the overlay anywhere in Retrobox, in a game or in EmulationStation, with Hotkey+B on every controller, when a dedicated hotkey (Home/Guide) is held alone for a moment (750 ms), or on Ctrl+Shift+O (Shift+F7 too, for keyboards whose function keys need Fn). Where the hotkey is a button the game uses (Select, on controllers without Home/Guide), holding it opens nothing. Saving and loading states, and choosing their slot, are done from the overlay: there are no hotkeys for them. The `overlay` setting (global, per system or per game) keeps it from opening over a game. The table's `keyboard` section holds the keyboard chords; a user table can replace the `pad` and `keyboard` sections separately.
+**The overlay** (`retrobox-overlay`, when installed) is not in the table: the same input daemon opens the overlay anywhere in Retrobox, in a game or in EmulationStation, with a tap on a dedicated hotkey (Home/Guide: an input of its own in `es_input.cfg`), and nothing else on those controllers; where the hotkey is a button the game uses (Select, on controllers without Home/Guide), which never taps, with Hotkey+A. Ctrl+Shift+O (Shift+F7 too, for keyboards whose function keys need Fn) opens it from a keyboard. Saving and loading states, and choosing their slot, are done from the overlay: there are no hotkeys for them. The `overlay` setting (global, per system or per game) keeps it from opening over a game. The table's `keyboard` section holds the keyboard chords; a user table can replace the `pad` and `keyboard` sections separately. A line with `emulators` (a list of emulator names, `libretro` for RetroArch) is only for those emulators.
 
 Each generator says how its emulator performs these actions (`hotkey_bindings()`, see `lib/retrobox/configgen/hotkeys.py`): a key chord the daemon presses, a command, or `Native` when the emulator reads the combination itself (RetroArch does, from its own configuration). An action the emulator cannot perform leaves its combination free. Leaving the game, screenshots and the overlay work in every emulator. For each game the launcher writes `<runtime dir>/pad2key/session.keys`: the game's own profile (the first of `<rom>.keys`, then `<system>.<emulator>.<core>.keys`, `<system>.<emulator>.keys`, `<system>.keys`, `<emulator>.keys` and `any.keys` in the user's profiles and then in `share/pad2key/profiles`) plus these hotkeys; a combination the game's profile already maps keeps the profile's meaning.
 

@@ -206,7 +206,7 @@ class LibretroGenerator(Generator):
 
     def hotkey_bindings(self, system):
         """RetroArch reads most hotkeys itself (see libretro_hotkeys)."""
-        return libretro_hotkeys.bindings(load_table())
+        return libretro_hotkeys.bindings(load_table(emulator=libretro_hotkeys.EMULATOR))
 
     # the signature is fixed by the Generator interface
     # pylint: disable-next=too-many-locals,too-many-arguments,too-many-positional-arguments
@@ -290,7 +290,9 @@ class LibretroGenerator(Generator):
     def savestates(self, system: Emulator, rom: Path) -> dict[str, object] | None:
         """RetroArch's states, by slot: ``<saves>/<system>/<rom name>.state<N>``.
 
-        Slot 0 is ``.state``, the automatic slot (-1) ``.state.auto``.
+        Slot 0 is ``.state``, the automatic slot (-1) ``.state.auto``;
+        ``autoload`` tells whether RetroArch loads the latter on start (the
+        game's auto save/load, see ``libretroConfig.loads_auto_state``).
 
         The folder is ``savestate_directory`` (libretroConfig); the overlay
         asks for them through the command pipe (``stdin_cmd_enable``).
@@ -305,6 +307,7 @@ class LibretroGenerator(Generator):
             "dir": str(SAVES / system.name),
             "name": rom.stem,
             "slot": slot,
+            "autoload": libretroConfig.loads_auto_state(system),
         }
 
     def pipe_commands(self, system: Emulator) -> dict[str, str]:

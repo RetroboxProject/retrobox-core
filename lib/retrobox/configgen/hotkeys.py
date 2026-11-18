@@ -45,7 +45,8 @@ class HotkeyAction(enum.StrEnum):
 
     ``OVERLAY`` stays for the users' tables that still name it, but no
     emulator binds it: retrobox-overlay's daemon opens the overlay itself
-    (Hotkey+B, or a tap on a dedicated hotkey), everywhere in Retrobox.
+    (a tap on a dedicated hotkey, or Hotkey+A where the hotkey is Select),
+    everywhere in Retrobox.
 
     ``OSK`` opens retrobox-overlay's on-screen keyboard; only emulators whose
     feature file lists ``osk`` bind it (see ``osk_enabled``).
@@ -107,11 +108,20 @@ type Bindings = Mapping[HotkeyAction, Binding | None]
 
 @dataclass(frozen=True)
 class HotkeyEntry:
-    """One line of the table: a combination and the action it asks for."""
+    """One line of the table: a combination and the action it asks for.
+
+    ``emulators`` keeps the line to those emulators (``libretro`` for
+    RetroArch); empty, it is every emulator's.
+    """
 
     action: HotkeyAction
     trigger: tuple[str, ...]
     tap: bool = False
+    emulators: tuple[str, ...] = ()
+
+    def applies_to(self, emulator: str | None) -> bool:
+        """Whether the line is for ``emulator`` (None: whichever, the line is kept)."""
+        return not self.emulators or emulator is None or emulator in self.emulators
 
 
 # Key names as emulators spell them -> evdev key names
@@ -234,8 +244,11 @@ def _parse_entry(raw: Any, index: int, source: Path) -> HotkeyEntry | None:
     else:
         trigger = raw.get("trigger")
         tap = bool(raw.get("tap", False))
+        emulators = raw.get("emulators", [])
         if isinstance(trigger, str):
             trigger = [trigger]
+        if isinstance(emulators, str):
+            emulators = [emulators]
         try:
             action = HotkeyAction(raw.get("action"))
         except ValueError:
@@ -245,8 +258,14 @@ def _parse_entry(raw: Any, index: int, source: Path) -> HotkeyEntry | None:
                 error = "'trigger' must be a list of input names"
             elif tap and len(trigger) != 1:
                 error = "'tap' needs a single input"
+            elif not isinstance(emulators, list) or not all(
+                isinstance(name, str) for name in emulators
+            ):
+                error = "'emulators' must be a list of emulator names"
             else:
-                entry = HotkeyEntry(action=action, trigger=tuple(trigger), tap=tap)
+                entry = HotkeyEntry(
+                    action=action, trigger=tuple(trigger), tap=tap, emulators=tuple(emulators)
+                )
     if error is not None:
         _logger.warning("%s, hotkey #%d: %s: ignored", source, index, error)
     return entry
@@ -293,8 +312,11 @@ def load_table(
     section: str = PAD_SECTION,
     user_table: Path = USER_HOTKEYS_TABLE,
     default_table: Path = HOTKEYS_TABLE,
+    *,
+    emulator: str | None = None,
 ) -> list[HotkeyEntry]:
-    """One section of the hotkeys table (``pad`` or ``keyboard``).
+    """One section of the hotkeys table (``pad`` or ``keyboard``), with
+    ``emulator``'s lines only when it is given (see ``HotkeyEntry``).
 
     The user's table wins when it has the section (and is readable); the
     shipped one gives the sections it lacks.
@@ -303,7 +325,7 @@ def load_table(
         entries = _read_table(path, section)
         if entries is not None:
             _logger.debug("hotkeys table, %s: %s", section, path)
-            return entries
+            return [entry for entry in entries if entry.applies_to(emulator)]
     return []
 
 
