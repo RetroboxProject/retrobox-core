@@ -122,8 +122,13 @@ function package_manager() {
     fi
 }
 
+function _deb_installed() {
+    dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -q "ok installed"
+}
+
 # install_packages "<apt packages>" "<dnf packages>"
 # Each list is space-separated; "a|b" picks the first one apt knows about.
+# Only what is missing is installed.
 function install_packages() {
     local apt_list="$1" dnf_list="$2" manager
     manager="$(package_manager)"
@@ -132,7 +137,16 @@ function install_packages() {
             local -a wanted=()
             local package alternative picked
             for package in ${apt_list}; do
+                # an alternative already installed is enough, and is left alone
+                # (apt would mark it as manually installed)
                 picked=""
+                for alternative in ${package//|/ }; do
+                    if _deb_installed "${alternative}"; then
+                        picked="-"
+                        break
+                    fi
+                done
+                [[ "${picked}" == "-" ]] && continue
                 for alternative in ${package//|/ }; do
                     if apt-cache show "${alternative}" &>/dev/null; then
                         picked="${alternative}"
@@ -154,10 +168,14 @@ function install_packages() {
             ${SUDO} apt-get install -y "${wanted[@]}" || die "Could not install the packages (apt)"
             ;;
         dnf)
-            [[ -z "${dnf_list// /}" ]] && return 0
-            log_info "Installing packages: ${dnf_list}"
-            # shellcheck disable=SC2086  # a list of package names
-            ${SUDO} dnf install -y ${dnf_list} || die "Could not install the packages (dnf)"
+            local -a missing=()
+            local package
+            for package in ${dnf_list}; do
+                rpm -q --whatprovides "${package}" &>/dev/null || missing+=("${package}")
+            done
+            [[ ${#missing[@]} -eq 0 ]] && return 0
+            log_info "Installing packages: ${missing[*]}"
+            ${SUDO} dnf install -y "${missing[@]}" || die "Could not install the packages (dnf)"
             ;;
         *)
             log_warn "Unknown package manager: make sure these are installed: ${apt_list}"
