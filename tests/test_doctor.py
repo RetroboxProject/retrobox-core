@@ -50,7 +50,11 @@ def test_every_section_reports(tmp_path: Path) -> None:
 
 def test_errors_set_the_exit_status(tmp_path: Path) -> None:
     """No EmulationStation in the sandbox: an error, and exit status 1."""
-    result = run_retrobox_module(tmp_path, "retrobox.doctor", check=False)
+    # an empty PATH: a retrobox-emulationstation installed on this machine doesn't count
+    empty = tmp_path / "empty-path"
+    empty.mkdir()
+    result = run_retrobox_module(tmp_path, "retrobox.doctor", env={"PATH": str(empty)},
+                                 check=False)
     assert result.returncode == 1
     assert "[ERR ] EmulationStation" in result.stdout
     assert "-> install retrobox-emulationstation" in result.stdout

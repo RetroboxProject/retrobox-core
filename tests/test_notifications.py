@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 
 import pytest
@@ -18,10 +17,14 @@ def _tool(bin_dir: Path, name: str, status: int, log: Path) -> None:
 
 @pytest.fixture(name="bin_dir")
 def fixture_bin_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
-    """A PATH holding only the fake notifiers a test puts there."""
+    """A PATH holding only the fake notifiers a test puts there.
+
+    The system folders are left out, so the real notify-send of a desktop
+    doesn't answer instead (the fake ones only need /bin/sh, by its path).
+    """
     directory = tmp_path / "bin"
     directory.mkdir()
-    monkeypatch.setenv("PATH", f"{directory}{os.pathsep}/usr/bin{os.pathsep}/bin")
+    monkeypatch.setenv("PATH", str(directory))
     return directory
 
 
