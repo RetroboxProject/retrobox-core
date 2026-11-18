@@ -107,6 +107,11 @@ def test_unusable_roms_dir_is_autocorrected(tmp_path: Path) -> None:
     assert str(missing) in result.stderr
     assert not missing.exists()
 
+    # a child of the process that fell back (bin/retrobox -> the doctor) says nothing more
+    child = run_retrobox_module(tmp_path, "retrobox.paths",
+                                env={"RETROBOX_ROMS_DIR": paths["RETROBOX_ROMS_DIR"]})
+    assert str(missing) not in child.stderr
+
 
 def test_autocorrect_off_keeps_the_value(tmp_path: Path) -> None:
     """With autocorrect_paths = false the value is used as written, and not created."""

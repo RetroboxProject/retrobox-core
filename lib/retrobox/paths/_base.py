@@ -227,7 +227,8 @@ def get_configured_path(key: str, default: Path) -> Path:
 
     With autocorrect_paths=true (default): the configured value is used if it
     is a readable directory, otherwise `default` is used and created (with a
-    warning on stderr saying which value was rejected and why).
+    warning on stderr saying which value was rejected and why, unless the
+    RETROBOX_<KEY> this process inherited shows a parent already fell back).
     With autocorrect_paths=false: the configured value is returned as
     written (even if missing); `default` only when nothing is configured.
     """
@@ -237,10 +238,14 @@ def get_configured_path(key: str, default: Path) -> Path:
             reason = _unusable_reason(Path(value))
             if not reason:
                 return Path(value)
-            _warn_ini(
-                f"[paths] {key} = {value}: {reason}; using {default} instead "
-                "(set autocorrect_paths = false under [core] to use it as written)"
-            )
+            # a parent that resolved it the same way (bin/retrobox, through
+            # tools/lib/paths.sh) has already said so: say it once
+            inherited = os.environ.get(f"RETROBOX_{key.upper()}")
+            if inherited != str(default):
+                _warn_ini(
+                    f"[paths] {key} = {value}: {reason}; using {default} instead "
+                    "(set autocorrect_paths = false under [core] to use it as written)"
+                )
         try:
             default.mkdir(parents=True, exist_ok=True)
         except OSError:
