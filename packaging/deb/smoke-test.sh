@@ -84,10 +84,13 @@ for gone in LICENSE README.md requirements.txt install.sh .gitmodules system dev
             tools/deps tools/lib/deps.sh; do
     [[ ! -e "/opt/retrobox/${gone}" ]] || fail "/opt/retrobox/${gone} must not be shipped"
 done
+# leftovers of a build or of a component install (installer.sh is the
+# emulator installers' shared library, which runs)
 stray="$(find /opt/retrobox \( -name README -o -name 'README.md' -o -name 'install*.sh' -o -name 'uninstall*' \
     -o -name requirements.txt -o -name '*.orig' -o -name '*.rej' -o -name '*.bak' -o -name '.directory' \
     -o -name '.git*' -o -name '*.patch' -o -name '*.deb' -o -name '*.rpm' -o -name 'desktop.ini' \) \
-    -not -path '*/__pycache__/*')"
+    -not -path '*/__pycache__/*' \
+    -not -path /opt/retrobox/tools/lib/installer.sh)"
 hidden="$(find /opt/retrobox -name '.*' ! -name . ! -name .emulationstation)"
 [[ -z "${hidden}" ]] || fail "hidden files in /opt/retrobox: ${hidden}"
 [[ -z "${stray}" ]] || fail "stray files in /opt/retrobox: ${stray}"
