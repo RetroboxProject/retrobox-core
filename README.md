@@ -31,7 +31,7 @@ This project brings the parts that matter most to a desktop Linux installation:
 | ![The overlay over Super Mario World](docs/screenshots/overlay-menu.webp) | ![The setup screen asking to install an emulator](docs/screenshots/setup-screen.webp) |
 | **The overlay** ([retrobox-overlay](https://github.com/RetroboxProject/retrobox-overlay)), opened with a tap on Home/Guide (Hotkey+A where the hotkey is Select) in any game. | **The setup screen**, when a game needs an emulator that isn't installed yet (see [Emulator setup screen](#emulator-setup-screen)). |
 | ![EmulationStation's main menu](docs/screenshots/main-menu.webp) | ![The settings window](docs/screenshots/settings-window.webp) |
-| **Main menu** of retrobox-emulationstation, with Bluetooth, network and content downloads. | **Settings window** (`retrobox --settings`) for `retrobox.ini`. |
+| **Main menu** of retrobox-emulationstation, with Bluetooth, network and content downloads. | **Settings window** (`retrobox --settings`) for `retrobox.ini`, and for retrobox-overlay's `overlay.ini` where it is installed. |
 
 ## Architecture
 

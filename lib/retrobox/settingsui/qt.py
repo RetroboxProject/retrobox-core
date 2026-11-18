@@ -14,21 +14,25 @@ from __future__ import annotations
 from typing import Final
 
 try:
-    from PySide6.QtCore import QObject, QSize, Qt, QTimer
+    from PySide6.QtCore import QObject, QRegularExpression, QSize, Qt, QTimer
     from PySide6.QtCore import Signal
     from PySide6.QtGui import (
+        QColor,
         QFont,
         QFontMetrics,
         QGuiApplication,
         QIcon,
         QKeySequence,
+        QRegularExpressionValidator,
         QShortcut,
     )
     from PySide6.QtWidgets import (
         QAbstractItemView,
         QApplication,
         QCheckBox,
+        QColorDialog,
         QComboBox,
+        QDoubleSpinBox,
         QFileDialog,
         QFrame,
         QGridLayout,
@@ -44,6 +48,7 @@ try:
         QPushButton,
         QScrollArea,
         QSizePolicy,
+        QSpinBox,
         QStackedWidget,
         QTableWidget,
         QTableWidgetItem,
@@ -54,21 +59,25 @@ try:
 
     BINDING: Final = "PySide6"
 except ImportError:
-    from PyQt6.QtCore import QObject, QSize, Qt, QTimer  # type: ignore[no-redef]
+    from PyQt6.QtCore import QObject, QRegularExpression, QSize, Qt, QTimer  # type: ignore[no-redef]
     from PyQt6.QtCore import pyqtSignal as Signal  # type: ignore[no-redef]
     from PyQt6.QtGui import (  # type: ignore[no-redef]
+        QColor,
         QFont,
         QFontMetrics,
         QGuiApplication,
         QIcon,
         QKeySequence,
+        QRegularExpressionValidator,
         QShortcut,
     )
     from PyQt6.QtWidgets import (  # type: ignore[no-redef]
         QAbstractItemView,
         QApplication,
         QCheckBox,
+        QColorDialog,
         QComboBox,
+        QDoubleSpinBox,
         QFileDialog,
         QFrame,
         QGridLayout,
@@ -84,6 +93,7 @@ except ImportError:
         QPushButton,
         QScrollArea,
         QSizePolicy,
+        QSpinBox,
         QStackedWidget,
         QTableWidget,
         QTableWidgetItem,

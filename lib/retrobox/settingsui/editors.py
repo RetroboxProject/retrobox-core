@@ -4,7 +4,8 @@ A row only talks to the SettingsModel: it shows the value in effect, writes
 every change to the model right away (the model keeps it pending until the
 window applies it) and calls ``on_change`` so the window can update itself.
 The editor depends on the kind of setting (schema.Kind): a check box, a menu
-restricted to the allowed values, a folder field or the list of systems.
+restricted to the allowed values, a folder field, the list of systems, a
+number box (with its range and unit), a text field or a colour.
 """
 
 from __future__ import annotations
@@ -14,12 +15,15 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Callable
 
 from retrobox.settings.model import is_valid_environ_name
-from retrobox.settings.schema import FALSE, TRUE, Kind, Missing, setting_by_id
+from retrobox.settings.schema import FALSE, TRUE, Kind, Limits, Missing, setting_by_id
 
 from .qt import (
     QAbstractItemView,
     QCheckBox,
+    QColor,
+    QColorDialog,
     QComboBox,
+    QDoubleSpinBox,
     QFileDialog,
     QFont,
     QFontMetrics,
@@ -32,7 +36,10 @@ from .qt import (
     QListWidget,
     QListWidgetItem,
     QPushButton,
+    QRegularExpression,
+    QRegularExpressionValidator,
     QSizePolicy,
+    QSpinBox,
     Qt,
     QTableWidget,
     QTableWidgetItem,
@@ -53,6 +60,8 @@ _FOLDER_LIST_HEIGHT = 120
 _SYSTEMS_SEPARATOR = ","
 _SYSTEMS_LIST_HEIGHT = 260
 _ENVIRON_TABLE_HEIGHT = 200
+_COLOR_SWATCH = 22
+_COLOR_FIELD_LETTERS = 11  # RRGGBBAA, and room around it
 
 
 def _secondary_label(text: str = "") -> QLabel:
@@ -76,9 +85,10 @@ def _warning_label() -> QLabel:
 
 
 def _fill_row(editor: QWidget) -> QWidget:
-    """Compact editors (check box, menu) keep their size, left-aligned, while
-    the grid column still takes the free width (so help lines don't wrap)."""
-    if not isinstance(editor, (QCheckBox, QComboBox)):
+    """Compact editors (check box, menu, number, colour) keep their size,
+    left-aligned, while the grid column still takes the free width (so help
+    lines don't wrap)."""
+    if not isinstance(editor, (QCheckBox, QComboBox, QSpinBox, QDoubleSpinBox, _ColorEditor)):
         return editor
     holder = QWidget()
     layout = QHBoxLayout(holder)
@@ -99,7 +109,125 @@ def _icon_button(icon: str, fallback_text: str) -> QToolButton:
     return button
 
 
+def _number_text(value: float, limits: Limits) -> str:
+    """A number as written in the ini: no trailing zeros (``0.75``, ``1``)."""
+    text = f"{value:.{limits.decimals}f}"
+    return text.rstrip("0").rstrip(".") if "." in text else text
+
+
+def _number(value: str, limits: Limits) -> float:
+    """A number from the ini, in its range (an unreadable one: the minimum)."""
+    try:
+        number = float(value)
+    except ValueError:
+        number = limits.minimum
+    return min(max(number, limits.minimum), limits.maximum)
+
+
+def _number_editor(limits: Limits, on_edit: Callable[[str], None]) -> QWidget:
+    """A number box with the range, step and unit of ``limits``; what is
+    typed counts once it is done (Enter, or the focus leaving it)."""
+    box: QSpinBox | QDoubleSpinBox
+    if limits.decimals:
+        box = QDoubleSpinBox()
+        box.setDecimals(limits.decimals)
+        box.setRange(limits.minimum, limits.maximum)
+        box.setSingleStep(limits.step)
+    else:
+        box = QSpinBox()
+        box.setRange(int(limits.minimum), int(limits.maximum))
+        box.setSingleStep(int(limits.step))
+    if limits.unit:
+        box.setSuffix(f" {limits.unit}")
+    box.setKeyboardTracking(False)
+    box.valueChanged.connect(lambda value: on_edit(_number_text(value, limits)))
+    return box
+
+
 # ---------------------------------------------------------------- editors
+class _TextEditor(QWidget):  # pylint: disable=too-few-public-methods
+    """Free text (a format, a name)."""
+
+    def __init__(self, on_edit: Callable[[str], None]) -> None:
+        super().__init__()
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        self.line = QLineEdit()
+        self.line.setClearButtonEnabled(True)
+        self.line.textEdited.connect(on_edit)
+        layout.addWidget(self.line, 1)
+
+
+class _ColorEditor(QWidget):  # pylint: disable=too-few-public-methods
+    """A colour: a swatch that opens the colour picker (alpha included), and
+    its ``RRGGBBAA`` to type."""
+
+    def __init__(self, title: str, on_edit: Callable[[str], None]) -> None:
+        super().__init__()
+        self._title = title
+        self._on_edit = on_edit
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        self._swatch = QToolButton()
+        self._swatch.setFixedSize(_COLOR_SWATCH, _COLOR_SWATCH)
+        self._swatch.clicked.connect(self._pick)
+        self.line = QLineEdit()
+        self.line.setValidator(
+            QRegularExpressionValidator(QRegularExpression("[0-9A-Fa-f]{0,8}"), self.line)
+        )
+        width = QFontMetrics(self.line.font()).horizontalAdvance("F" * _COLOR_FIELD_LETTERS)
+        self.line.setFixedWidth(width)
+        self.line.textEdited.connect(self._typed)
+        layout.addWidget(self._swatch)
+        layout.addWidget(self.line)
+
+    @staticmethod
+    def _qcolor(value: str) -> QColor | None:
+        value = value.strip()
+        if len(value) not in (6, 8):
+            return None
+        try:
+            red, green, blue = (int(value[i:i + 2], 16) for i in (0, 2, 4))
+            alpha = int(value[6:8], 16) if len(value) == 8 else 255
+        except ValueError:
+            return None
+        return QColor(red, green, blue, alpha)
+
+    def _typed(self, text: str) -> None:
+        if self._qcolor(text) is not None:
+            self._paint(text)
+            self._on_edit(text.upper())
+
+    def _pick(self) -> None:
+        current = self._qcolor(self.line.text()) or QColor(255, 255, 255)
+        chosen = QColorDialog.getColor(
+            current, self, self._title, QColorDialog.ColorDialogOption.ShowAlphaChannel
+        )
+        if chosen.isValid():
+            value = "".join(
+                f"{part:02X}"
+                for part in (chosen.red(), chosen.green(), chosen.blue(), chosen.alpha())
+            )
+            self.show_value(value)
+            self._on_edit(value)
+
+    def _paint(self, value: str) -> None:
+        color = self._qcolor(value)
+        css = (
+            f"rgba({color.red()}, {color.green()}, {color.blue()}, {color.alpha()})"
+            if color is not None else "transparent"
+        )
+        self._swatch.setStyleSheet(
+            f"QToolButton {{ background: {css}; border: 1px solid palette(mid); }}"
+        )
+
+    def show_value(self, value: str) -> None:
+        """Show ``value`` (``RRGGBBAA``), unless it is being typed."""
+        if not self.line.hasFocus() and self.line.text().upper() != value.upper():
+            self.line.setText(value.upper())
+        self._paint(value)
+
+
 class _FolderEditor(QWidget):  # pylint: disable=too-few-public-methods
     """One folder, typed or chosen with a browse button."""
 
@@ -329,10 +457,21 @@ class SettingRow:  # pylint: disable=too-many-instance-attributes
             combo.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
             combo.activated.connect(lambda index: self._edit(combo.itemData(index)))
             return combo
+        return self._field_editor(systems)
+
+    def _field_editor(self, systems: list[SystemInfo]) -> QWidget:
+        """The editors that are fields: lists, numbers, text, colour, folder."""
+        kind = self.setting.kind
         if kind is Kind.SYSTEMS:
             return _SystemsEditor(self._tr, systems, self._edit)
         if kind is Kind.DIRECTORY_LIST:
             return _FolderListEditor(self._tr, self._edit)
+        if kind in (Kind.INTEGER, Kind.DECIMAL) and self.setting.limits is not None:
+            return _number_editor(self.setting.limits, self._edit)
+        if kind is Kind.TEXT:
+            return _TextEditor(self._edit)
+        if kind is Kind.COLOR:
+            return _ColorEditor(self._tr(self.setting.id), self._edit)
         return _FolderEditor(self._tr, self._edit)
 
     # ------------------------------------------------------------ values
@@ -346,8 +485,12 @@ class SettingRow:  # pylint: disable=too-many-instance-attributes
             return self._tr("value.on" if value == TRUE else "value.off")
         if kind is Kind.CHOICE:
             return self._choice_label(value)
+        limits = self.setting.limits
+        if value and limits is not None and limits.unit:
+            return f"{value} {limits.unit}"
         if not value:
-            return self._tr("value.automatic" if kind is Kind.DIRECTORY_LIST else "value.empty")
+            automatic = kind in (Kind.DIRECTORY_LIST, Kind.TEXT)
+            return self._tr("value.automatic" if automatic else "value.empty")
         return value
 
     def _edit(self, value: str | None) -> None:
@@ -392,6 +535,18 @@ class SettingRow:  # pylint: disable=too-many-instance-attributes
                     editor.addItem(value, value)
                     index = editor.count() - 1
                 editor.setCurrentIndex(index)
+            elif isinstance(editor, (QSpinBox, QDoubleSpinBox)) and self.setting.limits:
+                number = _number(value, self.setting.limits)
+                editor.setValue(int(number) if isinstance(editor, QSpinBox) else number)
+            elif isinstance(editor, _ColorEditor):
+                editor.show_value(value)
+            elif isinstance(editor, _TextEditor):
+                user = self._model.user_value(self.setting) or ""
+                if not editor.line.hasFocus() and editor.line.text() != user:
+                    editor.line.setText(user)
+                editor.line.setPlaceholderText(
+                    self._tr("value.default", value=self._display(inherited))
+                )
             elif isinstance(editor, _SystemsEditor):
                 editor.show_value(value)
             elif isinstance(editor, _FolderListEditor):

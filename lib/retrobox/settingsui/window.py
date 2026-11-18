@@ -2,7 +2,10 @@
 
 Layout, top-down: the pages of schema.PAGES (title, short description, then
 one framed group per schema.Group with its settings aligned in a grid) next
-to the navigation list; under them, a status line and the buttons:
+to the navigation list; under them, a status line and the buttons. A page
+whose program is not installed is left out (the overlay's, see
+``shown_pages``); each page edits its own file (``Page.ini``), all of them
+saved together:
 
 * Apply: save, stay open;
 * Accept and exit: save and close;
@@ -16,6 +19,7 @@ Escape closes.
 
 from __future__ import annotations
 
+import shutil
 from typing import TYPE_CHECKING, Callable
 
 from retrobox.settings.schema import PAGES
@@ -46,6 +50,8 @@ from .qt import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
+
     from retrobox.settings.model import SettingsModel
     from retrobox.settings.schema import Group, Page
     from retrobox.settings.systems import SystemInfo
@@ -59,15 +65,24 @@ _STATUS_TIMEOUT_MS = 4000
 _DEFAULT_SIZE = QSize(980, 700)
 
 
+def shown_pages() -> tuple[Page, ...]:
+    """The pages whose program is installed (all of retrobox.ini's)."""
+    return tuple(page for page in PAGES if not page.requires or shutil.which(page.requires))
+
+
 # pylint: disable-next=too-few-public-methods,too-many-instance-attributes
 class SettingsWindow(QMainWindow):
     """The whole settings window (see the module docstring)."""
 
     def __init__(
-        self, model: SettingsModel, translate: Translator, systems: list[SystemInfo]
+        self,
+        models: Mapping[str, SettingsModel],
+        translate: Translator,
+        systems: list[SystemInfo],
     ) -> None:
+        """``models``: the model of each page's file (``Page.ini``)."""
         super().__init__()
-        self._model = model
+        self._models = dict(models)
         self._tr = translate
         self._systems = systems
         self._rows: list[SettingRow] = []
@@ -97,7 +112,7 @@ class SettingsWindow(QMainWindow):
         self._nav.setFixedWidth(_NAV_WIDTH)
         self._nav.setIconSize(QSize(_NAV_ICON, _NAV_ICON))
         self._nav.setSpacing(2)
-        for page in PAGES:
+        for page in (page for page in PAGES if page.ini in self._models):
             item = QListWidgetItem(QIcon.fromTheme(page.icon), self._tr(f"page.{page.id}"))
             self._nav.addItem(item)
             self._stack.addWidget(self._page(page))
@@ -122,7 +137,7 @@ class SettingsWindow(QMainWindow):
         first_row = len(self._rows)
         grids = []
         for group in page.groups:
-            box, grid = self._group(group)
+            box, grid = self._group(group, self._models[page.ini])
             layout.addWidget(box)
             if grid is not None:
                 grids.append(grid)
@@ -139,7 +154,7 @@ class SettingsWindow(QMainWindow):
         scroll.setWidget(content)
         return scroll
 
-    def _group(self, group: Group) -> tuple[QGroupBox, QGridLayout | None]:
+    def _group(self, group: Group, model: SettingsModel) -> tuple[QGroupBox, QGridLayout | None]:
         box = QGroupBox(self._tr(f"group.{group.id}"))
         layout = QVBoxLayout(box)
         help_text = self._tr.optional(f"group.{group.id}.help")
@@ -149,7 +164,7 @@ class SettingsWindow(QMainWindow):
             layout.addWidget(description)
 
         if group.custom_environ:
-            editor = EnvironEditor(self._model, self._tr, self._refresh)
+            editor = EnvironEditor(model, self._tr, self._refresh)
             self._environ.append(editor)
             layout.addWidget(editor)
             return box, None
@@ -160,7 +175,7 @@ class SettingsWindow(QMainWindow):
         grid.setVerticalSpacing(2)
         row = 0
         for setting in group.settings:
-            setting_row = SettingRow(setting, self._model, self._tr, self._refresh, self._systems)
+            setting_row = SettingRow(setting, model, self._tr, self._refresh, self._systems)
             row = setting_row.place(grid, row)
             self._rows.append(setting_row)
         layout.addLayout(grid)
@@ -197,25 +212,32 @@ class SettingsWindow(QMainWindow):
             row.refresh()
         for editor in self._environ:
             editor.refresh(force)
-        self._apply.setEnabled(self._model.dirty)
-        if self._model.dirty:
+        self._apply.setEnabled(self._dirty)
+        if self._dirty:
             self._status.clear()
 
+    @property
+    def _dirty(self) -> bool:
+        return any(model.dirty for model in self._models.values())
+
     def _save(self) -> bool:
-        """Apply the changes; on failure, say why and keep them."""
-        try:
-            self._model.apply()
-        except OSError as error:
-            QMessageBox.critical(
-                self, self._tr("window.title"),
-                self._tr("window.save_failed", file=self._model.user_file, error=error),
-            )
-            return False
+        """Apply the changes, file by file; on failure, say why and keep
+        those of the file that failed (and the ones after it)."""
+        for model in self._models.values():
+            try:
+                model.apply()
+            except OSError as error:
+                QMessageBox.critical(
+                    self, self._tr("window.title"),
+                    self._tr("window.save_failed", file=model.user_file, error=error),
+                )
+                self._refresh(force=True)
+                return False
         self._refresh(force=True)
         return True
 
     def _on_apply(self) -> None:
-        if self._model.dirty and self._save():
+        if self._dirty and self._save():
             self._status.setText(self._tr("window.saved"))
             QTimer.singleShot(_STATUS_TIMEOUT_MS, self._status.clear)
 

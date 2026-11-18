@@ -116,14 +116,18 @@ class CaseSensitiveConfigParser(configparser.ConfigParser):
         return optionstr
 
 
-def _ini_files(*layer_dirs: Path) -> list[Path]:
-    """List the ini files of each layer, lowest priority first."""
+def _ini_files(*layer_dirs: Path, name: str = "retrobox.ini", dropins: bool = True) -> list[Path]:
+    """List the ini files of each layer, lowest priority first: ``name``,
+    then its ``<name>.d/*.ini`` drop-ins (unless ``dropins`` is off: the
+    overlay's ``overlay.ini`` has none)."""
     files: list[Path] = []
     for layer in layer_dirs:
-        main = layer / "retrobox.ini"
+        main = layer / name
         if main.is_file():
             files.append(main)
-        dropin_dir = layer / "retrobox.ini.d"
+        if not dropins:
+            continue
+        dropin_dir = layer / f"{name}.d"
         try:
             files.extend(sorted(p for p in dropin_dir.glob("*.ini") if p.is_file()))
         except OSError:

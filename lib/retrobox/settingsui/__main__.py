@@ -27,7 +27,7 @@ def main(argv: list[str] | None = None) -> int:
     from retrobox.settings.systems import available_systems
 
     from .i18n import Translator
-    from .window import SettingsWindow
+    from .window import SettingsWindow, shown_pages
 
     icon = SHARE_DIR / "icons" / "retrobox_logo.png"  # the application menu entry's logo
     app = QApplication(sys.argv if argv is None else argv)
@@ -39,7 +39,11 @@ def main(argv: list[str] | None = None) -> int:
 
     translate = Translator(read_es_settings(ES_SETTINGS_CFG).get("Language", ""))
     app.setApplicationDisplayName(translate("window.title"))
-    window = SettingsWindow(SettingsModel(), translate, available_systems())
+    window = SettingsWindow(
+        {page.ini: SettingsModel(ini=page.ini) for page in shown_pages()},
+        translate,
+        available_systems(),
+    )
     window.show()
     return app.exec()
 

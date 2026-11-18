@@ -3,7 +3,8 @@
 retrobox.ini is layered (see retrobox.paths): the system-wide files
 (/etc/retrobox/retrobox.ini and its retrobox.ini.d/*.ini), then the user's
 ~/.config/retrobox/retrobox.ini, then the user's own retrobox.ini.d/*.ini.
-This model edits the user's main file only, so for each setting it knows:
+overlay.ini (retrobox-overlay's) is layered the same way, without drop-ins.
+A model edits one file, the user's main one, so for each setting it knows:
 
 * its *inherited* value: the system-wide one, or else its built-in default;
 * its *user* value, if the user's file sets it;
@@ -30,7 +31,7 @@ from retrobox.paths._base import (
 )
 
 from .inifile import IniDocument
-from .schema import Kind, Setting, known_environ
+from .schema import OVERLAY_INI, Kind, Setting, known_environ
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -76,6 +77,19 @@ def _clean(setting: Setting, value: str) -> str:
     return value
 
 
+def _same(setting: Setting, value: str, other: str) -> bool:
+    """Whether two values of ``setting`` mean the same (``1`` and ``1.0``;
+    ``ffffffff`` and ``FFFFFFFF``)."""
+    if setting.kind in (Kind.INTEGER, Kind.DECIMAL):
+        try:
+            return float(value) == float(other)
+        except ValueError:
+            return value == other
+    if setting.kind is Kind.COLOR:
+        return value.upper() == other.upper()
+    return value == other
+
+
 def is_valid_environ_name(name: str) -> bool:
     """Whether ``name`` can be an environment variable."""
     return bool(_ENV_NAME_RE.match(name))
@@ -84,13 +98,19 @@ def is_valid_environ_name(name: str) -> bool:
 class SettingsModel:
     """Read, edit and save the user's settings (see the module docstring)."""
 
-    def __init__(self, sysconf_dir: Path = SYSCONF_DIR, config_dir: Path = CONFIG_DIR) -> None:
-        self.user_file = config_dir / INI_NAME
-        self._system = _load_layered_ini(_ini_files(sysconf_dir))
+    def __init__(
+        self,
+        sysconf_dir: Path = SYSCONF_DIR,
+        config_dir: Path = CONFIG_DIR,
+        ini: str = INI_NAME,
+    ) -> None:
+        self.user_file = config_dir / ini
+        dropins = ini != OVERLAY_INI
+        self._system = _load_layered_ini(_ini_files(sysconf_dir, name=ini, dropins=dropins))
         self._document = IniDocument.read(self.user_file)
         self._dropins: list[tuple[Path, CaseSensitiveConfigParser]] = [
             (path, _load_layered_ini([path]))
-            for path in _ini_files(config_dir)
+            for path in _ini_files(config_dir, name=ini, dropins=dropins)
             if path != self.user_file
         ]
         self._changes: dict[tuple[str, str], str | None] = {}
@@ -160,7 +180,7 @@ class SettingsModel:
     def set(self, setting: Setting, value: str | None) -> None:
         """Change ``setting``; None, empty or the inherited value resets it."""
         value = value.strip() if value is not None else None
-        if not value or value == self.inherited(setting):
+        if not value or _same(setting, value, self.inherited(setting)):
             value = None
         saved = self._document.get(setting.section, setting.key)
         saved = _clean(setting, saved) if saved else None
