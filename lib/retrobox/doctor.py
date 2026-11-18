@@ -415,15 +415,10 @@ def _has_roms(system: str) -> bool:
 
 def _bios_hint(requirement: Requirement) -> str:
     """Where to put the files that meet a requirement."""
-    files = requirement.files
-    if len(files) == 1 and files[0].is_glob:
-        pattern = Path(files[0].path)
-        return f"put a dump (any {pattern.name}) in {paths.BIOS / pattern.parent}"
-    names = [f"{file.path} ({file.note})" if file.note else file.path for file in files]
-    if len(names) == 1:
-        return f"put {names[0]} in {paths.BIOS}"
-    shown = ", ".join(names[:3]) + (f" (or {len(names) - 3} more)" if len(names) > 3 else "")
-    return f"put one of {shown} in {paths.BIOS}"
+    # pylint: disable-next=import-outside-toplevel  # loaded with check_bios
+    from retrobox.bios import describe
+
+    return f"put {describe(requirement)}"
 
 
 def _found_label(requirement: Requirement, files: tuple[Path, ...]) -> str:

@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from conftest import run_retrobox_module
+from conftest import run_python, run_retrobox_module
 from retrobox import bios
 from retrobox.startup.frontend_conf.system_list_generator import load_systems
 
@@ -143,7 +143,7 @@ def test_doctor_reports_for_the_chosen_emulator(tmp_path: Path) -> None:
         (data / "roms" / system).mkdir(parents=True)
         (data / "roms" / system / "game.chd").write_bytes(b"")
     (data / "bios" / "pcsx2" / "bios").mkdir(parents=True)
-    (data / "bios" / "pcsx2" / "bios" / "ps2-0230e-20080220.bin").write_bytes(b"dump")
+    (data / "bios" / "pcsx2" / "bios" / "ps2-0230e-20080220.bin").write_bytes(b"\0" * (4 << 20))
 
     lines = _bios_lines(tmp_path)
     assert set(lines) == {"saturn", "ps2", "psx"}
@@ -159,3 +159,58 @@ def test_doctor_reports_for_the_chosen_emulator(tmp_path: Path) -> None:
     # Kronos has a BIOS of its own: a note on who needs the real one
     assert [line["status"] for line in lines["saturn"]] == ["INFO"]
     assert "ERR" in {line["status"] for line in lines["psx"]}
+
+
+def _bios_root(root: Path) -> Path:
+    folder = root / "home" / ".local" / "share" / "retrobox" / "bios"
+    folder.mkdir(parents=True, exist_ok=True)
+    return folder
+
+
+_REQUIRE = """
+from retrobox.bios import require
+from retrobox.configgen.exceptions import RetroboxException
+try:
+    require({system!r}, {emulator!r}, {core!r})
+    print("OK")
+except RetroboxException as error:
+    print("STOP", error.exit_code, error.args[0])
+"""
+
+
+def _require(root: Path, system: str, emulator: str, core: str = "") -> str:
+    code = _REQUIRE.format(system=system, emulator=emulator, core=core)
+    return run_python(root, code).stdout
+
+
+def test_require_stops_a_game_without_its_bios(tmp_path: Path) -> None:
+    """The launcher's check: a RetroboxException (EmulationStation's 250) that says what to put."""
+    out = _require(tmp_path, "saturn", "libretro", "mednafen_saturn")
+    assert out.startswith("STOP 250 libretro/mednafen_saturn can't run without its BIOS")
+    assert "mpr-17933.bin" in out
+    # Kronos has a BIOS of its own; Dreamcast's is optional
+    assert _require(tmp_path, "saturn", "libretro", "kronos").strip() == "OK"
+    assert _require(tmp_path, "dreamcast", "libretro", "flycast").strip() == "OK"
+
+
+def test_require_checks_sizes(tmp_path: Path) -> None:
+    """A PS2 dump must look like one (min_size), and Cemu needs a real keys.txt."""
+    folder = _bios_root(tmp_path)
+    (folder / "pcsx2" / "bios").mkdir(parents=True)
+    (folder / "pcsx2" / "bios" / "Mcd001.bin").write_bytes(b"x" * 1024)
+    assert _require(tmp_path, "ps2", "pcsx2", "pcsx2").startswith("STOP")
+    assert _require(tmp_path, "ps2", "libretro", "play").strip() == "OK"
+    (folder / "pcsx2" / "bios" / "ps2-0230e-20080220.bin").write_bytes(b"\0" * (4 << 20))
+    assert _require(tmp_path, "ps2", "pcsx2", "pcsx2").strip() == "OK"
+
+    (folder / "Cemu").mkdir()
+    (folder / "Cemu" / "keys.txt").write_text("short\n", encoding="utf-8")
+    assert _require(tmp_path, "wiiu", "cemu", "cemu").startswith("STOP")
+    (folder / "Cemu" / "keys.txt").write_text(("0" * 32 + "\n") * 40, encoding="utf-8")
+    assert _require(tmp_path, "wiiu", "cemu", "cemu").strip() == "OK"
+
+
+def test_min_size_must_be_bytes() -> None:
+    """min_size is a number of bytes."""
+    with pytest.raises(bios.BiosError, match="number of bytes"):
+        bios.parse("demo", {"bios": [{"file": "a.bin", "min_size": "1M"}]})

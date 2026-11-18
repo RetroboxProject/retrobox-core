@@ -520,11 +520,6 @@
   "missing-module-docstring": 1,
   "subprocess-run-check": 1
  },
- "lib/retrobox/configgen/utils/bios_files.py": {
-  "missing-final-newline": 1,
-  "missing-function-docstring": 1,
-  "missing-module-docstring": 1
- },
  "lib/retrobox/configgen/utils/configparser.py": {
   "missing-class-docstring": 2,
   "missing-module-docstring": 1

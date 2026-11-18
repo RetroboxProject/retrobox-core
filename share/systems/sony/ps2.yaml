@@ -41,5 +41,7 @@ ps2:
     # any dump does; PCSX2 prefers ps2-0230e-20080220.bin (Europe, 2008), and
     # a game can ask for another one (pcsx2_forcebios)
     - file: pcsx2/bios/*.bin
+      # the real images are 4 MiB: this leaves out the NVM and MEC files
+      min_size: 1048576
     # Play! runs without one
     required_for: [pcsx2, libretro/pcsx2]

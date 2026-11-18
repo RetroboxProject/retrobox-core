@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from retrobox.bios import require as require_bios
 from retrobox.configgen import profiler
 from retrobox.configgen.controller import Controller
 from retrobox.configgen.Emulator import Emulator
@@ -24,6 +25,7 @@ from retrobox.paths import (
     RUNTIME_DIR,
     SAVES,
     SESSION_PAD_PROFILE,
+    configure_emulator,
     mkdir_if_not_exists,
 )
 from retrobox.utils.overlay_task import reinstall_requested
@@ -134,6 +136,10 @@ def start_rom(args: argparse.Namespace, max_players: int, rom: Path, original_ro
         reinstall=getattr(args, "reinstall_emulator", False),
     ):
         return 0
+
+    # a BIOS the emulator can't run without: stop here and say which one
+    if not configure_emulator(original_rom):
+        require_bios(args.system, system.config.emulator, effective_core(system))
 
     # power profiles
     previous_power_profile = apply_power_profile(system.config.get("power_profile", "balanced"))

@@ -23,3 +23,8 @@ wiiu:
           default: true
           options:
             force_no_bezel: true
+  bios:
+  # the console keys Cemu decrypts the games with
+  - file: Cemu/keys.txt
+    min_size: 1024
+    note: Wii U keys, one per line

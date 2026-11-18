@@ -22,12 +22,16 @@ the job::
 that can't run the system without it; with no list, all of them can't.
 ``optional: true`` marks a file that only improves something (an emulator has
 a replacement of its own, or few games use it). A file may be a glob
-(``pcsx2/bios/*.bin``) when any dump in a folder does.
+(``pcsx2/bios/*.bin``) when any dump in a folder does, and ``min_size`` (in
+bytes) counts the files too small to be one as missing, when there is no MD5
+to check.
 
-This module is the only one that reads those declarations: the doctor, and
-later the launcher and EmulationStation's BIOS menu, ask it. The MD5 of every
-file it checks is cached by size and modification time, so a check only
-reads the files that changed.
+This module is the only one that reads those declarations: the doctor asks
+it about every system, and the launcher, through require(), about the game
+it starts, which stops with a RetroboxException (EmulationStation shows its
+message) when a BIOS the emulator needs is missing. The MD5 of every file it
+checks is cached by size and modification time, so a check only reads the
+files that changed.
 """
 
 from __future__ import annotations
@@ -43,14 +47,15 @@ from enum import StrEnum
 from pathlib import Path, PurePosixPath
 from typing import Any, Final
 
-from retrobox.paths import BIOS, CACHE
+from retrobox.configgen.exceptions import RetroboxException
+from retrobox.paths import BIOS, CACHE, CONFIG_LAYERS
 
 _logger = logging.getLogger(__name__)
 
 _CACHE_FILE: Final = CACHE / "bios-md5.json"
 _MD5: Final = re.compile(r"^[0-9a-f]{32}$")
 _GLOB_CHARACTERS: Final = frozenset("*?[")
-_FILE_KEYS: Final = frozenset({"file", "md5", "note"})
+_FILE_KEYS: Final = frozenset({"file", "md5", "note", "min_size"})
 _REQUIREMENT_KEYS: Final = frozenset({"name", "one_of", "required_for", "optional", *_FILE_KEYS})
 _READ_CHUNK: Final = 1024 * 1024
 
@@ -66,6 +71,7 @@ class BiosFile:
     path: str  # relative to the BIOS folder; may be a glob
     md5: tuple[str, ...] = ()  # the known good dumps; empty: any file does
     note: str = ""
+    min_size: int = 0  # bytes; a smaller file is not a dump
 
     @property
     def is_glob(self) -> bool:
@@ -132,7 +138,10 @@ def _bios_file(entry: Mapping[str, Any], system: str) -> BiosFile:
     bad = [value for value in md5 if not _MD5.match(value)]
     if bad:
         raise BiosError(f"{system}: {path} has an invalid md5: {', '.join(bad)}")
-    return BiosFile(path, md5, str(entry.get("note") or ""))
+    min_size = entry.get("min_size", 0)
+    if not isinstance(min_size, int) or isinstance(min_size, bool) or min_size < 0:
+        raise BiosError(f"{system}: min_size of {path} must be a number of bytes")
+    return BiosFile(path, md5, str(entry.get("note") or ""), min_size)
 
 
 def _requirement(entry: Any, system: str) -> Requirement:
@@ -274,11 +283,17 @@ class _Md5Cache:
             _logger.debug("Could not save the BIOS MD5 cache: %s", error)
 
 
+def _big_enough(path: Path, min_size: int) -> bool:
+    try:
+        return path.is_file() and path.stat().st_size >= min_size
+    except OSError:
+        return False
+
+
 def _candidates(file: BiosFile, folder: Path) -> list[Path]:
-    if file.is_glob:
-        return sorted(path for path in folder.glob(file.path) if path.is_file())
-    path = folder / file.path
-    return [path] if path.is_file() else []
+    """The files there for ``file``; one smaller than min_size is not one of them."""
+    paths = sorted(folder.glob(file.path)) if file.is_glob else [folder / file.path]
+    return [path for path in paths if _big_enough(path, file.min_size)]
 
 
 def _check(requirement: Requirement, folder: Path, cache: _Md5Cache) -> Result:
@@ -305,3 +320,71 @@ def check(requirements: Iterable[Requirement], folder: Path = BIOS) -> list[Resu
         return [_check(requirement, folder, cache) for requirement in requirements]
     finally:
         cache.save()
+
+
+## Before a game starts --------------------------------------------------------
+
+
+def _system_content(system: str) -> Mapping[str, Any] | None:
+    """The settings of one system, from its YAML of the highest layer."""
+    # pylint: disable-next=import-outside-toplevel  # yaml, only when needed
+    import yaml
+
+    for layer in reversed(CONFIG_LAYERS):
+        found = next((layer / "systems").glob(f"**/{system}.yaml"), None)
+        if found is None:
+            continue
+        try:
+            data = yaml.safe_load(found.read_text(encoding="utf-8"))
+        except (OSError, yaml.YAMLError) as error:
+            _logger.error("Could not read %s: %s", found, error)
+            return None
+        content = data.get(system) if isinstance(data, dict) else None
+        return content if isinstance(content, dict) else None
+    return None
+
+
+def describe(requirement: Requirement, folder: Path = BIOS) -> str:
+    """What to put where to meet a requirement, for a message."""
+    files = requirement.files
+    if len(files) == 1 and files[0].is_glob:
+        pattern = PurePosixPath(files[0].path)
+        return f"a dump (any {pattern.name}) in {folder / pattern.parent}"
+    names = [f"{file.path} ({file.note})" if file.note else file.path for file in files]
+    if len(names) == 1:
+        return f"{names[0]} in {folder}"
+    shown = ", ".join(names[:3]) + (f" (or {len(names) - 3} more)" if len(names) > 3 else "")
+    return f"one of {shown} in {folder}"
+
+
+def require(system: str, emulator: str, core: str = "") -> None:
+    """Check the BIOS ``emulator`` (and ``core``) needs to run a game of ``system``.
+
+    A file that is there but is not a known dump is only logged: many
+    alternative dumps work.
+
+    Raises:
+        RetroboxException: When a BIOS it can't run without is missing (its
+            message, which EmulationStation shows, says what to put where).
+    """
+    content = _system_content(system)
+    if content is None:
+        return
+    try:
+        requirements = [r for r in parse(system, content) if r.required_by(emulator, core)]
+    except BiosError as error:
+        _logger.error("Ignoring the BIOS of %s: %s", system, error)
+        return
+    missing = []
+    for result in check(requirements):
+        if result.state is State.MISSING:
+            missing.append(result.requirement)
+        elif result.state is State.WRONG:
+            _logger.warning("%s: %s is not a known dump of the %s", system,
+                            ", ".join(path.name for path in result.files),
+                            result.requirement.name)
+    if missing:
+        chosen = emulator if core in ("", emulator) else f"{emulator}/{core}"
+        lines = [f"{requirement.name} missing: put {describe(requirement)}"
+                 for requirement in missing]
+        raise RetroboxException(f"{chosen} can't run without its BIOS.\n" + "\n".join(lines))

@@ -6,7 +6,6 @@
 from __future__ import annotations
 
 
-from retrobox.configgen.utils.bios_files import check_biosfile
 from retrobox.configgen.hotkeys import CLOSE_WINDOW, HotkeyAction, Keys
 from retrobox.paths import BIOS, configure_emulator, mkdir_if_not_exists
 
@@ -24,7 +23,6 @@ from .cemuPaths import (
 )
 
 
-_MIN_KEYS_FILE_SIZE = 1024  # a smaller keys.txt cannot be right
 
 
 class CemuGenerator(Generator):
@@ -66,9 +64,6 @@ class CemuGenerator(Generator):
         # graphic packs and controller profiles
         mkdir_if_not_exists(CEMU_SAVES / "graphicPacks")
         mkdir_if_not_exists(CEMU_CONTROLLER_PROFILES)
-
-        # if the keys file is not big enough, we should exit
-        check_biosfile(CEMU_BIOS / "keys.txt", min_size=_MIN_KEYS_FILE_SIZE)
 
         cemu_config.write_settings(CEMU_CONFIG / "settings.xml", system)
 
