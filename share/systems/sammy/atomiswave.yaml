@@ -21,3 +21,9 @@ atomiswave:
       cores:
         flycast:
           default: true
+  bios:
+  - name: Atomiswave BIOS
+    # Flycast also finds it next to the games
+    one_of:
+    - file: dc/awbios.zip
+    - file: "{roms}/atomiswave/awbios.zip"

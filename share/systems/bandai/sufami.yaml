@@ -20,3 +20,8 @@ sufami:
       cores:
         snes9x:
           default: true
+  # md5 of the known good dumps: batocera-systems (batocera.linux)
+  bios:
+  - name: SuFami Turbo BIOS
+    file: STBIOS.bin
+    md5: d3a44ba7d42a74d3ac58cb9c14c6a5ca

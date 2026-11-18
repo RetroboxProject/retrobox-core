@@ -35,3 +35,13 @@ pc60:
     mame:
       cores:
         mame: {}
+  bios:
+  # MAME also finds its sets in bios/mame and roms/mame: not required here
+  - file: pc6001.zip
+    optional: true
+  - file: pc6001a.zip
+    optional: true
+  - file: pc6001mk2.zip
+    optional: true
+  - file: pc6001mk2sr.zip
+    optional: true

@@ -19,3 +19,17 @@ amigacd32:
         puae:
           default: true
         puae2021: {}
+  # md5 of the known good dumps: batocera-systems (batocera.linux)
+  bios:
+  - file: amiga/kick40060.CD32
+    md5: 5f8924d013dd57a89cf349f4cdedc6b1
+    optional: true
+  - file: amiga/kick40060.CD32.ext
+    md5: bb72565701b1b6faece07d68ea5da639
+    optional: true
+  - file: amiga/amiga-os-310-cd32.rom
+    md5: 5f8924d013dd57a89cf349f4cdedc6b1
+    optional: true
+  - file: amiga/amiga-ext-310-cd32.rom
+    md5: bb72565701b1b6faece07d68ea5da639
+    optional: true

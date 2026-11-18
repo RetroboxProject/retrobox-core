@@ -36,3 +36,11 @@ msx2:
           - .m3u
           - .ogv
           - .openmsx
+  # md5 of the known good dumps: batocera-systems (batocera.linux)
+  bios:
+  - file: MSX2.ROM
+    md5: ec3a01c91f24fbddcbcab0ad301bc9ef
+    optional: true
+  - file: MSX2EXT.ROM
+    md5: 2183c2aff17cf4297bdb496de78c2e8a
+    optional: true

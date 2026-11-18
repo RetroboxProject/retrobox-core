@@ -24,3 +24,9 @@ dragon64:
     mame:
       cores:
         mame: {}
+  bios:
+  # MAME also finds its sets in bios/mame and roms/mame: not required here
+  - file: dragon64.zip
+    optional: true
+  - file: dragon32.zip
+    optional: true

@@ -17,3 +17,11 @@ intellivision:
       cores:
         freeintv:
           default: true
+  # md5 of the known good dumps: batocera-systems (batocera.linux)
+  bios:
+  - name: Executive ROM
+    file: exec.bin
+    md5: 62e761035cb657903761800f4437b8af
+  - name: Graphics ROM
+    file: grom.bin
+    md5: 0cd5946c6473e42e8e4c2137785e427f

@@ -83,3 +83,56 @@ macintosh:
       cores:
         mame:
           default: true
+  # md5 of the known good dumps: batocera-systems (batocera.linux)
+  bios:
+  - name: Macintosh II ROM
+    one_of:
+    - file: MacII.ROM
+      md5: 66223be1497460f1e60885eeb35e03cc
+    - file: MacIIx.ROM
+      md5: 2a8a4c7f2a38e0ab0771f59a9a0f1ee4
+    required_for: [libretro/minivmac]
+  - file: mac128k.zip
+    optional: true
+  - file: mackbd_m0110.zip
+    optional: true
+  - file: mackbd_m0120.zip
+    optional: true
+  - file: mac512k.zip
+    optional: true
+  - file: macplus.zip
+    optional: true
+  - file: macse.zip
+    optional: true
+  - file: macclasc.zip
+    optional: true
+  - file: mac2fdhd.zip
+    optional: true
+  - file: nb_mdc824.zip
+    optional: true
+  - file: maciix.zip
+    optional: true
+  - file: maclc3.zip
+    optional: true
+  - file: mackbd_m0110a.zip
+    optional: true
+  - file: nb_image.zip
+    optional: true
+  - file: egret.zip
+    optional: true
+  - file: adbmodem.zip
+    optional: true
+  - file: macos3.img
+    optional: true
+  - file: macos608.img
+    optional: true
+  - file: macos701.img
+    optional: true
+  - file: macos75.img
+    optional: true
+  - file: mac608.chd
+    optional: true
+  - file: mac701.chd
+    optional: true
+  - file: mac755.chd
+    optional: true

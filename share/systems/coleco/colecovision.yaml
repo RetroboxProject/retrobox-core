@@ -24,3 +24,9 @@ colecovision:
           - .bin
           - .rom
           - .7z
+  # md5 of the known good dumps: batocera-systems (batocera.linux)
+  bios:
+  - name: ColecoVision BIOS
+    file: Machines/COL - ColecoVision/coleco.rom
+    md5: 2c66f5911e5b42b8ebe113403548eee7
+    required_for: [libretro/bluemsx]

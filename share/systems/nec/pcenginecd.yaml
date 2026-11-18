@@ -29,3 +29,9 @@ pcenginecd:
           - .ccd
           - .iso
           - .img
+  # md5 of the known good dumps: batocera-systems (batocera.linux)
+  bios:
+  # the CD games run on it
+  - name: System Card 3
+    file: syscard3.pce
+    md5: 38179df8f4ac870017db21ebcbf53114

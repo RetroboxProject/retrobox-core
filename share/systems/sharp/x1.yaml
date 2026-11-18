@@ -24,3 +24,11 @@ x1:
       cores:
         x1:
           default: true
+  # md5 of the known good dumps: batocera-systems (batocera.linux)
+  bios:
+  - file: xmil/IPLROM.X1
+    md5: eeeea1cd29c6e0e8b094790ae969bfa7
+    optional: true
+  - file: xmil/iplrom.x1t
+    md5: 56c28adcf1f3a2f87cf3d57c378013f5
+    optional: true

@@ -17,3 +17,11 @@ scummvm:
       cores:
         scummvm:
           default: true
+  # md5 of the known good dumps: batocera-systems (batocera.linux)
+  bios:
+  - file: scummvm/extra/MT32_PCM.ROM
+    md5: 89e42e386e82e0cacb4a2704a03706ca
+    optional: true
+  - file: scummvm/extra/MT32_CONTROL.ROM
+    md5: 5626206284b22c2734f3e9efefcd2675
+    optional: true

@@ -21,3 +21,9 @@ naomi:
       cores:
         flycast:
           default: true
+  bios:
+  - name: NAOMI BIOS
+    # Flycast also finds it next to the games
+    one_of:
+    - file: dc/naomi.zip
+    - file: "{roms}/naomi/naomi.zip"

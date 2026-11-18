@@ -38,35 +38,81 @@ psx:
           - .m3u
           - .ccd
           - .iso
-  # md5 of the known good dumps: batocera-systems (batocera.linux)
+  # md5 of the known good dumps: libretro's System.dat and batocera-systems
   bios:
   - name: PlayStation BIOS
+    # any region and revision; pcsx_rearmed has a replacement of its own (less
+    # compatible), ares only takes the dumps it knows (ares_firmware.py)
     one_of:
-    - file: scph5501.bin
-      md5: 490f666e1afb15b7362b406ed1cea246
-      note: SCPH-5501, USA
-    - file: scph5500.bin
-      md5: 8dd7d5296a650fac7319bce665a6a53c
-      note: SCPH-5500, Japan
-    - file: scph5502.bin
-      md5: 32736f17079d0b2b7024407c39bd3050
-      note: SCPH-5502, Europe
+    - file: scph1000.bin
+      md5: 239665b1a3dade1b5a52c06338011044
+      note: Japan
     - file: scph1001.bin
-      md5: [dc2b9bf8da62ec93e868cfd29f0d067d, 924e392ed05558ffdb115408c263dccf]
-      note: SCPH-1001, USA
+      md5: [924e392ed05558ffdb115408c263dccf, dc2b9bf8da62ec93e868cfd29f0d067d]
+      note: USA
+    - file: scph1002.bin
+      md5: 54847e693405ffeb0359c6287434cbef
+      note: Europe
+    - file: scph100.bin
+      md5: 8abc1b549a4a80954addc48ef02c4521
+      note: "PSone, Japan"
     - file: scph101.bin
       md5: 6e3735ff4c7dc899ee98981385f6f3d0
-      note: PSone, SCPH-101
+      note: "PSone, USA"
+    - file: scph102A.bin
+      md5: b10f5e0e3d9eb60e5159690680b1e774
+      note: "PSone, Europe"
+    - file: scph102B.bin
+      md5: de93caec13d1a141a40a79f5c86168d6
+      note: "PSone, Europe"
+    - file: scph102C.bin
+      md5: de93caec13d1a141a40a79f5c86168d6
+      note: "PSone, Europe"
+    - file: scph3000.bin
+      md5: 849515939161e62f6b866f6853006780
+      note: Japan
+    - file: scph3500.bin
+      md5: cba733ceeff5aef5c32254f1d617fa62
+      note: Japan
+    - file: scph5000.bin
+      md5: eb201d2d98251a598af467d4347bb62f
+      note: Japan
+    - file: scph5500.bin
+      md5: 8dd7d5296a650fac7319bce665a6a53c
+      note: Japan
+    - file: scph5501.bin
+      md5: 490f666e1afb15b7362b406ed1cea246
+      note: USA
+    - file: scph5502.bin
+      md5: 32736f17079d0b2b7024407c39bd3050
+      note: Europe
+    - file: scph5552.bin
+      md5: 32736f17079d0b2b7024407c39bd3050
+      note: Europe
     - file: scph7001.bin
       md5: 1e68c231d0896b7eadcad1d7d8e76129
-      note: SCPH-7001, USA
+      note: USA
+    - file: scph7002.bin
+      md5: b9d9a0286c33dc6b7237bb13cd46fdee
+      note: Europe
+    - file: scph7003.bin
+      md5: 490f666e1afb15b7362b406ed1cea246
+      note: USA
+    - file: scph7502.bin
+      md5: b9d9a0286c33dc6b7237bb13cd46fdee
+      note: Europe
+    - file: scph9002(7502).bin
+      md5: b9d9a0286c33dc6b7237bb13cd46fdee
+      note: Europe
     - file: psxonpsp660.bin
       md5: c53ca5908936d412331790f4426c6c33
       note: PSP firmware 6.60
-    # pcsx_rearmed has a replacement BIOS of its own (less compatible);
-    # ares only takes the dumps it knows by their SHA-256 (ares_firmware.py)
+    - file: ps1_rom.bin
+      md5: 81bbe60ba7a3d1cea1d48c14cbcc647b
+      note: PS3 firmware
     required_for: [libretro/swanstation, ares]
   - name: PlayStation BIOS for Beetle PSX
+    # it wants the one of each game's region
     one_of:
     - file: scph5501.bin
       md5: 490f666e1afb15b7362b406ed1cea246
@@ -77,5 +123,4 @@ psx:
     - file: scph5502.bin
       md5: 32736f17079d0b2b7024407c39bd3050
       note: Europe
-    # it wants the one of each game's region
     required_for: [libretro/mednafen_psx]

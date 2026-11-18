@@ -20,3 +20,17 @@ amigacdtv:
         puae:
           default: true
         puae2021: {}
+  # md5 of the known good dumps: batocera-systems (batocera.linux)
+  bios:
+  - file: amiga/kick34005.A500
+    md5: 82a21c1890cae844b3df741f2762d48d
+    optional: true
+  - file: amiga/kick34005.CDTV
+    md5: 89da1838a24460e4b93f4f0c5d92d48d
+    optional: true
+  - file: amiga/amiga-os-130.rom
+    md5: 82a21c1890cae844b3df741f2762d48d
+    optional: true
+  - file: amiga/amiga-ext-130-cdtv.rom
+    md5: 89da1838a24460e4b93f4f0c5d92d48d
+    optional: true

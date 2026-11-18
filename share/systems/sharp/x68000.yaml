@@ -25,3 +25,11 @@ x68000:
       cores:
         px68k:
           default: true
+  # md5 of the known good dumps: batocera-systems (batocera.linux)
+  bios:
+  - name: X68000 IPL ROM
+    file: keropi/iplrom.dat
+    md5: 7fd4caabac1d9169e289f0f7bbf71d8e
+  - name: X68000 character ROM
+    file: keropi/cgrom.dat
+    md5: cb0a5cfcf7247a7eab74bb2716260269

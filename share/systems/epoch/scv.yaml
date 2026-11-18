@@ -15,3 +15,8 @@ scv:
       cores:
         emuscv:
           default: true
+  # md5 of the known good dumps: batocera-systems (batocera.linux)
+  bios:
+  - file: upd7801g.s01
+    md5: 635a978fd40db9a18ee44eff449fc126
+    optional: true

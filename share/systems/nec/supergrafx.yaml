@@ -28,3 +28,8 @@ supergrafx:
           - .ccd
           - .chd
           - .7z
+  # md5 of the known good dumps: batocera-systems (batocera.linux)
+  bios:
+  - file: syscard3.pce
+    md5: 38179df8f4ac870017db21ebcbf53114
+    optional: true

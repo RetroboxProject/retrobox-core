@@ -15,3 +15,11 @@ videopacplus:
       cores:
         o2em:
           default: true
+  # md5 of the known good dumps: batocera-systems (batocera.linux)
+  bios:
+  - name: Videopac+ BIOS
+    file: g7400.bin
+    md5: c500ff71236068e0dc0d0603d265ae76
+  - file: jopac.bin
+    md5: 279008e4a0db2dc5f1c048853b033828
+    optional: true

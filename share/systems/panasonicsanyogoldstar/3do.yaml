@@ -17,3 +17,13 @@
       cores:
         opera:
           default: true
+  # md5 of the known good dumps: batocera-systems (batocera.linux)
+  bios:
+  - name: 3DO BIOS
+    one_of:
+    - file: panafz1.bin
+      md5: f47264dd47fe30f73ab3c010015c155b
+    - file: panafz10.bin
+      md5: 51f2f43ae2f3508a14d9f56597e2d3ce
+    - file: goldstar.bin
+      md5: 8639fd5e549bd6238cfee79e3e749114

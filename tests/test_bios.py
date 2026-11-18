@@ -33,8 +33,8 @@ def test_shipped_declarations_are_valid() -> None:
 
 @pytest.mark.parametrize("block, message", [
     ("nope", "must be a list"),
-    ([{"file": "/etc/passwd"}], "inside the BIOS folder"),
-    ([{"file": "../x.bin"}], "inside the BIOS folder"),
+    ([{"file": "/etc/passwd"}], "inside the BIOS"),
+    ([{"file": "../x.bin"}], "inside the BIOS"),
     ([{"file": "x.bin", "md5": "zz"}], "invalid md5"),
     ([{"file": "x.bin", "sha1": "00"}], "unknown keys"),
     ([{"file": "x.bin", "one_of": [{"file": "y.bin"}]}], "not both"),
@@ -143,7 +143,7 @@ def test_doctor_reports_for_the_chosen_emulator(tmp_path: Path) -> None:
         (data / "roms" / system).mkdir(parents=True)
         (data / "roms" / system / "game.chd").write_bytes(b"")
     (data / "bios" / "pcsx2" / "bios").mkdir(parents=True)
-    (data / "bios" / "pcsx2" / "bios" / "ps2-0230e-20080220.bin").write_bytes(b"\0" * (4 << 20))
+    (data / "bios" / "pcsx2" / "bios" / "ps2-0160h-20030602.bin").write_bytes(b"\0" * (4 << 20))
 
     lines = _bios_lines(tmp_path)
     assert set(lines) == {"saturn", "ps2", "psx"}
@@ -214,3 +214,21 @@ def test_min_size_must_be_bytes() -> None:
     """min_size is a number of bytes."""
     with pytest.raises(bios.BiosError, match="number of bytes"):
         bios.parse("demo", {"bios": [{"file": "a.bin", "min_size": "1M"}]})
+
+
+def test_a_bios_can_be_next_to_the_games(tmp_path: Path) -> None:
+    """{roms}/ paths: neogeo.zip in the BIOS folder or in the Neo Geo ROMs one."""
+    out = _require(tmp_path, "neogeo", "libretro", "fbneo")
+    assert out.startswith("STOP") and "neogeo.zip" in out and "roms/neogeo" in out
+    roms = tmp_path / "home" / ".local" / "share" / "retrobox" / "roms" / "neogeo"
+    roms.mkdir(parents=True)
+    (roms / "neogeo.zip").write_bytes(b"PK")
+    assert _require(tmp_path, "neogeo", "libretro", "fbneo").strip() == "OK"
+
+
+def test_roms_paths_stay_inside() -> None:
+    """{roms}/ only prefixes a path inside the ROMs folder."""
+    with pytest.raises(bios.BiosError, match="inside the BIOS"):
+        bios.parse("demo", {"bios": [{"file": "{roms}/../x.zip"}]})
+    with pytest.raises(bios.BiosError, match="inside the BIOS"):
+        bios.parse("demo", {"bios": [{"file": "{data}/x.zip"}]})

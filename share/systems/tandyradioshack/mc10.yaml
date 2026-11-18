@@ -21,3 +21,9 @@ mc10:
     mame:
       cores:
         mame: {}
+  bios:
+  # MAME also finds its sets in bios/mame and roms/mame: not required here
+  - file: mc10.zip
+    optional: true
+  - file: alice.zip
+    optional: true

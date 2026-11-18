@@ -18,3 +18,7 @@ gamate:
       cores:
         mame:
           default: true
+  bios:
+  # MAME also finds its sets in bios/mame and roms/mame: not required here
+  - file: gamate.zip
+    optional: true

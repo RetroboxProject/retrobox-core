@@ -15,3 +15,11 @@ odyssey2:
       cores:
         o2em:
           default: true
+  # md5 of the known good dumps: batocera-systems (batocera.linux)
+  bios:
+  - name: Odyssey² BIOS
+    file: o2rom.bin
+    md5: 562d5ebf9e030a40d6fabfc2f33139fd
+  - file: c52.bin
+    md5: f1071cdb0b6b10dde94d3bc8a6146387
+    optional: true

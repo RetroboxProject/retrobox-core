@@ -20,3 +20,11 @@ neogeo:
     mame:
       cores:
         mame: {}
+  bios:
+  - name: Neo Geo BIOS
+    # FBNeo and MAME also find it next to the games
+    one_of:
+    - file: neogeo.zip
+    - file: mame/neogeo.zip
+    - file: "{roms}/neogeo/neogeo.zip"
+    - file: "{roms}/mame/neogeo.zip"

@@ -29,3 +29,9 @@ pcw:
     mame:
       cores:
         mame: {}
+  bios:
+  # MAME also finds its sets in bios/mame and roms/mame: not required here
+  - file: pcw8256.zip
+    optional: true
+  - file: pcw9512.zip
+    optional: true

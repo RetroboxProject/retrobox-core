@@ -20,3 +20,8 @@ satellaview:
         mesen-s: {}
         snes9x:
           default: true
+  # md5 of the known good dumps: batocera-systems (batocera.linux)
+  bios:
+  - name: Satellaview BIOS
+    file: BS-X.bin
+    md5: 96cf17bf589fcbfa6f8de2dc84f19fa2

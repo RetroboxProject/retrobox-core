@@ -19,3 +19,7 @@ loopy:
     mame:
       cores:
         mame: {}
+  bios:
+  # MAME also finds its sets in bios/mame and roms/mame: not required here
+  - file: casloopy.zip
+    optional: true

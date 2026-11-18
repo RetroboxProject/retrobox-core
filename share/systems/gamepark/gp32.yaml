@@ -18,3 +18,10 @@ gp32:
       cores:
         mame:
           default: true
+  # md5 of the known good dumps: batocera-systems (batocera.linux)
+  bios:
+  - file: gp32.zip
+    optional: true
+  - file: gp32166m.bin
+    md5: f78092f15f6ffe15975901ee4e92c680
+    optional: true

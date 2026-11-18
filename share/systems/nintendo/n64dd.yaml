@@ -25,3 +25,8 @@ n64dd:
           - .z64
           - .n64
           - .7z
+  # md5 of the known good dumps: batocera-systems (batocera.linux)
+  bios:
+  - name: 64DD IPL
+    file: 64DD_IPL.bin
+    md5: 8d3d9f294b6e174bc7b1d2fd1c727530

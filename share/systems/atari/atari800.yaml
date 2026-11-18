@@ -26,3 +26,17 @@ atari800:
       cores:
         atari800:
           default: true
+  # md5 of the known good dumps: batocera-systems (batocera.linux)
+  bios:
+  - file: ATARIOSA.ROM
+    md5: eb1f32f5d9f382db1bbfb8d7f9cb343a
+    optional: true
+  - file: ATARIOSB.ROM
+    md5: 4177f386a3bac989a981d3fe3388cb6c
+    optional: true
+  - file: ATARIXL.ROM
+    md5: 06daac977823773a3eea3422fd26a703
+    optional: true
+  - file: ATARIBAS.ROM
+    md5: 0bac0c6a50104045d902df4503a4c30b
+    optional: true

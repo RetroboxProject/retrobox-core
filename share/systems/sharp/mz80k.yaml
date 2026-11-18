@@ -21,3 +21,9 @@ mz80k:
     mame:
       cores:
         mame: {}
+  bios:
+  # MAME also finds its sets in bios/mame and roms/mame: not required here
+  - file: mz80k.zip
+    optional: true
+  - file: mz80kj.zip
+    optional: true

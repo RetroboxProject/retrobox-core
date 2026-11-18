@@ -30,3 +30,21 @@ apple2:
     mame:
       cores:
         mame: {}
+  bios:
+  # MAME also finds its sets in bios/mame and roms/mame: not required here
+  - file: apple2e.zip
+    optional: true
+  - file: apple2ee.zip
+    optional: true
+  - file: apple2p.zip
+    optional: true
+  - file: a2diskiing.zip
+    optional: true
+  - file: a2cffa02.zip
+    optional: true
+  - file: votrsc01.zip
+    optional: true
+  - file: votrsc01a.zip
+    optional: true
+  - file: d2fdc.zip
+    optional: true

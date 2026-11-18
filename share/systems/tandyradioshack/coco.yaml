@@ -22,3 +22,17 @@ coco:
       cores:
         mame:
           default: true
+  bios:
+  # MAME also finds its sets in bios/mame and roms/mame: not required here
+  - file: coco.zip
+    optional: true
+  - file: coco2.zip
+    optional: true
+  - file: coco2b.zip
+    optional: true
+  - file: coco3.zip
+    optional: true
+  - file: coco3p.zip
+    optional: true
+  - file: coco_fdc_v11.zip
+    optional: true

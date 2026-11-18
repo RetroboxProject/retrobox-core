@@ -20,3 +20,9 @@ lynx:
         holani: {}
         mednafen_lynx:
           default: true
+  # md5 of the known good dumps: batocera-systems (batocera.linux)
+  bios:
+  - name: Lynx boot ROM
+    file: lynxboot.img
+    md5: fcd403db69f54290b51035d82f835e7b
+    required_for: [libretro/mednafen_lynx]

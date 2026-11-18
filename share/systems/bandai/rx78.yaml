@@ -18,3 +18,7 @@ rx78:
     mame:
       cores:
         mame: {}
+  bios:
+  # MAME also finds its sets in bios/mame and roms/mame: not required here
+  - file: rx78.zip
+    optional: true

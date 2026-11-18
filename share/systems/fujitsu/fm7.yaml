@@ -31,3 +31,9 @@ fm7:
       cores:
         mame:
           default: true
+  bios:
+  # MAME also finds its sets in bios/mame and roms/mame: not required here
+  - file: fm7.zip
+    optional: true
+  - file: fm77av.zip
+    optional: true

@@ -21,3 +21,8 @@ pcfx:
       cores:
         pcfx:
           default: true
+  # md5 of the known good dumps: batocera-systems (batocera.linux)
+  bios:
+  - name: PC-FX BIOS
+    file: pcfx.rom
+    md5: 08e36edbea28a017f79f8d4f7ff9b6d7

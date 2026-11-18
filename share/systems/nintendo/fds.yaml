@@ -23,3 +23,8 @@ fds:
         nes:
           incompatible_extensions:
           - .7z
+  # md5 of the known good dumps: batocera-systems (batocera.linux)
+  bios:
+  - name: Famicom Disk System BIOS
+    file: disksys.rom
+    md5: ca30b50f880eb660a320674ed365ef7a

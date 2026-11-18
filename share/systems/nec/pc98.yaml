@@ -31,3 +31,20 @@ pc98:
       cores:
         np2kai:
           default: true
+  # md5 of the known good dumps: batocera-systems (batocera.linux)
+  bios:
+  - file: np2kai/BIOS.ROM
+    md5: e246140dec5124c5e404869a84caefce
+    optional: true
+  - file: np2kai/FONT.ROM
+    md5: 2af6179d7de4893ea0b705c00e9a98d6
+    optional: true
+  - file: np2kai/SOUND.ROM
+    md5: caf90f22197aed6f14c471c21e64658d
+    optional: true
+  - file: np2kai/ITF.ROM
+    md5: e9fc3890963b12cf15d0a2eea5815b72
+    optional: true
+  - file: np2kai/font.bmp
+    md5: 7da1e5b7c482d4108d22a5b09631d967
+    optional: true

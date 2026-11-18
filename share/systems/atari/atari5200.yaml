@@ -37,3 +37,8 @@ atari5200:
           - .cas
           - .xex
           - .7z
+  # md5 of the known good dumps: batocera-systems (batocera.linux)
+  bios:
+  - file: 5200.rom
+    md5: 281f20ea4320404ec820fb7ec0693b38
+    optional: true

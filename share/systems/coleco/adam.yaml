@@ -34,3 +34,15 @@ adam:
       cores:
         mame:
           default: true
+  bios:
+  # MAME also finds its sets in bios/mame and roms/mame: not required here
+  - file: adam.zip
+    optional: true
+  - file: adam_ddp.zip
+    optional: true
+  - file: adam_fdc.zip
+    optional: true
+  - file: adam_kb.zip
+    optional: true
+  - file: adam_prn.zip
+    optional: true

@@ -27,3 +27,14 @@ gamecube:
     libretro:
       cores:
         dolphin: {}
+  # md5 of the known good dumps: batocera-systems (batocera.linux)
+  bios:
+  - file: GC/EUR/IPL.bin
+    md5: db92574caab77a7ec99d4605fd6f2450
+    optional: true
+  - file: GC/JAP/IPL.bin
+    md5: b17148254a5799684c7d783206504926
+    optional: true
+  - file: GC/USA/IPL.bin
+    md5: b17148254a5799684c7d783206504926
+    optional: true

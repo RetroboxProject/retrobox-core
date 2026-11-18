@@ -18,3 +18,18 @@ sgb:
         mesen-s:
           default: true
         mgba: {}
+  # md5 of the known good dumps: batocera-systems (batocera.linux)
+  bios:
+  - name: Super Game Boy BIOS
+    one_of:
+    - file: SGB1.sfc
+      md5: b15ddb15721c657d82c5bab6db982ee9
+    - file: SGB2.sfc
+      md5: 8ecd73eb4edf7ed7e81aef1be80031d5
+    required_for: [libretro/mesen-s]
+  - file: sgb_boot.bin
+    md5: d574d4f9c12f305074798f54c091a8b4
+    optional: true
+  - file: sgb2_boot.bin
+    md5: e0430bca9925fb9882148fd2dc2418c1
+    optional: true

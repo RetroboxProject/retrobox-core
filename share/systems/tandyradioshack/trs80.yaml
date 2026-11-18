@@ -23,3 +23,13 @@ trs80:
     mame:
       cores:
         mame: {}
+  bios:
+  # MAME also finds its sets in bios/mame and roms/mame: not required here
+  - file: trs80.zip
+    optional: true
+  - file: trs80m3.zip
+    optional: true
+  - file: trs80m4.zip
+    optional: true
+  - file: trs80m4p.zip
+    optional: true

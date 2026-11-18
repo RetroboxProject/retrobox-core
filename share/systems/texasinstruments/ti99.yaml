@@ -19,3 +19,9 @@ ti99:
       cores:
         mame:
           default: true
+  bios:
+  # MAME also finds its sets in bios/mame and roms/mame: not required here
+  - file: ti99_4a.zip
+    optional: true
+  - file: ti99_speech.zip
+    optional: true

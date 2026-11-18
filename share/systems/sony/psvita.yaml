@@ -14,3 +14,11 @@ psvita:
       cores:
         vita3k:
           default: true
+  # md5 of the known good dumps: batocera-systems (batocera.linux)
+  bios:
+  - file: psvita/PSP2UPDAT.PUP
+    md5: 59dcf059d3328fb67be7e51f8aa33418
+    optional: true
+  - file: psvita/PSVUPDAT.PUP
+    md5: f2c7b12fe85496ec88a0391b514d6e3b
+    optional: true

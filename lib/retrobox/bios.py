@@ -22,7 +22,9 @@ the job::
 that can't run the system without it; with no list, all of them can't.
 ``optional: true`` marks a file that only improves something (an emulator has
 a replacement of its own, or few games use it). A file may be a glob
-(``pcsx2/bios/*.bin``) when any dump in a folder does, and ``min_size`` (in
+(``pcsx2/bios/*.bin``) when any dump in a folder does, and start with
+``{roms}/`` for one an emulator also finds in the ROMs folder
+(``{roms}/neogeo/neogeo.zip``), and ``min_size`` (in
 bytes) counts the files too small to be one as missing, when there is no MD5
 to check.
 
@@ -48,7 +50,7 @@ from pathlib import Path, PurePosixPath
 from typing import Any, Final
 
 from retrobox.configgen.exceptions import RetroboxException
-from retrobox.paths import BIOS, CACHE, CONFIG_LAYERS
+from retrobox.paths import BIOS, CACHE, CONFIG_LAYERS, ROMS
 
 _logger = logging.getLogger(__name__)
 
@@ -58,6 +60,7 @@ _GLOB_CHARACTERS: Final = frozenset("*?[")
 _FILE_KEYS: Final = frozenset({"file", "md5", "note", "min_size"})
 _REQUIREMENT_KEYS: Final = frozenset({"name", "one_of", "required_for", "optional", *_FILE_KEYS})
 _READ_CHUNK: Final = 1024 * 1024
+_ROMS_PREFIX: Final = "{roms}/"
 
 
 class BiosError(ValueError):
@@ -68,10 +71,24 @@ class BiosError(ValueError):
 class BiosFile:
     """One file that meets a requirement."""
 
-    path: str  # relative to the BIOS folder; may be a glob
+    path: str  # relative to the BIOS folder (or to the ROMs one: {roms}/...); may be a glob
     md5: tuple[str, ...] = ()  # the known good dumps; empty: any file does
     note: str = ""
     min_size: int = 0  # bytes; a smaller file is not a dump
+
+    @property
+    def in_roms(self) -> bool:
+        """Whether ``path`` is in the ROMs folder rather than in the BIOS one."""
+        return self.path.startswith(_ROMS_PREFIX)
+
+    @property
+    def relative(self) -> str:
+        """``path`` without its ``{roms}/``."""
+        return self.path.removeprefix(_ROMS_PREFIX)
+
+    def location(self, folder: Path) -> Path:
+        """Where it is: ``folder`` (the BIOS one) or the ROMs folder, plus ``relative``."""
+        return (ROMS if self.in_roms else folder) / self.relative
 
     @property
     def is_glob(self) -> bool:
@@ -131,9 +148,9 @@ def _bios_file(entry: Mapping[str, Any], system: str) -> BiosFile:
     path = entry.get("file")
     if not isinstance(path, str) or not path:
         raise BiosError(f"{system}: every BIOS needs a 'file'")
-    pure = PurePosixPath(path)
-    if pure.is_absolute() or ".." in pure.parts:
-        raise BiosError(f"{system}: {path} must be inside the BIOS folder")
+    pure = PurePosixPath(path.removeprefix(_ROMS_PREFIX))
+    if pure.is_absolute() or ".." in pure.parts or "{" in str(pure):
+        raise BiosError(f"{system}: {path} must be inside the BIOS (or {{roms}}) folder")
     md5 = tuple(value.lower() for value in _strings(entry.get("md5"), f"{system}: md5 of {path}"))
     bad = [value for value in md5 if not _MD5.match(value)]
     if bad:
@@ -292,7 +309,8 @@ def _big_enough(path: Path, min_size: int) -> bool:
 
 def _candidates(file: BiosFile, folder: Path) -> list[Path]:
     """The files there for ``file``; one smaller than min_size is not one of them."""
-    paths = sorted(folder.glob(file.path)) if file.is_glob else [folder / file.path]
+    base = ROMS if file.in_roms else folder
+    paths = sorted(base.glob(file.relative)) if file.is_glob else [base / file.relative]
     return [path for path in paths if _big_enough(path, file.min_size)]
 
 
@@ -348,13 +366,19 @@ def describe(requirement: Requirement, folder: Path = BIOS) -> str:
     """What to put where to meet a requirement, for a message."""
     files = requirement.files
     if len(files) == 1 and files[0].is_glob:
-        pattern = PurePosixPath(files[0].path)
-        return f"a dump (any {pattern.name}) in {folder / pattern.parent}"
-    names = [f"{file.path} ({file.note})" if file.note else file.path for file in files]
+        pattern = files[0].location(folder)
+        return f"a dump (any {pattern.name}) in {pattern.parent}"
+    names = [f"{file.path} ({file.note})" if file.note else file.path
+             for file in files if not file.in_roms]
+    elsewhere = [str(file.location(folder)) for file in files if file.in_roms]
+    if not names:
+        return " or ".join(elsewhere)
     if len(names) == 1:
-        return f"{names[0]} in {folder}"
-    shown = ", ".join(names[:3]) + (f" (or {len(names) - 3} more)" if len(names) > 3 else "")
-    return f"one of {shown} in {folder}"
+        text = f"{names[0]} in {folder}"
+    else:
+        shown = ", ".join(names[:3]) + (f" (or {len(names) - 3} more)" if len(names) > 3 else "")
+        text = f"one of {shown} in {folder}"
+    return text + (f" (or {' / '.join(elsewhere)})" if elsewhere else "")
 
 
 def require(system: str, emulator: str, core: str = "") -> None:

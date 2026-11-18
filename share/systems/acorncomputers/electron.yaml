@@ -42,3 +42,13 @@ electron:
       cores:
         mame:
           default: true
+  bios:
+  # MAME also finds its sets in bios/mame and roms/mame: not required here
+  - file: electron.zip
+    optional: true
+  - file: electron64.zip
+    optional: true
+  - file: electron_plus1.zip
+    optional: true
+  - file: electron_plus3.zip
+    optional: true

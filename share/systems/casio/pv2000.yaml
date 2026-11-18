@@ -19,3 +19,7 @@ pv2000:
     mame:
       cores:
         mame: {}
+  bios:
+  # MAME also finds its sets in bios/mame and roms/mame: not required here
+  - file: pv2000.zip
+    optional: true

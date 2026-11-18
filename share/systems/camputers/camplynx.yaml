@@ -20,3 +20,11 @@ camplynx:
       cores:
         mame:
           default: true
+  bios:
+  # MAME also finds its sets in bios/mame and roms/mame: not required here
+  - file: lynx48k.zip
+    optional: true
+  - file: lynx96k.zip
+    optional: true
+  - file: lynx128k.zip
+    optional: true

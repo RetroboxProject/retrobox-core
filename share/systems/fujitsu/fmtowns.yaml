@@ -47,3 +47,26 @@ fmtowns:
           incompatible_extensions:
           - .xdf
           - .m3u
+  # md5 of the known good dumps: batocera-systems (batocera.linux)
+  bios:
+  - file: fmtowns/FMT_DIC.ROM
+    md5: 8fa4e553f28cfc0c30a0a1e589799942
+    optional: true
+  - file: fmtowns/FMT_DOS.ROM
+    md5: 0585b19930d4a7f4c71bcc8a33746588
+    optional: true
+  - file: fmtowns/FMT_F20.ROM
+    md5: ac0c7021e9bf48ca84b51ab651169a88
+    optional: true
+  - file: fmtowns/FMT_FNT.ROM
+    md5: b91300e55b70227ce98b59c5f02fa8dd
+    optional: true
+  - file: fmtowns/FMT_SYS.ROM
+    md5: 86fb6f7280689259f0ca839dd3dd6cde
+    optional: true
+  - file: fmtmarty.zip
+    optional: true
+  - file: fmtowns.zip
+    optional: true
+  - file: fmtownsux.zip
+    optional: true

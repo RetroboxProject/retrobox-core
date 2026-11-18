@@ -20,3 +20,7 @@ laser310:
       cores:
         mame:
           default: true
+  bios:
+  # MAME also finds its sets in bios/mame and roms/mame: not required here
+  - file: laser310.zip
+    optional: true
