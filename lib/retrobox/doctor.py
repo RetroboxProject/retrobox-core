@@ -426,6 +426,14 @@ def _bios_hint(requirement: Requirement) -> str:
     return f"put one of {shown} in {paths.BIOS}"
 
 
+def _found_label(requirement: Requirement, files: tuple[Path, ...]) -> str:
+    """The file that meets a requirement; for a folder of dumps, how many there are."""
+    if len(requirement.files) == 1 and requirement.files[0].is_glob:
+        folder = Path(requirement.files[0].path).parent
+        return f"{len(files)} in {folder}" if len(files) > 1 else f"{folder / files[0].name}"
+    return files[0].name
+
+
 def check_bios() -> Iterator[Check]:
     """The BIOS of the systems that have ROMs, for the emulator each one runs with."""
     section = _BIOS_SECTION
@@ -469,7 +477,7 @@ def _check_system_bios(bios: ModuleType, name: str, emulator: str, core: str,
         requirement = result.requirement
         needed = requirement.required_by(emulator, core)
         if result.state is bios.State.FOUND:
-            found.append(result.files[0].name)
+            found.append(_found_label(requirement, result.files))
         elif result.state is bios.State.WRONG:
             problems = True
             wrong = [path for path in result.files if path not in reported]
@@ -490,8 +498,10 @@ def _check_system_bios(bios: ModuleType, name: str, emulator: str, core: str,
                         f"{', '.join(requirement.required_for)} need it",
                         _bios_hint(requirement))
     if not problems:
-        detail = f"{', '.join(found)} ({chosen})" if found else f"nothing needed by {chosen}"
-        yield Check(section, name, Status.OK, detail)
+        # dict.fromkeys: one file can meet two requirements
+        yield Check(section, name, Status.OK,
+                    f"{', '.join(dict.fromkeys(found))} ({chosen})" if found
+                    else f"nothing needed by {chosen}")
 
 
 def check_achievements() -> Iterator[Check]:
