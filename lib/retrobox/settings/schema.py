@@ -224,6 +224,7 @@ PAGES: Final[tuple[Page, ...]] = (
                 (
                     Setting("status", "battery_percent", Kind.BOOL, default=TRUE),
                     Setting("system", "standby", Kind.BOOL, default=TRUE),
+                    Setting("system", "performance", Kind.BOOL, default=TRUE),
                 ),
             ),
             Group(
