@@ -55,6 +55,8 @@ group.environ.help: Set for every Retrobox process (API keys, emulator optionsâ€
 
 core.ignore_systems: Hidden systems
 core.ignore_systems.help: Checked systems are not shown in EmulationStation.
+core.full_quit_menu: Full quit menu
+core.full_quit_menu.help: QUIT in EmulationStation's main menu opens restart, suspend, shut down and quit, as on batocera, instead of only asking whether to quit EmulationStation.
 core.autocorrect_paths: Fix missing folders
 core.autocorrect_paths.help: When the configured games, saves or BIOS folder doesn't exist, use (and create) the default one.
 core.steam_sync: Steam

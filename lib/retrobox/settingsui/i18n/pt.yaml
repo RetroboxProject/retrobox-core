@@ -52,6 +52,8 @@ group.environ.help: Definidas para todos os processos do Retrobox (chaves de API
 
 core.ignore_systems: Sistemas ocultos
 core.ignore_systems.help: Os sistemas marcados não são mostrados no EmulationStation.
+core.full_quit_menu: Menu de saída completo
+core.full_quit_menu.help: SAIR no menu principal do EmulationStation abre reiniciar, suspender, desligar e sair, como no batocera, em vez de só perguntar se quer sair do EmulationStation.
 core.autocorrect_paths: Corrigir pastas inexistentes
 core.autocorrect_paths.help: Se a pasta configurada de jogos, gravações ou BIOS não existir, é usada (e criada) a predefinida.
 core.steam_sync: Steam

@@ -82,6 +82,9 @@ cat > "${DESTDIR}${SYSCONF_DIR}/retrobox.ini" <<'EOF'
 #autocorrect_paths = true
 ## Systems to hide from the menu, e.g. gba,psp
 #ignore_systems =
+## QUIT in EmulationStation's menu: true opens the full quit menu (restart,
+## suspend, shut down, quit), false only asks whether to quit EmulationStation.
+#full_quit_menu = false
 ## Add the installed PC games of each launcher to its system on every start:
 ##   none            don't sync anything
 ##   on-base-dir     always <data_dir>/roms/<steam|heroic|lutris>

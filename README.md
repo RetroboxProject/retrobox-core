@@ -71,7 +71,7 @@ Configuration is layered, read-only code and writable user data are separate, an
 
 `$XDG_CONFIG_HOME`, `$XDG_DATA_HOME` and `$XDG_STATE_HOME` are honoured. The data and state directories can also be set from `[paths]` in `retrobox.ini` (`data_dir`, `state_dir`; the environment variables win), and `roms`, `saves` and `bios` can be moved on their own (`roms_dir`, `saves_dir`, `bios_dir`); the last layer that sets a key wins. A value may be quoted and may end in ` # comment`. If a configured `roms_dir`/`saves_dir`/`bios_dir` is not a readable directory, Retrobox warns on stderr and uses the default one (unless `autocorrect_paths = false`).
 
-Other `[core]` keys: `create_rom_folders` (`true` by default: see below), `ignore_systems` (systems hidden from the menu, e.g. `gba,psp`) and `steam_sync`, `heroic_sync`, `lutris_sync`: on every start, add the games installed in that launcher to its system (`.steam`, `.heroic`, `.lynx` entries). Each one takes:
+Other `[core]` keys: `create_rom_folders` (`true` by default: see below), `ignore_systems` (systems hidden from the menu, e.g. `gba,psp`), `full_quit_menu` (`false` by default: *Quit* in EmulationStation's main menu only asks whether to quit it; `true` opens batocera's full quit menu, with restart, suspend, shut down and quit, by setting EmulationStation's `ShowOnlyExit` in `es_settings.cfg` before it starts) and `steam_sync`, `heroic_sync`, `lutris_sync`: on every start, add the games installed in that launcher to its system (`.steam`, `.heroic`, `.lynx` entries). Each one takes:
 
 | Value | Entries go to (and the ES system reads from) |
 |---|---|

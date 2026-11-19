@@ -135,7 +135,10 @@ PAGES: Final[tuple[Page, ...]] = (
         (
             Group(
                 "frontend",
-                (Setting("core", "ignore_systems", Kind.SYSTEMS),),
+                (
+                    Setting("core", "ignore_systems", Kind.SYSTEMS),
+                    Setting("core", "full_quit_menu", Kind.BOOL, default=FALSE),
+                ),
             ),
             Group(
                 "behaviour",

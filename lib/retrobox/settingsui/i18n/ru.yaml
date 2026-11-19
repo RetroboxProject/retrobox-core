@@ -52,6 +52,8 @@ group.environ.help: Задаются для всех процессов Retrobox
 
 core.ignore_systems: Скрытые системы
 core.ignore_systems.help: Отмеченные системы не показываются в EmulationStation.
+core.full_quit_menu: Полное меню выхода
+core.full_quit_menu.help: ВЫХОД в главном меню EmulationStation открывает перезагрузку, сон, выключение и выход, как в batocera, а не только вопрос о выходе из EmulationStation.
 core.autocorrect_paths: Исправлять отсутствующие папки
 core.autocorrect_paths.help: Если заданной папки игр, сохранений или BIOS нет, используется (и создаётся) папка по умолчанию.
 core.steam_sync: Steam

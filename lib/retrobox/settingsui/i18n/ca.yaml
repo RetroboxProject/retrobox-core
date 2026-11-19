@@ -52,6 +52,8 @@ group.environ.help: Es defineixen per a tots els processos de Retrobox (claus d'
 
 core.ignore_systems: Sistemes amagats
 core.ignore_systems.help: Els sistemes marcats no es mostren a EmulationStation.
+core.full_quit_menu: Menú de sortida complet
+core.full_quit_menu.help: SORTIR al menú principal d'EmulationStation obre reinicia, suspèn, apaga i surt, com a batocera, en lloc de només preguntar si vols sortir d'EmulationStation.
 core.autocorrect_paths: Corregeix les carpetes que no existeixen
 core.autocorrect_paths.help: Si la carpeta configurada de jocs, partides desades o BIOS no existeix, s'utilitza (i es crea) la de per defecte.
 core.steam_sync: Steam

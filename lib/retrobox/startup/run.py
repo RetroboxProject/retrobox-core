@@ -70,6 +70,7 @@ from retrobox.startup.frontend_conf.es_ini_generator import (
 from retrobox.startup.frontend_conf.features_list_generator import generate_es_features
 from retrobox.startup.frontend_conf.system_list_generator import generate_es_systems
 from retrobox.startup.frontend_conf.pcgames_utils import sync_pcgames
+from retrobox.startup.frontend_conf.quit_menu import apply_quit_menu
 from retrobox.startup.frontend_conf.roms_dirs import create_roms_dirs
 from retrobox.startup.downloads import install_all, labels, pending
 from retrobox.startup.input_daemon import start_input_daemon, stop_input_daemon
@@ -165,6 +166,8 @@ def setup_emulationstation_config() -> None:
     # EmulationStation changes the volume through an ALSA mixer: make it the
     # sound server's one (it must be done before ES starts, it rewrites the file).
     ensure_audio_mixer()
+    # What QUIT opens: the full quit menu or a "Really quit?" question.
+    apply_quit_menu()
 
 
 def download_before_start() -> None:
