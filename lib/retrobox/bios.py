@@ -412,3 +412,90 @@ def require(system: str, emulator: str, core: str = "") -> None:
         lines = [f"{requirement.name} missing: put {describe(requirement)}"
                  for requirement in missing]
         raise RetroboxException(f"{chosen} can't run without its BIOS.\n" + "\n".join(lines))
+
+
+## EmulationStation's missing BIOS list -----------------------------------------
+
+
+def chosen_emulator(system: str, content: Mapping[str, Any],
+                    settings: Mapping[str, str]) -> tuple[str, str]:
+    """The emulator and core ``system`` runs with: the one chosen in EmulationStation
+    (``<system>.emulator`` / ``.core`` of es_settings.cfg), else its default."""
+    emulator = settings.get(f"{system}.emulator", "")
+    if not emulator or emulator == "auto":
+        return default_emulator(content)
+    return emulator, settings.get(f"{system}.core", "")
+
+
+def _shown(file: BiosFile, folder: Path) -> str:
+    """A file as the list shows it: relative to the BIOS folder, else its full path."""
+    return str(file.location(folder)) if file.in_roms else file.path
+
+
+def _es_line(result: Result, folder: Path) -> str:
+    """One line of the list: ``STATUS MD5 what``, as batocera-systems prints it."""
+    requirement = result.requirement
+    files = requirement.files
+    md5 = files[0].md5[0] if len(files) == 1 and files[0].md5 else "-"
+    if len(files) == 1:
+        what = _shown(files[0], folder)
+    else:
+        names = [_shown(file, folder) for file in files]
+        parents = {PurePosixPath(file.path).parent for file in files if not file.in_roms}
+        if len(names) <= 3:
+            shown = " / ".join(names)
+        elif len(parents) == 1 and not any(file.in_roms for file in files):
+            shown = f"one of {len(names)} files in {parents.pop()}/"
+        else:
+            shown = f"{names[0]} / {names[1]} (or {len(names) - 2} more)"
+        what = f"{requirement.name}: {shown}"
+    status = "INVALID" if result.state is State.WRONG else "MISSING"
+    return f"{status} {md5} {what}"
+
+
+def es_report(systems: Iterable[tuple[str, Mapping[str, Any]]], settings: Mapping[str, str],
+              folder: Path = BIOS) -> list[str]:
+    """EmulationStation's missing BIOS list, in batocera-systems' format.
+
+    For each system, the BIOS the emulator it runs with can't do without
+    (``MISSING``), or that is there but not a known dump (``INVALID``): a
+    ``> system`` line, then ``STATUS MD5 file`` lines. Systems with nothing
+    to report are left out.
+    """
+    lines = []
+    contents = dict(systems)
+    for system, requirements in sorted(load_requirements(contents.items()).items()):
+        emulator, core = chosen_emulator(system, contents[system], settings)
+        needed = [r for r in requirements if r.required_by(emulator, core)]
+        problems = [r for r in check(needed, folder) if r.state is not State.FOUND]
+        if problems:
+            lines.append(f"> {system}")
+            lines.extend(_es_line(result, folder) for result in problems)
+    return lines
+
+
+def main(argv: list[str] | None = None) -> int:
+    """``retrobox-bios [--filter SYSTEM]``: print EmulationStation's missing BIOS list."""
+    # pylint: disable=import-outside-toplevel  # only for the command line
+    import argparse
+
+    from retrobox.paths import ES_SETTINGS_CFG
+    from retrobox.startup.frontend_conf.system_list_generator import load_systems
+    from retrobox.utils.es_settings import read_es_settings
+
+    parser = argparse.ArgumentParser(
+        prog="retrobox-bios",
+        description="List the BIOS files the systems' emulators miss, the way "
+                    "batocera-systems does for EmulationStation's MISSING BIOS CHECK.")
+    parser.add_argument("--filter", metavar="SYSTEM", help="only this system")
+    args = parser.parse_args(argv)
+    logging.basicConfig(level=logging.WARNING, format="retrobox-bios: %(message)s")
+    systems = [(name, content) for name, content in load_systems()
+               if args.filter is None or name == args.filter]
+    for line in es_report(systems, read_es_settings(ES_SETTINGS_CFG)):
+        print(line)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

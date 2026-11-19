@@ -232,3 +232,34 @@ def test_roms_paths_stay_inside() -> None:
         bios.parse("demo", {"bios": [{"file": "{roms}/../x.zip"}]})
     with pytest.raises(bios.BiosError, match="inside the BIOS"):
         bios.parse("demo", {"bios": [{"file": "{data}/x.zip"}]})
+
+
+def _es_list(root: Path, *args: str) -> list[str]:
+    return run_retrobox_module(root, "retrobox.bios", *args).stdout.splitlines()
+
+
+def test_emulationstation_list(tmp_path: Path) -> None:
+    """retrobox-bios prints batocera-systems' format, for the emulator each system runs with."""
+    lines = _es_list(tmp_path)
+    assert "> saturn" in lines and "> ps2" in lines
+    assert "> psx" not in lines  # pcsx_rearmed (the default) has a BIOS of its own
+    for line in lines:
+        assert line.startswith("> ") or line.split(" ", 2)[0] in ("MISSING", "INVALID"), line
+
+    saturn = _es_list(tmp_path, "--filter", "saturn")
+    assert saturn[0] == "> saturn" and len(saturn) == 2
+    assert "mpr-17933.bin" in saturn[1]
+    assert _es_list(tmp_path, "--filter", "ps2") == [
+        "> ps2", "MISSING - PlayStation 2 BIOS: one of 82 files in pcsx2/bios/"]
+
+    _write_es_settings(tmp_path, saturn__emulator="libretro", saturn__core="kronos")
+    assert not _es_list(tmp_path, "--filter", "saturn")
+
+
+def test_emulationstation_list_flags_bad_dumps(tmp_path: Path) -> None:
+    """A file that is there but is not a known dump is INVALID; a good one, nothing."""
+    folder = _bios_root(tmp_path)
+    (folder / "lynxboot.img").write_bytes(b"\0" * 512)
+    _write_es_settings(tmp_path, lynx__emulator="libretro", lynx__core="mednafen_lynx")
+    md5 = "fcd403db69f54290b51035d82f835e7b"
+    assert _es_list(tmp_path, "--filter", "lynx") == ["> lynx", f"INVALID {md5} lynxboot.img"]

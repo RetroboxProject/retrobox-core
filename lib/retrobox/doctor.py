@@ -453,10 +453,7 @@ def check_bios() -> Iterator[Check]:
     for name, content in sorted(systems):
         if name not in requirements:
             continue
-        emulator = settings.get(f"{name}.emulator", "")
-        core = settings.get(f"{name}.core", "") if emulator else ""
-        if not emulator or emulator == "auto":
-            emulator, core = bios.default_emulator(content)
+        emulator, core = bios.chosen_emulator(name, content, settings)
         yield from _check_system_bios(bios, name, emulator, core, requirements[name])
 
 
