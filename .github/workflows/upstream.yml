@@ -1,7 +1,9 @@
 name: upstream
 
-# Every week, compares what Retrobox borrows from batocera with batocera's
-# current version, without touching the build: today, the BIOS of its systems
+# Every other Monday (even ISO weeks; the cron runs weekly and odd weeks stop
+# at once, since cron can't say "every two weeks"), and by hand from Actions,
+# compares what Retrobox borrows from batocera with batocera's current
+# version, without building anything: today, the BIOS of its systems
 # (dev/batocera_bios.py against batocera-systems). When batocera lists files or
 # MD5s our share/systems YAMLs lack, the job fails with them in its log and one
 # `batocera-bios` issue is opened; a list that can't be downloaded only fails
@@ -20,16 +22,29 @@ jobs:
     outputs:
       differences: ${{ steps.compare.outputs.differences }}
     steps:
+      - name: Every other week
+        id: week
+        run: |
+          if [[ "${{ github.event_name }}" == schedule ]] && (( 10#$(date -u +%V) % 2 )); then
+            echo "Odd ISO week: nothing to do (it runs on even weeks)."
+            echo "run=false" >> "${GITHUB_OUTPUT}"
+          else
+            echo "run=true" >> "${GITHUB_OUTPUT}"
+          fi
       - name: Check out
+        if: steps.week.outputs.run == 'true'
         uses: actions/checkout@v7
       - name: Set up Python
+        if: steps.week.outputs.run == 'true'
         uses: actions/setup-python@v7
         with:
           python-version: "3.13"
       - name: Install Retrobox's Python dependencies
+        if: steps.week.outputs.run == 'true'
         run: python -m pip install -q -r requirements.txt
       - name: Compare the BIOS with batocera's list
         id: compare
+        if: steps.week.outputs.run == 'true'
         run: |
           set +e
           python dev/batocera_bios.py

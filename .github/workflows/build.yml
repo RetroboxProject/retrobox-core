@@ -3,14 +3,13 @@ name: Build packages
 # Runs the checks of dev/check.sh (pytest on Ubuntu 24.04, Debian 13 and
 # Fedora; pylint and shellcheck), builds retrobox-core_<version>_all.deb,
 # retrobox-core-<version>-1.noarch.rpm and retrobox-core-all.tar.gz (the
-# payload of install.sh) and smoke-tests them on the same distributions. Releases are manual: run this
-# workflow with a version (see release-dispatch) to publish them (plus
-# install.sh and SHA256SUMS) as a GitHub Release.
+# payload of install.sh) and smoke-tests them on the same distributions. It
+# only runs by hand: run this workflow with a version (see release-dispatch)
+# to publish them (plus install.sh and SHA256SUMS) as a GitHub Release, or
+# with no version to only build and test. Pushes build nothing (run
+# dev/check.sh before pushing).
 
 on:
-  push:
-    branches: [main]
-  pull_request:
   workflow_dispatch:
     inputs:
       version:
@@ -28,8 +27,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: build-deb-${{ github.event_name }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}
+  group: build-deb-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   build:
