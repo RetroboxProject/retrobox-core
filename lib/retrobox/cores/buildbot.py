@@ -34,10 +34,12 @@ BASE_CORES: Final = (
 )
 """The cores RetroArch's installer downloads the first time (the rest are on demand)."""
 
-BUILT_ON_ARM: Final = ("mupen64plus_next", "flycast")
-"""Cores RetroArch's installer builds from source on ARM: the buildbot's are GLES
-builds, and RetroArch is built against desktop OpenGL there. They are not
-offered for download on ARM, so a download never replaces them."""
+BUILT_ON_ARM: Final = ("flycast",)
+"""Cores RetroArch's installer builds from source on ARM, against desktop
+OpenGL as RetroArch is there: whether the buildbot's aarch64 flycast runs on it
+is still to be checked (its mupen64plus_next links libGL, so that one is
+downloaded). They are not offered for download on ARM, so a download never
+replaces them."""
 
 _ARCHES: Final = {
     "x86_64": "x86_64", "amd64": "x86_64",

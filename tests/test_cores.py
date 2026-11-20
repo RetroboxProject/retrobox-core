@@ -100,10 +100,11 @@ def test_install_update_remove(bot: Path, tmp_path: Path) -> None:
 
 
 def test_arm_keeps_its_own_builds(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """On ARM, flycast and mupen64plus_next (built from source) are not offered."""
-    root = _buildbot(tmp_path / "bot", {"snes9x": "1", "flycast": "2"}, arch="aarch64")
+    """On ARM, flycast (built from source) is not offered; mupen64plus_next is."""
+    root = _buildbot(tmp_path / "bot", {"snes9x": "1", "flycast": "2", "mupen64plus_next": "3"},
+                     arch="aarch64")
     monkeypatch.setenv("RETROBOX_BUILDBOT", root.as_uri())
-    assert set(_cores(tmp_path, "aarch64").catalog()) == {"snes9x"}
+    assert set(_cores(tmp_path, "aarch64").catalog()) == {"snes9x", "mupen64plus_next"}
     with pytest.raises(CoreError, match="no cores for this machine"):
         _cores(tmp_path, "riscv64").catalog()
 

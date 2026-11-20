@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# RetroArch: the nightly AppImage of the libretro buildbot (x86_64), or a
-# build from source. Both install the frontend under app/ (bin/retroarch,
-# share/retroarch/{assets,autoconfig,...}).
+# RetroArch: the nightly builds of the libretro buildbot (the AppImage on
+# x86_64, the bare binary on aarch64), or a build from source. All install the
+# frontend under app/ (bin/retroarch, share/retroarch/{assets,autoconfig,...}).
 #
 # The cores live next to app/, in cores/ (and their .info files in info/), so
 # installing RetroArch again keeps them. The first install downloads the base
@@ -19,9 +19,6 @@ LABEL="RetroArch"
 source "$(dirname "$(readlink -f "$0")")/../lib/installer.sh"
 
 readonly BUILDBOT="https://buildbot.libretro.com"
-# mupen64plus_next and flycast are built from source on ARM (build_arm_cores):
-# the buildbot's are GLES builds and RetroArch is built against desktop OpenGL
-# there. retrobox.cores.BUILT_ON_ARM never offers them for download on ARM.
 readonly CORES_DIR="${INSTALL_DIR}/cores"
 
 function share_dir() {
@@ -68,29 +65,21 @@ function download_assets() {
     done
 }
 
-# mupen64plus_next and flycast against desktop OpenGL, for ARM (the ones missing).
+# The flycast core against desktop OpenGL, for ARM, when it is missing. Not the
+# buildbot's: whether its aarch64 flycast runs on a desktop OpenGL RetroArch
+# is still to be checked (its mupen64plus_next links libGL, so that one is
+# taken from the buildbot). retrobox.cores.BUILT_ON_ARM lists the same cores.
 function build_arm_cores() {
     local work="${TMP_DIR}/cores" jobs=2
+    [[ -f "${CORES_DIR}/flycast_libretro.so" ]] && return 0
     mkdir -p "${work}" "${CORES_DIR}"
-    if [[ ! -f "${CORES_DIR}/mupen64plus_next_libretro.so" ]]; then
-        log_info "Building mupen64plus_next (desktop OpenGL)..."
-        git clone --depth 1 --recurse-submodules --shallow-submodules \
-            https://github.com/libretro/mupen64plus-libretro-nx.git "${work}/mupen64plus" \
-            || die "Could not clone mupen64plus-libretro-nx"
-        make -C "${work}/mupen64plus" -j "${jobs}" platform=unix CORE_NAME=mupen64plus_next \
-            HAVE_THR_AL=1 LLE=1 HAVE_PARALLEL_RSP=1 HAVE_PARALLEL_RDP=1 \
-            || die "The mupen64plus_next build failed"
-        cp "${work}/mupen64plus/mupen64plus_next_libretro.so" "${CORES_DIR}/"
-    fi
-    if [[ ! -f "${CORES_DIR}/flycast_libretro.so" ]]; then
-        log_info "Building the flycast core (desktop OpenGL)..."
-        git clone --depth 1 --recurse-submodules --shallow-submodules \
-            https://github.com/flyinghead/flycast.git "${work}/flycast" || die "Could not clone flycast"
-        cmake -S "${work}/flycast" -B "${work}/flycast/build" -DCMAKE_BUILD_TYPE=Release \
-            -DLIBRETRO=ON -DUSE_GLES=OFF -DUSE_GLES2=OFF || die "CMake could not configure flycast"
-        cmake --build "${work}/flycast/build" -j "${jobs}" || die "The flycast core build failed"
-        cp "${work}/flycast/build/flycast_libretro.so" "${CORES_DIR}/"
-    fi
+    log_info "Building the flycast core (desktop OpenGL)..."
+    git clone --depth 1 --recurse-submodules --shallow-submodules \
+        https://github.com/flyinghead/flycast.git "${work}/flycast" || die "Could not clone flycast"
+    cmake -S "${work}/flycast" -B "${work}/flycast/build" -DCMAKE_BUILD_TYPE=Release \
+        -DLIBRETRO=ON -DUSE_GLES=OFF -DUSE_GLES2=OFF || die "CMake could not configure flycast"
+    cmake --build "${work}/flycast/build" -j "${jobs}" || die "The flycast core build failed"
+    cp "${work}/flycast/build/flycast_libretro.so" "${CORES_DIR}/"
 }
 
 function install_appimage() {
@@ -115,6 +104,38 @@ function install_appimage() {
     fi
     require_executable bin/retroarch
     move_legacy_cores
+}
+
+# The buildbot's aarch64 build: only the retroarch binary (desktop OpenGL,
+# Vulkan, Wayland, X11, KMS; glibc 2.34 or newer), linked against the
+# distribution's libraries, which are installed first. The assets are
+# downloaded as for a source build. If a library is still missing, the next
+# method (source) is tried.
+function install_archive() {
+    [[ "${ARCH}" == "aarch64" ]] || unavailable "The buildbot's bare RetroArch binary is only used on aarch64."
+    install_packages \
+        "libasound2t64|libasound2 libpulse0 libfreetype6 libfontconfig1 libwayland-egl1
+         libwayland-client0 libwayland-cursor0 libx11-6 libxxf86vm1 libxinerama1 libxrandr2
+         libx11-xcb1 libxcb1 libxi6 libxkbcommon0 libudev1 libgbm1 libdrm2 libgl1 libegl1
+         libsdl2-2.0-0 libv4l-0t64|libv4l-0" \
+        "alsa-lib pulseaudio-libs freetype fontconfig libwayland-egl libwayland-client
+         libwayland-cursor libX11 libXxf86vm libXinerama libXrandr libX11-xcb libxcb libXi
+         libxkbcommon systemd-libs mesa-libgbm libdrm libglvnd-glx libglvnd-egl
+         sdl2-compat|SDL2 libv4l"
+    fetch "${BUILDBOT}/nightly/linux/aarch64/RetroArch.7z" "${TMP_DIR}/RetroArch.7z"
+    extract_archive "${TMP_DIR}/RetroArch.7z" "${TMP_DIR}/RetroArch"
+    local binary missing
+    binary="$(find "${TMP_DIR}/RetroArch" -name retroarch -type f | head -n 1)"
+    [[ -n "${binary}" ]] || die "RetroArch.7z holds no retroarch binary"
+    missing="$(ldd "${binary}" 2>&1 | awk '/not found/ { print $1 }' | tr '\n' ' ')"
+    [[ -z "${missing}" ]] || unavailable "The buildbot's RetroArch needs libraries this system lacks: ${missing}"
+    mkdir -p "${STAGE}/bin"
+    install -m 755 "${binary}" "${STAGE}/bin/retroarch"
+    require_executable bin/retroarch
+    move_legacy_cores
+    install_packages "build-essential git cmake" "gcc-c++ make git cmake"
+    build_arm_cores
+    download_assets
 }
 
 function install_source() {
