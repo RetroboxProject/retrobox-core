@@ -52,8 +52,8 @@ group.environ.help: Defínense para todos os procesos de Retrobox (claves de API
 
 core.ignore_systems: Sistemas agochados
 core.ignore_systems.help: Os sistemas marcados non se amosan en EmulationStation.
-core.full_quit_menu: Menú de saída completo
-core.full_quit_menu.help: SAÍR no menú principal de EmulationStation abre reiniciar, suspender, apagar e saír, como en batocera, en vez de só preguntar se queres saír de EmulationStation.
+core.console_mode: Modo consola
+core.console_mode.help: 'EmulationStation non se pode pechar (nin a súa xanela con Alt+F4): SAÍR no menú principal ofrece reiniciar, suspender e apagar, como en batocera. Desactivado, SAÍR só pregunta se queres saír de EmulationStation.'
 core.autocorrect_paths: Corrixir cartafoles que non existen
 core.autocorrect_paths.help: Se o cartafol configurado de xogos, partidas gardadas ou BIOS non existe, úsase (e créase) o predeterminado.
 core.steam_sync: Steam

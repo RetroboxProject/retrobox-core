@@ -1,7 +1,13 @@
 """Command line of the store, compatible with ``batocera-store``.
 
 EmulationStation runs these, reading the output: ``list`` prints XML (a table on
-a terminal), and the operations print progress lines ``<text> >>><percent>``.
+a terminal), and the operations print progress lines ``<text> >>><percent>``;
+when one fails, its last line says why (EmulationStation shows the last line).
+
+Two repositories are behind it: batocera's store, and RetroArch's cores from
+the libretro buildbot (retrobox.cores), whose packages are named after the
+core's file (``snes9x_libretro``). A repository that can't be reached doesn't
+hide the other one: ``list`` adds an ``<error>`` for it.
 """
 
 from __future__ import annotations
@@ -12,16 +18,24 @@ import sys
 from typing import TYPE_CHECKING
 
 from retrobox.configgen.utils.logger import setup_logging
+from retrobox.cores import CoreError, Cores
 from retrobox.paths import LOGS
 
 from .store import REPOSITORY_NAME, Store, StoreError
-from .xmlout import render_packages, render_repositories
+from .xmlout import (
+    CORE_PACKAGE_SUFFIX,
+    CORES_REPOSITORY,
+    add_cores,
+    add_error,
+    add_packages,
+    new_listing,
+    render_repositories,
+    to_text,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from .catalog import Package
-    from .state import Installed
 
 _logger = logging.getLogger(__name__)
 
@@ -57,53 +71,143 @@ def _build_parser() -> argparse.ArgumentParser:
     commands.add_parser("update", help="update the installed packages")
     commands.add_parser("clean", help="delete the leftover downloads")
     commands.add_parser("clean-all", help="delete every download and the cached list")
-    for name, text in (("install", "install a package"), ("remove", "remove a package")):
-        command = commands.add_parser(name, help=text)
-        command.add_argument("package")
+    for name, text in (("install", "install packages"), ("remove", "remove packages")):
+        command = commands.add_parser(name, help=f"{text} (a core: <core>{CORE_PACKAGE_SUFFIX})")
+        command.add_argument("package", nargs="+")
+    commands.add_parser(
+        "install-base-cores",
+        help="install RetroArch's base cores, unless a core is installed (its installer runs this)",
+    )
     return parser
 
 
-def _print_table(catalog: dict[str, Package], installed: dict[str, Installed]) -> None:
-    """The packages as plain text, for a person."""
-    for name in sorted(catalog):
-        package = catalog[name]
-        mark = "*" if name in installed else " "
-        print(f"{mark} {name} {package.version}\n      {package.description}")
+class _Repositories:
+    """The two repositories: batocera's store and RetroArch's cores."""
 
+    def __init__(self, store: Store, cores: Cores) -> None:
+        self.store = store
+        self.cores = cores
 
-def _update(store: Store) -> int:
-    """Update every installed package that has a newer version."""
-    failures = 0
-    for name in store.outdated():
+    def install(self, name: str) -> None:
+        """Install (or update) a package or a core."""
+        if name.endswith(CORE_PACKAGE_SUFFIX):
+            self.cores.install(name.removesuffix(CORE_PACKAGE_SUFFIX))
+        else:
+            self.store.install(name)
+
+    def remove(self, name: str) -> None:
+        """Remove a package or a core."""
+        if name.endswith(CORE_PACKAGE_SUFFIX):
+            self.cores.remove(name.removesuffix(CORE_PACKAGE_SUFFIX))
+        else:
+            self.store.remove(name)
+
+    def listing(self) -> str:
+        """``<packages>`` with both repositories, and an ``<error>`` for each one that failed."""
+        root = new_listing()
         try:
-            store.install(name)
+            add_packages(root, self.store.catalog(), self.store.installed.all(),
+                         REPOSITORY_NAME, self.store.repository)
         except StoreError as error:
-            _logger.error("%s: %s", name, error)
-            failures += 1
-    return 1 if failures else 0
+            add_error(root, REPOSITORY_NAME, str(error))
+        installed = self.cores.installed()
+        try:
+            catalog = self.cores.catalog()
+        except CoreError as error:
+            catalog = {}
+            add_error(root, CORES_REPOSITORY, str(error))
+        else:
+            if last_error := self.cores.last_error():
+                add_error(root, CORES_REPOSITORY, f"the list of cores may be old: {last_error}")
+        add_cores(root, catalog, installed, self.cores.describe, self._size_kb)
+        return to_text(root)
+
+    def _size_kb(self, core: str) -> int:
+        try:
+            return (self.cores.cores / f"{core}_libretro.so").stat().st_size // 1024
+        except OSError:
+            return 0
+
+    def table(self) -> None:
+        """Both repositories as plain text, for a person."""
+        catalog = self.store.catalog()
+        installed = self.store.installed.all()
+        for name in sorted(catalog):
+            mark = "*" if name in installed else " "
+            print(f"{mark} {name} {catalog[name].version}\n      {catalog[name].description}")
+        cores = self.cores.installed()
+        for core, build in sorted(self.cores.catalog().items()):
+            mark = "*" if core in cores else " "
+            description = self.cores.describe(core).get("display_name", core)
+            print(f"{mark} {core}{CORE_PACKAGE_SUFFIX} {build.date}\n      {description}")
+
+    def refresh(self) -> int:
+        """Download the lists of both again; 1 if one of them failed."""
+        failures = 0
+        for refresh in (self.store.refresh, self.cores.refresh):
+            try:
+                refresh()
+            except (StoreError, CoreError) as error:
+                _fail(error)
+                failures += 1
+        return 1 if failures else 0
+
+    def update(self) -> int:
+        """Update every installed package and core that has a newer version."""
+        status = self.refresh()
+        updates: list[tuple[Callable[[str], None], str]] = []
+        try:
+            updates += [(self.store.install, name) for name in self.store.outdated()]
+            updates += [(self.cores.install, core) for core in self.cores.outdated()]
+        except (StoreError, CoreError) as error:
+            _fail(error)
+            status = 1
+        for install, name in updates:
+            try:
+                install(name)
+            except (StoreError, CoreError) as error:
+                _fail(f"{name}: {error}")
+                status = 1
+        return status
 
 
-def _run(args: argparse.Namespace, store: Store) -> int:
-    """Run the command; StoreError is for the caller to report."""
+def _fail(error: Exception | str) -> None:
+    """Report a failure: in the log, and on stdout, where EmulationStation reads it."""
+    _logger.error("%s", error)
+    print(f"Error: {error}", flush=True)
+
+
+def _install_base_cores(cores: Cores) -> int:
+    """The base cores, for RetroArch's installer (nothing if a core is installed)."""
+    cores.refresh()
+    failed = cores.install_base()
+    if failed:
+        _fail(f"could not install the cores {', '.join(failed)}")
+        return 1
+    return 0
+
+
+def _run(args: argparse.Namespace, repositories: _Repositories) -> int:
+    """Run the command; StoreError and CoreError are for the caller to report."""
+    store = repositories.store
     match args.command:
         case "list":
-            catalog = store.catalog()
-            installed = store.installed.all()
             if sys.stdout.isatty():
-                _print_table(catalog, installed)
+                repositories.table()
             else:
-                print(render_packages(catalog, installed, REPOSITORY_NAME, store.repository))
+                print(repositories.listing())
         case "list-repositories":
             print(render_repositories(REPOSITORY_NAME, store.repository))
         case "refresh":
-            store.refresh()
+            return repositories.refresh()
         case "update":
-            store.refresh()
-            return _update(store)
-        case "install":
-            store.install(args.package)
-        case "remove":
-            store.remove(args.package)
+            return repositories.update()
+        case "install" | "remove":
+            change = repositories.install if args.command == "install" else repositories.remove
+            for name in args.package:
+                change(name)
+        case "install-base-cores":
+            return _install_base_cores(repositories.cores)
         case "clean":
             store.clean()
         case "clean-all":
@@ -117,9 +221,10 @@ def main(argv: list[str] | None = None) -> int:
     with setup_logging(LOGS / "retrobox-store.log"):
         # a listing is read by a program: nothing but the XML on stdout
         quiet = args.command in ("list", "list-repositories")
-        store = Store(args.repository, report=None if quiet else _make_reporter())
+        report = None if quiet else _make_reporter()
+        repositories = _Repositories(Store(args.repository, report=report), Cores(report=report))
         try:
-            return _run(args, store)
-        except StoreError as error:
-            _logger.error("%s", error)
+            return _run(args, repositories)
+        except (StoreError, CoreError) as error:
+            _fail(error)
             return 1

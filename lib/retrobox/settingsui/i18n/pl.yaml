@@ -52,8 +52,8 @@ group.environ.help: Ustawiane dla wszystkich procesów Retrobox (klucze API, opc
 
 core.ignore_systems: Ukryte systemy
 core.ignore_systems.help: Zaznaczone systemy nie są pokazywane w EmulationStation.
-core.full_quit_menu: Pełne menu wyjścia
-core.full_quit_menu.help: WYJDŹ w menu głównym EmulationStation otwiera restart, uśpienie, wyłączenie i wyjście, jak w batocera, zamiast tylko pytać, czy zamknąć EmulationStation.
+core.console_mode: Tryb konsoli
+core.console_mode.help: 'EmulationStation nie da się zamknąć (ani jego okna przez Alt+F4): WYJDŹ w menu głównym oferuje restart, uśpienie i wyłączenie, jak w batocera. Wyłączony: WYJDŹ tylko pyta, czy zamknąć EmulationStation.'
 core.autocorrect_paths: Poprawiaj brakujące foldery
 core.autocorrect_paths.help: Jeśli ustawiony folder gier, zapisów lub BIOS nie istnieje, używany (i tworzony) jest folder domyślny.
 core.steam_sync: Steam

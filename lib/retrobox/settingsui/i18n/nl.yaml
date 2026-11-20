@@ -52,8 +52,8 @@ group.environ.help: Ingesteld voor alle processen van Retrobox (API-sleutels, em
 
 core.ignore_systems: Verborgen systemen
 core.ignore_systems.help: Aangevinkte systemen worden niet getoond in EmulationStation.
-core.full_quit_menu: Volledig afsluitmenu
-core.full_quit_menu.help: AFSLUITEN in het hoofdmenu van EmulationStation biedt herstarten, slaapstand, uitschakelen en afsluiten, zoals op batocera, in plaats van alleen te vragen of EmulationStation moet stoppen.
+core.console_mode: Consolemodus
+core.console_mode.help: 'EmulationStation kan niet worden afgesloten (ook het venster niet met Alt+F4): AFSLUITEN in het hoofdmenu biedt herstarten, slaapstand en uitschakelen, zoals op batocera. Uit vraagt AFSLUITEN alleen of EmulationStation moet stoppen.'
 core.autocorrect_paths: Ontbrekende mappen corrigeren
 core.autocorrect_paths.help: Als de ingestelde map voor games, opgeslagen spellen of BIOS niet bestaat, wordt de standaardmap gebruikt (en aangemaakt).
 core.steam_sync: Steam

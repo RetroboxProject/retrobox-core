@@ -26,9 +26,14 @@ RETROARCH_OVERLAY_CONFIG: Final = _RETROARCH_CFGDIR / 'overlay.cfg'
 # RetroArch's own menu.
 RETROARCH_FORCED_CFG: Final = _RETROARCH_CFGDIR / 'retroarch-forced.cfg'
 
+# the cores and their .info files: next to app/, not in it, so that installing
+# RetroArch again keeps the cores downloaded one by one (retrobox.cores)
+RETROARCH_CORES: Final = _RETROARCH_DIR / 'cores'
+RETROARCH_INFO: Final = _RETROARCH_DIR / 'info'
+# where the cores were before (inside app/), moved by retrobox.cores.migrate_legacy_cores
+RETROARCH_LEGACY_CORES: Final = _RETROARCH_SHARE / 'cores'
+
 # assets de retroarch
-RETROARCH_CORES: Final = _RETROARCH_SHARE / 'cores'
-RETROARCH_SHARE: Final = _RETROARCH_SHARE / 'cores'
 RETROARCH_ASSETS:    Final = _RETROARCH_SHARE / 'assets'
 RETROARCH_AUTOCONFIG: Final = _RETROARCH_SHARE / 'autoconfig'
 RETROARCH_SHADERS: Final = _RETROARCH_SHARE / 'shaders'

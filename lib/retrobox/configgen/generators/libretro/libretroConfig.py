@@ -41,6 +41,7 @@ from .libretroPaths import (
     RETROARCH_ASSETS,
     RETROARCH_CORE_CUSTOM,
     RETROARCH_CORES,
+    RETROARCH_INFO,
     RETROARCH_SHADERS,
 )
 
@@ -288,7 +289,7 @@ def _apply_base_settings(config: dict[str, object], system: Emulator, gfx_backen
     mkdir_if_not_exists(_RETROARCH_CFGDIR / "cache")
     config["cache_directory"] = _RETROARCH_CFGDIR / "cache"
     config["libretro_directory"] = RETROARCH_CORES
-    config["libretro_info_path"] = RETROARCH_CORES
+    config["libretro_info_path"] = RETROARCH_INFO
     config["builtin_imageviewer_enable"] = "false"
     config["assets_directory"] = str(RETROARCH_ASSETS)
 

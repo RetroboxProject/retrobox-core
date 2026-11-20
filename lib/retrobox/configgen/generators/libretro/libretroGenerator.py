@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING
 
 from retrobox.configgen import Command
 from retrobox.configgen.Emulator import generate_bash_wrapper
-from retrobox.configgen.exceptions import MissingCore
+from retrobox.configgen.exceptions import RetroboxException
 from retrobox.configgen.generators.Generator import Generator
 from retrobox.configgen.generators.libretro import (
     libretro_hotkeys,
@@ -26,7 +26,6 @@ from retrobox.configgen.generators.libretro.libretroPaths import (
     RETROARCH_CFG,
     RETROARCH_CORES,
     RETROARCH_SHADERS,
-    RETROARCH_SHARE,
 )
 from retrobox.configgen.utils import videoMode, vulkan
 from retrobox.configgen.hotkeys import load_table
@@ -221,7 +220,6 @@ class LibretroGenerator(Generator):
         gameResolution,  # name fixed by the Generator interface
     ):
         retroarch = RETROARCH.require()
-        self.check_if_exists(RETROARCH_CORES, system.config.emulator)
 
         gfx_backend = gfx_backend_get(system)
         video_shader, shader_bezel = _resolve_shader(system, rom, gfx_backend)
@@ -243,12 +241,15 @@ class LibretroGenerator(Generator):
             self._write_retroarch_cfg(launch)
 
         libretro_core = RETROARCH_CORES / f"{system.config.core}_libretro.so"
-        info_file = RETROARCH_SHARE / f"{system.config.core}_libretro.info"
 
         dont_append_rom = configure_emulator(rom)
-        if not info_file.exists() and not dont_append_rom:
-            _logger.error("Core not found: %s", system.config.core)
-            raise MissingCore
+        if not libretro_core.is_file() and not dont_append_rom:
+            _logger.error("Core not found: %s", libretro_core)
+            raise RetroboxException(
+                f"The RetroArch core {system.config.core} is not installed: download it from "
+                f"Content Downloader > libretro ({system.config.core}_libretro), "
+                f"or choose another emulator for this game."
+            )
 
         args_array: list[str | Path] = ["--config", RETROARCH_CFG]
         if not dont_append_rom:

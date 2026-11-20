@@ -60,9 +60,11 @@ from retrobox.paths import (
     mkdir_if_not_exists,
 )
 from retrobox.configgen.utils.logger import setup_logging
+from retrobox.cores import migrate_legacy_cores
 from retrobox.doctor import startup_warnings
 from retrobox.launcher.hooks import call_retrohook
 from retrobox.startup.frontend_conf.audio_settings import ensure_audio_mixer
+from retrobox.startup.frontend_conf.console_mode import apply_console_mode
 from retrobox.startup.frontend_conf.es_ini_generator import (
     ensure_ini_directories,
     generate_emulationstation_ini,
@@ -70,7 +72,6 @@ from retrobox.startup.frontend_conf.es_ini_generator import (
 from retrobox.startup.frontend_conf.features_list_generator import generate_es_features
 from retrobox.startup.frontend_conf.system_list_generator import generate_es_systems
 from retrobox.startup.frontend_conf.pcgames_utils import sync_pcgames
-from retrobox.startup.frontend_conf.quit_menu import apply_quit_menu
 from retrobox.startup.frontend_conf.roms_dirs import create_roms_dirs
 from retrobox.startup.downloads import install_all, labels, pending
 from retrobox.startup.input_daemon import start_input_daemon, stop_input_daemon
@@ -166,8 +167,10 @@ def setup_emulationstation_config() -> None:
     # EmulationStation changes the volume through an ALSA mixer: make it the
     # sound server's one (it must be done before ES starts, it rewrites the file).
     ensure_audio_mixer()
-    # What QUIT opens: the full quit menu or a "Really quit?" question.
-    apply_quit_menu()
+    # Console mode: the full quit menu and no quitting EmulationStation, or not.
+    apply_console_mode()
+    # RetroArch's cores used to be inside its app/ folder: move them next to it.
+    migrate_legacy_cores()
 
 
 def download_before_start() -> None:

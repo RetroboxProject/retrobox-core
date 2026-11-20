@@ -52,8 +52,8 @@ group.environ.help: Définies pour tous les processus de Retrobox (clés d'API, 
 
 core.ignore_systems: Systèmes masqués
 core.ignore_systems.help: Les systèmes cochés ne sont pas affichés dans EmulationStation.
-core.full_quit_menu: Menu Quitter complet
-core.full_quit_menu.help: QUITTER dans le menu principal d'EmulationStation propose redémarrer, mettre en veille, éteindre et quitter, comme sur batocera, au lieu de seulement demander s'il faut quitter EmulationStation.
+core.console_mode: Mode console
+core.console_mode.help: 'EmulationStation ne peut pas être quitté (ni sa fenêtre fermée avec Alt+F4) : QUITTER dans le menu principal propose redémarrer, mettre en veille et éteindre, comme sur batocera. Désactivé, QUITTER demande seulement s''il faut quitter EmulationStation.'
 core.autocorrect_paths: Corriger les dossiers manquants
 core.autocorrect_paths.help: Si le dossier configuré des jeux, des sauvegardes ou du BIOS n'existe pas, celui par défaut est utilisé (et créé).
 core.steam_sync: Steam

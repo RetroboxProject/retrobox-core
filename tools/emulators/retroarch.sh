@@ -1,7 +1,14 @@
 #!/usr/bin/env bash
 # RetroArch: the nightly AppImage of the libretro buildbot (x86_64), or a
 # build from source. Both install the frontend under app/ (bin/retroarch,
-# share/retroarch/{cores,assets,...}) and the cores of the buildbot nightly.
+# share/retroarch/{assets,autoconfig,...}).
+#
+# The cores live next to app/, in cores/ (and their .info files in info/), so
+# installing RetroArch again keeps them. The first install downloads the base
+# cores (retrobox.cores.BASE_CORES); the rest are downloaded one by one, from
+# EmulationStation's Content Downloader (the libretro tab) or with
+# `retrobox-store install <core>_libretro`. Cores of an older install, inside
+# app/, are moved to cores/.
 #
 #   RETROARCH_CFLAGS   optimization flags of a source build (default:
 #                      -O3 -march=native -pipe). They only apply to the
@@ -12,65 +19,41 @@ LABEL="RetroArch"
 source "$(dirname "$(readlink -f "$0")")/../lib/installer.sh"
 
 readonly BUILDBOT="https://buildbot.libretro.com"
-# Built from source instead of the buildbot's .so on ARM: those are GLES
-# builds and RetroArch is built against desktop OpenGL there.
-readonly CORES_BUILT_ON_ARM=(mupen64plus_next flycast)
+# mupen64plus_next and flycast are built from source on ARM (build_arm_cores):
+# the buildbot's are GLES builds and RetroArch is built against desktop OpenGL
+# there. retrobox.cores.BUILT_ON_ARM never offers them for download on ARM.
+readonly CORES_DIR="${INSTALL_DIR}/cores"
 
 function share_dir() {
     echo "${STAGE}/share/retroarch"
 }
 
-function buildbot_arch() {
-    case "${ARCH}" in
-        x86_64 | aarch64) echo "${ARCH}" ;;
-        armv7l | armhf) echo "armhf" ;;
-        i686 | i386) echo "x86" ;;
-        *) return 1 ;;
-    esac
+# The cores of an older install were in app/share/retroarch/cores: keep them.
+function move_legacy_cores() {
+    local legacy="${APP_DIR}/share/retroarch/cores"
+    compgen -G "${CORES_DIR}/*_libretro.so" >/dev/null && return 0
+    compgen -G "${legacy}/*_libretro.so" >/dev/null || return 0
+    mkdir -p "${CORES_DIR}"
+    mv "${legacy}"/*_libretro.so "${CORES_DIR}/"
+    log_info "Moved the cores of the previous install to ${CORES_DIR}."
 }
 
-function built_on_arm() {
-    local core
-    [[ "${ARCH}" == "x86_64" ]] && return 1
-    for core in "${CORES_BUILT_ON_ARM[@]}"; do
-        [[ "$1" == "${core}" ]] && return 0
-    done
-    return 1
+# The base cores, the first time (none installed yet), and every core's .info.
+function after_install() {
+    log_info "Downloading the base cores (if none is installed) and the cores' information..."
+    "${_INSTALLER_ROOT}/bin/retrobox-store" install-base-cores \
+        || log_warn "Some cores could not be downloaded: get them from EmulationStation's Content Downloader (libretro)."
 }
 
-# Every core of the buildbot nightly for this architecture.
-function download_cores() {
-    local arch base cores core
-    if ! arch="$(buildbot_arch)"; then
-        log_warn "The buildbot has no cores for ${ARCH}: install them from RetroArch's menu."
-        return 0
-    fi
-    base="${BUILDBOT}/nightly/linux/${arch}/latest"
-    cores="$(curl -fsSL --retry 3 "${base}/" \
-        | grep -oE '[A-Za-z0-9_-]+_libretro\.so\.zip' | sed 's/_libretro\.so\.zip$//' | sort -u || true)"
-    if [[ -z "${cores}" ]]; then
-        log_warn "Could not list the cores of ${base}: install them from RetroArch's menu."
-        return 0
-    fi
-    need unzip
-    mkdir -p "$(share_dir)/cores"
-    for core in ${cores}; do
-        built_on_arm "${core}" && continue
-        log_info "Core ${core}"
-        if curl -fsSL --retry 3 -o "${TMP_DIR}/core.zip" "${base}/${core}_libretro.so.zip"; then
-            unzip -qo "${TMP_DIR}/core.zip" -d "$(share_dir)/cores/"
-        else
-            log_warn "Could not download the core ${core}, skipping it."
-        fi
-    done
-    rm -f "${TMP_DIR}/core.zip"
+function before_uninstall() {
+    rm -rf "${CORES_DIR}" "${INSTALL_DIR}/info"
 }
 
 # The buildbot's frontend assets (the AppImage carries its own).
 function download_assets() {
     local entry archive destination
     need unzip
-    for entry in info:cores assets:assets autoconfig:autoconfig cheats:cheats \
+    for entry in assets:assets autoconfig:autoconfig cheats:cheats \
         database-rdb:database/rdb shaders_slang:shaders overlays:overlays; do
         archive="${entry%%:*}.zip"
         destination="$(share_dir)/${entry#*:}"
@@ -85,26 +68,29 @@ function download_assets() {
     done
 }
 
-# mupen64plus_next and flycast against desktop OpenGL, for ARM.
+# mupen64plus_next and flycast against desktop OpenGL, for ARM (the ones missing).
 function build_arm_cores() {
     local work="${TMP_DIR}/cores" jobs=2
-    mkdir -p "${work}" "$(share_dir)/cores"
-    log_info "Building mupen64plus_next (desktop OpenGL)..."
-    git clone --depth 1 --recurse-submodules --shallow-submodules \
-        https://github.com/libretro/mupen64plus-libretro-nx.git "${work}/mupen64plus" \
-        || die "Could not clone mupen64plus-libretro-nx"
-    make -C "${work}/mupen64plus" -j "${jobs}" platform=unix CORE_NAME=mupen64plus_next \
-        HAVE_THR_AL=1 LLE=1 HAVE_PARALLEL_RSP=1 HAVE_PARALLEL_RDP=1 \
-        || die "The mupen64plus_next build failed"
-    cp "${work}/mupen64plus/mupen64plus_next_libretro.so" "$(share_dir)/cores/"
-
-    log_info "Building the flycast core (desktop OpenGL)..."
-    git clone --depth 1 --recurse-submodules --shallow-submodules \
-        https://github.com/flyinghead/flycast.git "${work}/flycast" || die "Could not clone flycast"
-    cmake -S "${work}/flycast" -B "${work}/flycast/build" -DCMAKE_BUILD_TYPE=Release \
-        -DLIBRETRO=ON -DUSE_GLES=OFF -DUSE_GLES2=OFF || die "CMake could not configure flycast"
-    cmake --build "${work}/flycast/build" -j "${jobs}" || die "The flycast core build failed"
-    cp "${work}/flycast/build/flycast_libretro.so" "$(share_dir)/cores/"
+    mkdir -p "${work}" "${CORES_DIR}"
+    if [[ ! -f "${CORES_DIR}/mupen64plus_next_libretro.so" ]]; then
+        log_info "Building mupen64plus_next (desktop OpenGL)..."
+        git clone --depth 1 --recurse-submodules --shallow-submodules \
+            https://github.com/libretro/mupen64plus-libretro-nx.git "${work}/mupen64plus" \
+            || die "Could not clone mupen64plus-libretro-nx"
+        make -C "${work}/mupen64plus" -j "${jobs}" platform=unix CORE_NAME=mupen64plus_next \
+            HAVE_THR_AL=1 LLE=1 HAVE_PARALLEL_RSP=1 HAVE_PARALLEL_RDP=1 \
+            || die "The mupen64plus_next build failed"
+        cp "${work}/mupen64plus/mupen64plus_next_libretro.so" "${CORES_DIR}/"
+    fi
+    if [[ ! -f "${CORES_DIR}/flycast_libretro.so" ]]; then
+        log_info "Building the flycast core (desktop OpenGL)..."
+        git clone --depth 1 --recurse-submodules --shallow-submodules \
+            https://github.com/flyinghead/flycast.git "${work}/flycast" || die "Could not clone flycast"
+        cmake -S "${work}/flycast" -B "${work}/flycast/build" -DCMAKE_BUILD_TYPE=Release \
+            -DLIBRETRO=ON -DUSE_GLES=OFF -DUSE_GLES2=OFF || die "CMake could not configure flycast"
+        cmake --build "${work}/flycast/build" -j "${jobs}" || die "The flycast core build failed"
+        cp "${work}/flycast/build/flycast_libretro.so" "${CORES_DIR}/"
+    fi
 }
 
 function install_appimage() {
@@ -128,7 +114,7 @@ function install_appimage() {
         rm -f "$(share_dir)/retroarch.cfg"
     fi
     require_executable bin/retroarch
-    download_cores
+    move_legacy_cores
 }
 
 function install_source() {
@@ -155,7 +141,7 @@ function install_source() {
     ) || die "The RetroArch build failed: check the messages above"
     cp -a "${root}${FINAL_APP_DIR}/." "${STAGE}/"
     require_executable bin/retroarch
-    download_cores
+    move_legacy_cores
     [[ "${ARCH}" == "x86_64" ]] || build_arm_cores
     download_assets
     remove_sources

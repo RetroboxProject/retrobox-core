@@ -52,8 +52,8 @@ group.environ.help: Impostate per tutti i processi di Retrobox (chiavi API, opzi
 
 core.ignore_systems: Sistemi nascosti
 core.ignore_systems.help: I sistemi selezionati non vengono mostrati in EmulationStation.
-core.full_quit_menu: Menu di uscita completo
-core.full_quit_menu.help: ESCI nel menu principale di EmulationStation apre riavvia, sospendi, spegni ed esci, come su batocera, invece di chiedere solo se uscire da EmulationStation.
+core.console_mode: Modalità console
+core.console_mode.help: 'EmulationStation non si può chiudere (né la sua finestra con Alt+F4): ESCI nel menu principale offre riavvia, sospendi e spegni, come su batocera. Disattivata, ESCI chiede solo se uscire da EmulationStation.'
 core.autocorrect_paths: Correggi le cartelle mancanti
 core.autocorrect_paths.help: Se la cartella configurata di giochi, salvataggi o BIOS non esiste, viene usata (e creata) quella predefinita.
 core.steam_sync: Steam

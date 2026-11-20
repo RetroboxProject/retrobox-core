@@ -1,4 +1,4 @@
-"""What QUIT opens in EmulationStation: es_settings.cfg's ShowOnlyExit, from retrobox.ini."""
+"""Console mode: es_settings.cfg's ShowOnlyExit and ShowExit, from retrobox.ini."""
 
 from __future__ import annotations
 
@@ -9,9 +9,11 @@ from retrobox.utils.es_settings import read_es_settings, write_es_setting
 
 _APPLY = """
 from retrobox.paths import ES_SETTINGS_CFG
-from retrobox.startup.frontend_conf.quit_menu import apply_quit_menu
-print(apply_quit_menu())
-print(ES_SETTINGS_CFG.read_text(encoding="utf-8"))
+from retrobox.startup.frontend_conf.console_mode import apply_console_mode
+from retrobox.utils.es_settings import read_es_settings
+print(apply_console_mode())
+settings = read_es_settings(ES_SETTINGS_CFG)
+print(settings["ShowOnlyExit"], settings["ShowExit"])
 """
 
 
@@ -46,15 +48,14 @@ def _apply(root: Path) -> list[str]:
     return run_python(root, _APPLY).stdout.splitlines()
 
 
-def test_retrobox_ini_chooses_the_menu(tmp_path: Path) -> None:
-    """Unset: only "Really quit?"; [core] full_quit_menu = true: the full quit menu."""
-    out = _apply(tmp_path)
-    assert out[0] == "True" and '<bool name="ShowOnlyExit" value="true" />' in map(str.strip, out)
-    assert _apply(tmp_path)[0] == "False"  # already so
+def test_retrobox_ini_turns_it_on_and_off(tmp_path: Path) -> None:
+    """Off (unset): "Really quit?" and quitting offered; on: the full menu, no quitting."""
+    assert _apply(tmp_path) == ["True", "true true"]
+    assert _apply(tmp_path) == ["False", "true true"]  # already so
 
     ini = tmp_path / "home" / ".config" / "retrobox" / "retrobox.ini"
     ini.parent.mkdir(parents=True, exist_ok=True)
-    ini.write_text("[core]\nfull_quit_menu = true\n", encoding="utf-8")
-    out = _apply(tmp_path)
-    assert out[0] == "True" and '<bool name="ShowOnlyExit" value="false" />' in map(str.strip, out)
-    assert sum("ShowOnlyExit" in line for line in out) == 1
+    ini.write_text("[core]\nconsole_mode = true\n", encoding="utf-8")
+    assert _apply(tmp_path) == ["True", "false false"]
+    ini.write_text("[core]\nconsole_mode = false\n", encoding="utf-8")
+    assert _apply(tmp_path) == ["True", "true true"]

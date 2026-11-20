@@ -18,9 +18,9 @@ pcenginecd:
   emulators:
     libretro:
       cores:
-        pce:
+        mednafen_pce:
           default: true
-        pce_fast: {}
+        mednafen_pce_fast: {}
     ares:
       cores:
         pcengine:
