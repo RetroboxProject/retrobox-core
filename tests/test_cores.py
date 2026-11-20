@@ -121,6 +121,17 @@ def test_base_cores_only_the_first_time(tmp_path: Path, monkeypatch: pytest.Monk
     assert BASE_CORES[0] not in cores.installed()
 
 
+def test_base_cores_after_a_source_build(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """On ARM, the flycast RetroArch's installer built first doesn't stop the base set."""
+    root = _buildbot(tmp_path / "bot", {core: "1" for core in BASE_CORES[:3]}, arch="aarch64")
+    monkeypatch.setenv("RETROBOX_BUILDBOT", root.as_uri())
+    cores = _cores(tmp_path, "aarch64")
+    cores.cores.mkdir(parents=True)
+    (cores.cores / "flycast_libretro.so").write_bytes(b"built here")
+    assert not cores.install_base()
+    assert set(cores.installed()) == {"flycast", *BASE_CORES[:3]}
+
+
 def test_unreachable_buildbot(bot: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """No buildbot: a plain error, remembered until it answers again; the old list stays."""
     cores = _cores(tmp_path)

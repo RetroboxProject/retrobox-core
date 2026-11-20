@@ -304,13 +304,18 @@ class Cores:  # pylint: disable=too-many-instance-attributes
     def install_base(self) -> list[str]:
         """Install the base cores (BASE_CORES) if no core is installed yet.
 
+        Cores this machine builds from source (BUILT_ON_ARM: flycast on ARM)
+        don't count: RetroArch's installer builds them before it asks for the
+        base set, so with them counted it never came on ARM.
+
         Returns:
             The cores that could not be installed.
 
         Raises:
             CoreError: The buildbot can't be reached.
         """
-        if self.installed():
+        arch = self.arch or ""
+        if any(offered(core, arch) for core in self.installed()):
             return []
         catalog = self.catalog()
         failed = []
