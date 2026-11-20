@@ -133,7 +133,9 @@ function install_archive() {
     install -m 755 "${binary}" "${STAGE}/bin/retroarch"
     require_executable bin/retroarch
     move_legacy_cores
-    install_packages "build-essential git cmake" "gcc-c++ make git cmake"
+    # flycast's libretro build with desktop OpenGL includes <GL/gl.h>; everything
+    # else it needs (zlib, zstd, libchdr...) comes with its sources
+    install_packages "build-essential git cmake libgl-dev" "gcc-c++ make git cmake mesa-libGL-devel"
     build_arm_cores
     download_assets
 }
