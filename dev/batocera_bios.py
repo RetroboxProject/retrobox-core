@@ -17,6 +17,8 @@ makes every file optional: which ones an emulator can't run without, and
 which are alternatives of one another (one_of), is decided by hand.
 
 Run it from the repository root (it reads the systems with retrobox.bios).
+It exits with 1 when there are differences and 2 when batocera's list can't
+be read, so CI (.github/workflows/upstream.yml) tells one from the other.
 """
 
 from __future__ import annotations
@@ -144,7 +146,11 @@ def main() -> int:
     parser.add_argument("--source", help="a local copy of batocera-systems")
     parser.add_argument("--draft", metavar="SYSTEM", help="print a draft bios: block")
     args = parser.parse_args()
-    batocera = read_batocera(args.source)
+    try:
+        batocera = read_batocera(args.source)
+    except (OSError, ValueError, SyntaxError) as error:  # urllib's errors are OSErrors
+        print(f"cannot read batocera's list: {error}", file=sys.stderr)
+        return 2
     if args.draft:
         if args.draft not in batocera:
             print(f"batocera has no BIOS for {args.draft}", file=sys.stderr)

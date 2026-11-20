@@ -1,0 +1,61 @@
+name: upstream
+
+# Every week, compares what Retrobox borrows from batocera with batocera's
+# current version, without touching the build: today, the BIOS of its systems
+# (dev/batocera_bios.py against batocera-systems). When batocera lists files or
+# MD5s our share/systems YAMLs lack, the job fails with them in its log and one
+# `batocera-bios` issue is opened; a list that can't be downloaded only fails
+# the job.
+on:
+  schedule:
+    - cron: '53 5 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bios:
+    runs-on: ubuntu-24.04
+    outputs:
+      differences: ${{ steps.compare.outputs.differences }}
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Install Retrobox's Python dependencies
+        run: python -m pip install -q -r requirements.txt
+      - name: Compare the BIOS with batocera's list
+        id: compare
+        run: |
+          set +e
+          python dev/batocera_bios.py
+          status=$?
+          set -e
+          echo "differences=$([[ ${status} -eq 1 ]] && echo true || echo false)" >> "${GITHUB_OUTPUT}"
+          exit "${status}"
+
+  notify:
+    needs: bios
+    if: failure() && needs.bios.outputs.differences == 'true' && github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Open an issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          gh label create batocera-bios --repo "${REPO}" --color FBCA04 \
+            --description "batocera's BIOS list has changed" >/dev/null 2>&1 || true
+          if [[ -z "$(gh issue list --repo "${REPO}" --label batocera-bios --state open --json number --jq '.[0].number')" ]]; then
+            gh issue create --repo "${REPO}" --label batocera-bios \
+              --title "batocera's BIOS list has files or MD5s ours lacks" \
+              --body "The weekly comparison found differences (python3 dev/batocera_bios.py): see ${RUN_URL}"
+          fi
