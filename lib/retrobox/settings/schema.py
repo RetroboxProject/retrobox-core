@@ -232,7 +232,10 @@ PAGES: Final[tuple[Page, ...]] = (
             ),
             Group(
                 "overlay_sounds",
-                (_integer("sounds", "volume", "50", Limits(0, 100, 5, "%")),),
+                (
+                    _integer("sounds", "volume", "50", Limits(0, 100, 5, "%")),
+                    Setting("volume", "toast", Kind.BOOL, default=FALSE),
+                ),
             ),
             Group(
                 "overlay_break",
