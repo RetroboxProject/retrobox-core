@@ -18,7 +18,7 @@ import sys
 from typing import TYPE_CHECKING
 
 from retrobox.configgen.utils.logger import setup_logging
-from retrobox.cores import CoreError, Cores
+from retrobox.cores import CoreError, Cores, migrate_legacy_cores
 from retrobox.paths import LOGS
 
 from .store import REPOSITORY_NAME, Store, StoreError
@@ -87,6 +87,8 @@ class _Repositories:
     def __init__(self, store: Store, cores: Cores) -> None:
         self.store = store
         self.cores = cores
+        # cores still inside RetroArch's app/ (older installs) are listed as installed too
+        migrate_legacy_cores(cores=cores.cores)
 
     def install(self, name: str) -> None:
         """Install (or update) a package or a core."""
@@ -215,12 +217,21 @@ def _run(args: argparse.Namespace, repositories: _Repositories) -> int:
     return 0
 
 
+def _keep_logs_off_stdout() -> None:
+    """Send no log line to stdout (they stay in the log file), as a listing is XML only."""
+    for handler in logging.getLogger().handlers:
+        if isinstance(handler, logging.StreamHandler) and handler.stream is sys.stdout:
+            handler.setLevel(logging.CRITICAL + 1)
+
+
 def main(argv: list[str] | None = None) -> int:
     """Run ``retrobox-store``; returns the exit status."""
     args = _build_parser().parse_args(argv)
     with setup_logging(LOGS / "retrobox-store.log"):
         # a listing is read by a program: nothing but the XML on stdout
         quiet = args.command in ("list", "list-repositories")
+        if quiet:
+            _keep_logs_off_stdout()
         report = None if quiet else _make_reporter()
         repositories = _Repositories(Store(args.repository, report=report), Cores(report=report))
         try:

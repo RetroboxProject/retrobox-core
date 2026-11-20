@@ -138,14 +138,19 @@ def test_unreachable_buildbot(bot: Path, tmp_path: Path, monkeypatch: pytest.Mon
 
 
 def test_legacy_cores_are_moved(tmp_path: Path) -> None:
-    """Cores inside app/ move to cores/, once, and only when cores/ has none."""
+    """Every core inside app/ moves to cores/, even when cores/ has some; cores/ wins."""
     legacy = tmp_path / "app" / "share" / "retroarch" / "cores"
     legacy.mkdir(parents=True)
-    (legacy / "snes9x_libretro.so").write_bytes(b"x")
+    (legacy / "snes9x_libretro.so").write_bytes(b"old")
     (legacy / "snes9x_libretro.info").write_text("", encoding="utf-8")
     assert migrate_legacy_cores(legacy, tmp_path / "cores") == 1
-    assert (tmp_path / "cores" / "snes9x_libretro.so").is_file()
+    assert (tmp_path / "cores" / "snes9x_libretro.so").read_bytes() == b"old"
     (legacy / "mgba_libretro.so").write_bytes(b"x")
+    (legacy / "snes9x_libretro.so").write_bytes(b"older")
+    assert migrate_legacy_cores(legacy, tmp_path / "cores") == 1
+    assert (tmp_path / "cores" / "mgba_libretro.so").is_file()
+    assert (tmp_path / "cores" / "snes9x_libretro.so").read_bytes() == b"old"
+    assert not list(legacy.glob("*.so"))
     assert migrate_legacy_cores(legacy, tmp_path / "cores") == 0
 
 
@@ -170,6 +175,16 @@ def test_content_downloader(bot: Path, tmp_path: Path) -> None:
     assert snes.findtext("description") == "Nintendo - snes9x"
     assert snes.findtext("group") == "Nintendo" and snes.findtext("status") == "none"
 
+    # a core RetroArch's installer left inside app/ (older installs) is listed as installed
+    legacy = (tmp_path / "home" / ".local" / "share" / "retrobox" / "emulators" / "retroarch"
+              / "app" / "share" / "retroarch" / "cores")
+    legacy.mkdir(parents=True)
+    (legacy / "mgba_libretro.so").write_bytes(b"from the installer")
+    mgba = next(p for p in ET.fromstring(_store(tmp_path, bot, "list")[1]).iter("package")
+                if p.findtext("name") == "mgba_libretro")
+    assert mgba.findtext("status") == "installed"
+    assert mgba.find("status").get("version") == "unknown"
+
     assert _store(tmp_path, bot, "install", "snes9x_libretro")[0] == 0
     out = _store(tmp_path, bot, "list")[1]
     snes = next(p for p in ET.fromstring(out).iter("package")
@@ -178,7 +193,7 @@ def test_content_downloader(bot: Path, tmp_path: Path) -> None:
     assert snes.find("status").get("version") == "2026-11-18"
 
     # a failure says why in its last line, which EmulationStation shows
-    status, out = _store(tmp_path, tmp_path / "gone", "install", "mgba_libretro")
+    status, out = _store(tmp_path, tmp_path / "gone", "install", "flycast_libretro")
     assert status == 1
     assert out.strip().splitlines()[-1].startswith("Error: can't reach the libretro buildbot")
     root = ET.fromstring(_store(tmp_path, tmp_path / "gone", "list")[1])

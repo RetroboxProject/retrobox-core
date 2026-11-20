@@ -30,6 +30,7 @@ from retrobox.configgen.generators.libretro.libretroPaths import (
 from retrobox.configgen.utils import videoMode, vulkan
 from retrobox.configgen.hotkeys import load_table
 from retrobox.configgen.utils.bezel_policy import configured_bezel
+from retrobox.cores import migrate_legacy_cores
 from retrobox.paths import (
     OVERLAYS,
     RETROARCH_COMMANDS,
@@ -240,6 +241,8 @@ class LibretroGenerator(Generator):
             system.config["configfile"] = str(RETROARCH_CFG)
             self._write_retroarch_cfg(launch)
 
+        # cores of an older install, inside app/, if Retrobox hasn't moved them yet
+        migrate_legacy_cores()
         libretro_core = RETROARCH_CORES / f"{system.config.core}_libretro.so"
 
         dont_append_rom = configure_emulator(rom)

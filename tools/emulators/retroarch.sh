@@ -25,14 +25,20 @@ function share_dir() {
     echo "${STAGE}/share/retroarch"
 }
 
-# The cores of an older install were in app/share/retroarch/cores: keep them.
+# The cores of an older install were in app/share/retroarch/cores: keep them
+# all (one already in cores/ wins), as retrobox.cores.migrate_legacy_cores does.
 function move_legacy_cores() {
-    local legacy="${APP_DIR}/share/retroarch/cores"
-    compgen -G "${CORES_DIR}/*_libretro.so" >/dev/null && return 0
+    local legacy="${APP_DIR}/share/retroarch/cores" core moved=0
     compgen -G "${legacy}/*_libretro.so" >/dev/null || return 0
     mkdir -p "${CORES_DIR}"
-    mv "${legacy}"/*_libretro.so "${CORES_DIR}/"
-    log_info "Moved the cores of the previous install to ${CORES_DIR}."
+    for core in "${legacy}"/*_libretro.so; do
+        if [[ -e "${CORES_DIR}/${core##*/}" ]]; then
+            rm -f "${core}"
+        else
+            mv "${core}" "${CORES_DIR}/" && moved=$((moved + 1))
+        fi
+    done
+    log_info "Moved ${moved} core(s) of the previous install to ${CORES_DIR}."
 }
 
 # The base cores, the first time (none installed yet), and every core's .info.
@@ -133,9 +139,7 @@ function install_archive() {
     install -m 755 "${binary}" "${STAGE}/bin/retroarch"
     require_executable bin/retroarch
     move_legacy_cores
-    # flycast's libretro build with desktop OpenGL includes <GL/gl.h>; everything
-    # else it needs (zlib, zstd, libchdr...) comes with its sources
-    install_packages "build-essential git cmake libgl-dev" "gcc-c++ make git cmake mesa-libGL-devel"
+    install_packages "build-essential git cmake" "gcc-c++ make git cmake"
     build_arm_cores
     download_assets
 }

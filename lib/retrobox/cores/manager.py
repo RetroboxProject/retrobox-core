@@ -75,15 +75,26 @@ def migrate_legacy_cores(legacy: Path = RETROARCH_LEGACY_CORES,
                          cores: Path = RETROARCH_CORES) -> int:
     """Move the cores of older installs (inside RetroArch's ``app/``) to the cores folder.
 
-    Only when the cores folder has no core yet. Returns how many were moved.
+    Every one, whenever there are any left: a core already in the cores folder
+    (downloaded since) wins, and the old copy is deleted. Cheap when there is
+    nothing to move, so the store and the launcher call it each time, and the
+    cores RetroArch's installer put there are listed and found without waiting
+    for Retrobox to start again.
+
+    Returns:
+        How many were moved.
     """
-    if any(cores.glob(f"*{_SUFFIX}")) or not legacy.is_dir():
+    if not legacy.is_dir():
         return 0
     moved = 0
-    cores.mkdir(parents=True, exist_ok=True)
     for path in sorted(legacy.glob(f"*{_SUFFIX}")):
+        target = cores / path.name
         try:
-            shutil.move(path, cores / path.name)
+            if target.exists():
+                path.unlink()
+                continue
+            cores.mkdir(parents=True, exist_ok=True)
+            shutil.move(path, target)
             moved += 1
         except OSError as error:
             _logger.warning("Cannot move %s to %s: %s", path, cores, error)
