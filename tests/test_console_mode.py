@@ -13,7 +13,7 @@ from retrobox.startup.frontend_conf.console_mode import apply_console_mode
 from retrobox.utils.es_settings import read_es_settings
 print(apply_console_mode())
 settings = read_es_settings(ES_SETTINGS_CFG)
-print(settings["ShowOnlyExit"], settings["ShowExit"])
+print(settings["ShowOnlyExit"], settings["ShowExit"], settings["RetroboxSystemSettings"] or "-")
 """
 
 
@@ -50,12 +50,35 @@ def _apply(root: Path) -> list[str]:
 
 def test_retrobox_ini_turns_it_on_and_off(tmp_path: Path) -> None:
     """Off (unset): "Really quit?" and quitting offered; on: the full menu, no quitting."""
-    assert _apply(tmp_path) == ["True", "true true"]
-    assert _apply(tmp_path) == ["False", "true true"]  # already so
+    assert _apply(tmp_path) == ["True", "true true -"]
+    assert _apply(tmp_path) == ["False", "true true -"]  # already so
 
     ini = tmp_path / "home" / ".config" / "retrobox" / "retrobox.ini"
     ini.parent.mkdir(parents=True, exist_ok=True)
     ini.write_text("[core]\nconsole_mode = true\n", encoding="utf-8")
-    assert _apply(tmp_path) == ["True", "false false"]
+    assert _apply(tmp_path) == ["True", "false false -"]  # no system settings program
     ini.write_text("[core]\nconsole_mode = false\n", encoding="utf-8")
-    assert _apply(tmp_path) == ["True", "true true"]
+    assert _apply(tmp_path) == ["True", "true true -"]
+
+
+def test_system_settings_program(tmp_path: Path) -> None:
+    """In console mode only: [core] system_settings, else retrobox-system-settings in the PATH."""
+    program = tmp_path / "tools" / "retrobox-system-settings"
+    program.parent.mkdir()
+    program.write_text("#!/bin/sh\n", encoding="utf-8")
+    program.chmod(0o755)
+    ini = tmp_path / "home" / ".config" / "retrobox" / "retrobox.ini"
+    ini.parent.mkdir(parents=True, exist_ok=True)
+    ini.write_text("[core]\nconsole_mode = true\n", encoding="utf-8")
+    path = {"PATH": f"{program.parent}:/usr/bin:/bin"}
+    assert run_python(tmp_path, _APPLY, env=path).stdout.splitlines()[1] \
+        == f"false false {program}"
+
+    other = tmp_path / "other-settings"
+    other.write_text("#!/bin/sh\n", encoding="utf-8")
+    other.chmod(0o755)
+    ini.write_text(f"[core]\nconsole_mode = true\nsystem_settings = {other}\n", encoding="utf-8")
+    assert run_python(tmp_path, _APPLY, env=path).stdout.splitlines()[1] == f"false false {other}"
+
+    ini.write_text("[core]\nconsole_mode = false\n", encoding="utf-8")
+    assert run_python(tmp_path, _APPLY, env=path).stdout.splitlines()[1] == "true true -"

@@ -76,7 +76,6 @@ fi
 /usr/bin/retrobox
 /usr/lib/udev/rules.d/64-retrobox.rules
 /usr/share/polkit-1/rules.d/50-retrobox-nvidia-powerd.rules
-/usr/share/polkit-1/rules.d/50-retrobox-console-settings.rules
 /usr/share/applications/retrobox.desktop
 # listed one by one: a glob would miss the 512 px link (its target is in /opt)
 /usr/share/icons/hicolor/16x16/apps/retrobox.png

@@ -86,6 +86,10 @@ cat > "${DESTDIR}${SYSCONF_DIR}/retrobox.ini" <<'EOF'
 ## (restart, suspend, shut down) and EmulationStation can't be quit (nor its
 ## window closed). false: QUIT only asks whether to quit EmulationStation.
 #console_mode = false
+## Console mode's system settings program (time zone, keyboard layout), which
+## EmulationStation's system settings run; default: retrobox-system-settings
+## from the PATH, if there is one (see the README).
+#system_settings =
 ## Add the installed PC games of each launcher to its system on every start:
 ##   none            don't sync anything
 ##   on-base-dir     always <data_dir>/roms/<steam|heroic|lutris>
@@ -126,13 +130,11 @@ UDEV_DIR="${DESTDIR}/usr/lib/udev/rules.d"
 mkdir -p "${UDEV_DIR}"
 install -m 644 "${SRC}/system/udev/64-retrobox.rules" "${UDEV_DIR}/64-retrobox.rules"
 
-# --- 3b. polkit rules (nvidia-powerd; console mode's time zone and keyboard) --
+# --- 3b. polkit rules (start/stop nvidia-powerd without a password) ----------
 POLKIT_DIR="${DESTDIR}/usr/share/polkit-1/rules.d"
 mkdir -p "${POLKIT_DIR}"
 install -m 644 "${SRC}/system/polkit/50-retrobox-nvidia-powerd.rules" \
     "${POLKIT_DIR}/50-retrobox-nvidia-powerd.rules"
-install -m 644 "${SRC}/system/polkit/50-retrobox-console-settings.rules" \
-    "${POLKIT_DIR}/50-retrobox-console-settings.rules"
 
 # --- 4. Desktop entry + icon ------------------------------------------------
 # The logo's neon glow is an SVG blur filter, which Qt (KDE's menus) doesn't
