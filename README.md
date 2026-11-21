@@ -71,7 +71,7 @@ Configuration is layered, read-only code and writable user data are separate, an
 
 `$XDG_CONFIG_HOME`, `$XDG_DATA_HOME` and `$XDG_STATE_HOME` are honoured. The data and state directories can also be set from `[paths]` in `retrobox.ini` (`data_dir`, `state_dir`; the environment variables win), and `roms`, `saves` and `bios` can be moved on their own (`roms_dir`, `saves_dir`, `bios_dir`); the last layer that sets a key wins. A value may be quoted and may end in ` # comment`. If a configured `roms_dir`/`saves_dir`/`bios_dir` is not a readable directory, Retrobox warns on stderr and uses the default one (unless `autocorrect_paths = false`).
 
-Other `[core]` keys: `create_rom_folders` (`true` by default: see below), `ignore_systems` (systems hidden from the menu, e.g. `gba,psp`), `console_mode` (`false` by default: *Quit* in EmulationStation's main menu only asks whether to quit it; `true` makes EmulationStation a console's only screen: *Quit* opens batocera's full quit menu, with restart, suspend and shut down, and EmulationStation can't be quit, from its menus, F4 or by closing its window (Alt+F4); Retrobox sets EmulationStation's `ShowOnlyExit` and `ShowExit` in `es_settings.cfg` before it starts, and retrobox-emulationstation's patch 0015 keeps the window open) and `steam_sync`, `heroic_sync`, `lutris_sync`: on every start, add the games installed in that launcher to its system (`.steam`, `.heroic`, `.lynx` entries). Each one takes:
+Other `[core]` keys: `create_rom_folders` (`true` by default: see below), `ignore_systems` (systems hidden from the menu, e.g. `gba,psp`), `console_mode` (`false` by default: *Quit* in EmulationStation's main menu only asks whether to quit it; `true` makes EmulationStation a console's only screen: *Quit* opens batocera's full quit menu, with restart, suspend and shut down, and EmulationStation can't be quit, from its menus, F4 or by closing its window (Alt+F4); Retrobox sets EmulationStation's `ShowOnlyExit` and `ShowExit` in `es_settings.cfg` before it starts, and retrobox-emulationstation's patch 0015 keeps the window open; *System settings* then also offer the system's time zone and keyboard layout, as batocera's do, see [Time zone and keyboard in console mode](#time-zone-and-keyboard-in-console-mode)) and `steam_sync`, `heroic_sync`, `lutris_sync`: on every start, add the games installed in that launcher to its system (`.steam`, `.heroic`, `.lynx` entries). Each one takes:
 
 | Value | Entries go to (and the ES system reads from) |
 |---|---|
@@ -130,6 +130,17 @@ Each emulator gets its own `XDG_CONFIG_HOME` under `~/.config/retrobox/emulators
 
 The Eden and Ryujinx generators were adapted from a third-party batocera package.
 
+
+### Time zone and keyboard in console mode
+
+In console mode EmulationStation is the machine's only screen, so its *System settings* offer the **time zone** and the **keyboard layout and variant**, as batocera's do (retrobox-emulationstation's patch 0019); on a desktop they stay hidden, as they belong to the desktop. They run `bin/retrobox-system`, in place of batocera's `batocera-timezone` and `batocera-keyboard`:
+
+```
+retrobox-system timezone get | set ZONE
+retrobox-system keyboard get | list-layouts | list-variants LAYOUT | set LAYOUT [VARIANT]
+```
+
+Both are the system's own settings, not Retrobox's: they are set with systemd's `timedatectl` and `localectl`, so they end up where the distribution keeps them (`/etc/localtime`; `/etc/default/keyboard` on Debian, which also sets the text console's keymap) and everything on the machine sees the same; they are read back from there, so a change made outside EmulationStation shows up in it. The layouts and variants are XKB's (`/usr/share/X11/xkb/rules/evdev.lst`), and a layout keeps the model and options the system had. A new time zone applies at once; a new keyboard layout when the session starts again (retrobox-labwc reads the system's keyboard then), which is why EmulationStation offers to restart. No password is asked: the polkit rule `50-retrobox-console-settings.rules` lets an administrator (group `sudo` or `wheel`) in an active local session do these two things, and nothing else. Without systemd, or for anyone else, the change is refused and EmulationStation says why.
 ## New components
 
 ### Pad-to-keyboard mappings

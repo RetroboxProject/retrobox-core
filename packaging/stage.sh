@@ -126,11 +126,13 @@ UDEV_DIR="${DESTDIR}/usr/lib/udev/rules.d"
 mkdir -p "${UDEV_DIR}"
 install -m 644 "${SRC}/system/udev/64-retrobox.rules" "${UDEV_DIR}/64-retrobox.rules"
 
-# --- 3b. polkit rules (start/stop nvidia-powerd without a password) ----------
+# --- 3b. polkit rules (nvidia-powerd; console mode's time zone and keyboard) --
 POLKIT_DIR="${DESTDIR}/usr/share/polkit-1/rules.d"
 mkdir -p "${POLKIT_DIR}"
 install -m 644 "${SRC}/system/polkit/50-retrobox-nvidia-powerd.rules" \
     "${POLKIT_DIR}/50-retrobox-nvidia-powerd.rules"
+install -m 644 "${SRC}/system/polkit/50-retrobox-console-settings.rules" \
+    "${POLKIT_DIR}/50-retrobox-console-settings.rules"
 
 # --- 4. Desktop entry + icon ------------------------------------------------
 # The logo's neon glow is an SVG blur filter, which Qt (KDE's menus) doesn't

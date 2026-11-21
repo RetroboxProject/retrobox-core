@@ -4,8 +4,9 @@ On (``[core] console_mode = true`` in retrobox.ini), QUIT in EmulationStation's
 main menu opens batocera's full quit menu (restart, suspend, shut down) with no
 "quit EmulationStation" in it nor in the quick access (SELECT) menu, and the
 window can't be closed (Alt+F4) or quit with F4 (retrobox-emulationstation's
-patch 0015). Off, as on a desktop, QUIT only asks whether to quit
-EmulationStation.
+patch 0015), and its system settings offer the system's time zone and
+keyboard layout (patch 0019, through retrobox.system_settings). Off, as on a
+desktop, QUIT only asks whether to quit EmulationStation.
 
 Both come from two settings of es_settings.cfg, which Retrobox writes before
 EmulationStation starts: ``ShowOnlyExit`` (QUIT is only a "Really quit?"
