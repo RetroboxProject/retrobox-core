@@ -30,3 +30,7 @@ zstd
 # retrobox-screenshot: scrot on X11 sessions, grim on Wayland ones
 scrot
 grim
+
+# mesa-utils and vulkan-tools for gpu api detection on emulators
+mesa-utils
+vulkan-tools
