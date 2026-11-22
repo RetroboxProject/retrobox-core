@@ -82,10 +82,6 @@ cat > "${DESTDIR}${SYSCONF_DIR}/retrobox.ini" <<'EOF'
 #autocorrect_paths = true
 ## Systems to hide from the menu, e.g. gba,psp
 #ignore_systems =
-## Console mode: QUIT in EmulationStation's menu opens the full quit menu
-## (restart, suspend, shut down) and EmulationStation can't be quit (nor its
-## window closed). false: QUIT only asks whether to quit EmulationStation.
-#console_mode = false
 ## Console mode's system settings program (time zone, keyboard layout), which
 ## EmulationStation's system settings run; default: retrobox-system-settings
 ## from the PATH, if there is one (see the README).

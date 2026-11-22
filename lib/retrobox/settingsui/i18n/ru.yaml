@@ -52,8 +52,6 @@ group.environ.help: Задаются для всех процессов Retrobox
 
 core.ignore_systems: Скрытые системы
 core.ignore_systems.help: Отмеченные системы не показываются в EmulationStation.
-core.console_mode: Режим консоли
-core.console_mode.help: 'EmulationStation нельзя закрыть (и его окно через Alt+F4): ВЫХОД в главном меню предлагает перезагрузку, сон и выключение, как в batocera. Если выключено, ВЫХОД только спрашивает, закрыть ли EmulationStation.'
 core.autocorrect_paths: Исправлять отсутствующие папки
 core.autocorrect_paths.help: Если заданной папки игр, сохранений или BIOS нет, используется (и создаётся) папка по умолчанию.
 core.steam_sync: Steam

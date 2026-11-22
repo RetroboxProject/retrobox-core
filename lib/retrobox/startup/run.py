@@ -149,7 +149,7 @@ def seed_user_es_dir() -> None:
         shutil.copy2(source, target)
 
 
-def setup_emulationstation_config() -> None:
+def setup_emulationstation_config(console_mode: bool) -> None:
     """
     Ensure the user's EmulationStation configuration directory exists
     and generate all necessary configuration files (ini, systems, features).
@@ -167,8 +167,9 @@ def setup_emulationstation_config() -> None:
     # EmulationStation changes the volume through an ALSA mixer: make it the
     # sound server's one (it must be done before ES starts, it rewrites the file).
     ensure_audio_mixer()
-    # Console mode: the full quit menu and no quitting EmulationStation, or not.
-    apply_console_mode()
+    # Console mode: the full quit menu and no quitting EmulationStation, or not
+    # (the --console argument to retrobox).
+    apply_console_mode(console_mode)
     # RetroArch's cores used to be inside its app/ folder: move them next to it.
     migrate_legacy_cores()
 
@@ -199,17 +200,19 @@ def download_before_start() -> None:
         install_all(keys)
 
 
-def run_emulationstation(args: list[str]) -> int:
+def run_emulationstation(args: list[str], console_mode: bool) -> int:
     """
     Execute the EmulationStation binary with the provided arguments.
 
     Args:
         args: List of command-line arguments to pass to EmulationStation.
+        console_mode: Pass --console through to the console mode setup (no
+            other way to turn it on).
 
     Returns:
         The return code of the EmulationStation process.
     """
-    setup_emulationstation_config()
+    setup_emulationstation_config(console_mode)
 
     call_retrohook(
         "_frontend",
@@ -328,6 +331,9 @@ def _main() -> int:
     signal.signal(signal.SIGTERM, _handle_sigterm)
 
     args = sys.argv[1:]
+    console_mode = bool(args and args[0] == "--console")
+    if console_mode:
+        args = args[1:]
     for warning in startup_warnings():
         _logger.warning("%s", warning)
 
@@ -349,7 +355,7 @@ def _main() -> int:
     create_roms_dirs()
 
     try:
-        return run_emulationstation(args)
+        return run_emulationstation(args, console_mode)
     finally:
         teardown()
 

@@ -52,8 +52,6 @@ group.environ.help: Für alle Retrobox-Prozesse gesetzt (API-Schlüssel, Emulato
 
 core.ignore_systems: Ausgeblendete Systeme
 core.ignore_systems.help: Markierte Systeme werden in EmulationStation nicht angezeigt.
-core.console_mode: Konsolenmodus
-core.console_mode.help: 'EmulationStation lässt sich nicht beenden (auch nicht das Fenster mit Alt+F4): BEENDEN im Hauptmenü bietet Neustart, Standby und Herunterfahren wie bei batocera. Aus, fragt BEENDEN nur, ob EmulationStation beendet werden soll.'
 core.autocorrect_paths: Fehlende Ordner korrigieren
 core.autocorrect_paths.help: Existiert der eingestellte Ordner für Spiele, Spielstände oder BIOS nicht, wird der Standardordner verwendet (und angelegt).
 core.steam_sync: Steam

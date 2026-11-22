@@ -1,8 +1,8 @@
 """Console mode: EmulationStation as a console's only screen, not a program to quit.
 
-On (``[core] console_mode = true`` in retrobox.ini), QUIT in EmulationStation's
-main menu opens batocera's full quit menu (restart, suspend, shut down) with no
-"quit EmulationStation" in it nor in the quick access (SELECT) menu, and the
+On (``retrobox --console``), QUIT in EmulationStation's main menu opens
+batocera's full quit menu (restart, suspend, shut down) with no "quit
+EmulationStation" in it nor in the quick access (SELECT) menu, and the
 window can't be closed (Alt+F4) or quit with F4 (retrobox-emulationstation's
 patch 0015). Off, as on a desktop, QUIT only asks whether to quit
 EmulationStation.
@@ -10,6 +10,9 @@ EmulationStation.
 Both come from two settings of es_settings.cfg, which Retrobox writes before
 EmulationStation starts: ``ShowOnlyExit`` (QUIT is only a "Really quit?"
 question) and ``ShowExit`` (quitting EmulationStation is offered).
+
+Console mode is turned on only by the ``--console`` argument to ``retrobox``
+(see bin/retrobox); there is no setting that turns it on or off.
 
 The machine's own settings (time zone, keyboard layout, language) are not
 Retrobox's: a system settings program provided by what turns the machine into a
@@ -41,14 +44,8 @@ from retrobox.utils.es_settings import write_es_setting
 
 _logger = logging.getLogger(__name__)
 
-_TRUE_VALUES = frozenset({"true", "1", "yes", "on"})
 SYSTEM_SETTINGS_PROGRAM: Final = "retrobox-system-settings"
 """The system settings program looked for in the PATH."""
-
-
-def console_mode() -> bool:
-    """Whether retrobox.ini turns console mode on (``[core] console_mode``)."""
-    return get_ini_value("core", "console_mode", "false").lower() in _TRUE_VALUES
 
 
 def system_settings_program() -> str:
@@ -67,15 +64,16 @@ def system_settings_program() -> str:
     return ""
 
 
-def apply_console_mode(settings_path: Path = ES_SETTINGS_CFG) -> bool:
+def apply_console_mode(on: bool, settings_path: Path = ES_SETTINGS_CFG) -> bool:
     """Write console mode (on or off) into es_settings.cfg.
 
-    EmulationStation must not be running: it rewrites the file when it exits.
+    ``on`` is the ``--console`` argument to ``retrobox``; it is the only way
+    to turn console mode on. EmulationStation must not be running: it
+    rewrites the file when it exits.
 
     Returns:
         True if the file changed.
     """
-    on = console_mode()
     value = "false" if on else "true"
     changed = write_es_setting(settings_path, "bool", "ShowOnlyExit", value)
     changed = write_es_setting(settings_path, "bool", "ShowExit", value) or changed

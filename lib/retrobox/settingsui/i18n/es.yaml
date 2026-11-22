@@ -52,8 +52,6 @@ group.environ.help: Se definen para todos los procesos de Retrobox (claves de AP
 
 core.ignore_systems: Sistemas ocultos
 core.ignore_systems.help: Los sistemas marcados no se muestran en EmulationStation.
-core.console_mode: Modo consola
-core.console_mode.help: 'EmulationStation no se puede cerrar (ni su ventana con Alt+F4): SALIR en su menú principal ofrece reiniciar, suspender y apagar, como en batocera. Desactivado, SALIR solo pregunta si quieres salir de EmulationStation.'
 core.autocorrect_paths: Corregir carpetas que no existen
 core.autocorrect_paths.help: Si la carpeta configurada de juegos, partidas guardadas o BIOS no existe, se usa (y se crea) la de por defecto.
 core.steam_sync: Steam

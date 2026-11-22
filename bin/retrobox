@@ -53,6 +53,12 @@ Usage: retrobox [-- FRONTEND_ARGS...]
 
 With no action, Retrobox starts. Arguments after -- go to EmulationStation.
 
+--console is the only way to turn on console mode: EmulationStation is a
+console's only screen (no quitting it, its QUIT menu offers restart, suspend
+and shut down) and its system settings offer the machine's own (time zone,
+keyboard layout, language). With no --console, EmulationStation is a program
+to quit, as on a desktop.
+
 Actions (one per call; each runs and exits):
   --install-emulator [NAME...]  install or update emulators (no name: list
                                 the installers and how each installs)
@@ -113,6 +119,14 @@ action="${1:-}"
 case "${action}" in
     "" | --)
         exec "${RETROBOX_PYTHON}" -m retrobox.startup "$@"
+        ;;
+    --console)
+        if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+            usage
+            exit 0
+        fi
+        [[ "${1:-}" == "--" ]] && shift
+        exec "${RETROBOX_PYTHON}" -m retrobox.startup --console "$@"
         ;;
     --install-emulator) each_installer emulators -i "${action}" "$@" ;;
     --remove-emulator) each_installer emulators -u "${action}" "$@" ;;
