@@ -58,7 +58,7 @@ def _apply(root: Path, off: bool = False) -> list[str]:
 
 
 def test_console_argument_turns_it_on_and_off(tmp_path: Path) -> None:
-    """On (--console): the full quit menu and no quitting; off: "Really quit?" and quitting offered."""
+    """On (--console): the full quit menu, no quitting; off: "Really quit?", quitting offered."""
     assert _apply(tmp_path) == ["True", "false false -"]
     assert _apply(tmp_path) == ["False", "false false -"]  # already so
     assert _apply(tmp_path, off=True) == ["True", "true true -"]
