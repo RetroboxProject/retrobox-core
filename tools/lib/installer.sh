@@ -46,21 +46,17 @@
 #   RETROBOX_EMULATORS_FINAL_DIR    where the install ends up when
 #                                   RETROBOX_EMULATORS_DIR is a staging
 #                                   folder (an update): builds bake it in
-
 set -euo pipefail
-
 _INSTALLER_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." >/dev/null 2>&1 && pwd -P)"
 # shellcheck source=tools/lib/paths.sh
 source "${_INSTALLER_ROOT}/tools/lib/paths.sh"
 # shellcheck source=tools/lib/log.sh
 source "${_INSTALLER_ROOT}/tools/lib/log.sh"
-
 : "${EMULATOR:?the installer must set EMULATOR before sourcing installer.sh}"
 : "${LABEL:=${EMULATOR}}"
 : "${PORTABLE:=0}"
 [[ -v KEEP ]] || KEEP=()
 [[ -v LEGACY ]] || LEGACY=()
-
 INSTALL_DIR="${RETROBOX_EMULATORS_DIR}/${EMULATOR}"
 APP_DIR="${INSTALL_DIR}/app"
 STAGE="${INSTALL_DIR}/app.new"
@@ -72,7 +68,6 @@ KEEP_SRC="${KEEP_SRC:-0}"
 _MANIFEST="${INSTALL_DIR}/.retrobox-files"
 _METHODS=(appimage archive source)
 _UNAVAILABLE=2
-
 case "$(uname -m)" in
     x86_64 | amd64) ARCH="x86_64" ;;
     aarch64 | arm64) ARCH="aarch64" ;;
@@ -80,12 +75,17 @@ case "$(uname -m)" in
 esac
 # shellcheck disable=SC2034  # read by the installers
 readonly ARCH
-
 SUDO=""
 if [[ "${EUID}" -ne 0 ]]; then
     SUDO="sudo"
 fi
-
+# The output of apt and dpkg is parsed below ("Candidate:", the lines of the
+# solver's errors...), and apt translates it ("Candidato:" in Spanish). Every
+# call whose output is read goes through this prefix, which forces the
+# untranslated text. `env` (not a plain assignment) so that it also survives
+# sudo, which cleans the environment. LANGUAGE is set too: gettext gives it
+# priority over the locale variables in locales other than "C".
+_C_ENV=(env LC_ALL=C LANGUAGE=C)
 TMP_DIR="$(mktemp -d)"
 _STAGING=0
 # shellcheck disable=SC2329  # called by the EXIT trap
@@ -99,22 +99,17 @@ function _cleanup() {
     fi
 }
 trap _cleanup EXIT
-
 ## Messages ----------------------------------------------------------------
-
 function die() {
     log_err "$*"
     exit 1
 }
-
 # This method can't be used on this machine: -i goes on with the next one.
 function unavailable() {
     log_warn "$*" >&2
     exit "${_UNAVAILABLE}"
 }
-
 ## Packages ----------------------------------------------------------------
-
 function package_manager() {
     if command -v apt-get &>/dev/null; then
         echo "apt"
@@ -124,13 +119,11 @@ function package_manager() {
         echo "unknown"
     fi
 }
-
 # The package checks are two commands for the whole list, not one command per
 # package: a single `apt-cache show` took long enough on a slow disk (the
 # Switch's SD card) to look like a hung installer, and nothing was printed
 # while it ran. Both fill a global associative array, read by install_packages.
 declare -gA _INSTALLED=() _CANDIDATE=()
-
 # _read_installed <packages...>: installed version of each (empty when it isn't).
 function _read_installed() {
     _INSTALLED=()
@@ -149,10 +142,9 @@ function _read_installed() {
                 _INSTALLED["${name}"]="${version}"
                 ;;
         esac
-    done < <(dpkg-query -W -f='${Package} ${Version} ${Status}\n' "$@" 2>/dev/null)
+    done < <("${_C_ENV[@]}" dpkg-query -W -f='${Package} ${Version} ${Status}\n' "$@" 2>/dev/null)
     return 0
 }
-
 # _read_candidates <packages...>: version apt would install for each
 # (empty when no repository has it).
 function _read_candidates() {
@@ -164,19 +156,19 @@ function _read_candidates() {
             name="${line%%:*}"
         elif [[ -n "${name}" && "${line}" == *"Candidate:"* ]]; then
             line="${line#*Candidate:}"
-            _CANDIDATE["${name}"]="${line## }"
+            line="${line## }"
+            [[ "${line}" == "(none)" ]] || _CANDIDATE["${name}"]="${line}"
             name=""
         fi
-    done < <(apt-cache policy "$@" 2>/dev/null)
+    done < <("${_C_ENV[@]}" apt-cache policy "$@" 2>/dev/null)
     return 0
 }
-
 # _apt_versions <packages...>: every version of every package the lists have,
 # newest first, as "package version" lines (the version table apt-cache policy
 # prints, whose order is apt's own).
 function _apt_versions() {
     [[ $# -gt 0 ]] || return 0
-    apt-cache policy "$@" 2>/dev/null | awk '
+    "${_C_ENV[@]}" apt-cache policy "$@" 2>/dev/null | awk '
         # "name:" starts a package, "  1.2-3 500" is a version of it, and
         # "*** 1.2-3 500" is the installed one (the first the lists have of it)
         /^[[:space:]]*\*\*\*/ { if (name != "") print name, $2; next }
@@ -185,7 +177,97 @@ function _apt_versions() {
     '
     return 0
 }
-
+function _apt_has_version() {
+    local pkg="$1" target="$2" line
+    while IFS= read -r line; do
+        [[ "${line}" == "${pkg} ${target}" ]] && return 0
+    done < <(_apt_versions "${pkg}")
+    return 1
+}
+# _apt_pin_pairs <apt output>: "package version" lines where apt says a
+# package failed because its candidate asks for another version of a library
+# than the one the system already runs ("pkg : Depends: lib (= a) but b is to
+# be installed").
+function _apt_pin_pairs() {
+    awk '
+        /^[[:space:]]+[a-z0-9][a-z0-9.+:-]*[[:space:]]*:[[:space:]]*(Pre-?)?Depends:/ {
+            pkg = $1
+            sub(/:.*/, "", pkg)
+        }
+        !/Depends:/ { pkg = "" }
+        /Depends:.*but [^[:space:]]+ is to be installed/ && pkg != "" {
+            for (i = 1; i <= NF; i++) {
+                if ($i == "but" && (i + 1) <= NF) {
+                    print pkg, $(i + 1)
+                    break
+                }
+            }
+        }
+    ' <<<"$1" | sort -u
+    return 0
+}
+# _apt_pin_mismatched <packages...>: when a repository with higher priority
+# (such as the L4T repo on Nintendo Switch images) makes apt pick a "-l4t"
+# candidate of a -dev package while the system runs the distribution's newer
+# runtime library, and the matching version of that -dev package is also in the
+# repositories, pin `<pkg>=<installed_runtime_version>` so apt installs it
+# cleanly. Fills _PINNED_WANTED and returns 0 when the list resolves.
+declare -ga _PINNED_WANTED=()
+function _apt_pin_mismatched() {
+    _PINNED_WANTED=("$@")
+    [[ ${#_PINNED_WANTED[@]} -gt 0 ]] || return 0
+    local round=0 output="" status=0 pkg ver dep sub_out changed i
+    local -A pinned=()
+    while [[ "${round}" -lt 8 ]]; do
+        round=$((round + 1))
+        status=0
+        output="$(${SUDO} "${_C_ENV[@]}" apt-get install -y -s "${_PINNED_WANTED[@]}" 2>&1)" || status=$?
+        [[ "${status}" -eq 0 ]] && return 0
+        changed=0
+        while read -r pkg ver; do
+            [[ -n "${pkg}" && -n "${ver}" ]] || continue
+            [[ -v pinned["${pkg}"] ]] && continue
+            if _apt_has_version "${pkg}" "${ver}"; then
+                pinned["${pkg}"]="${ver}"
+                log_info "Selecting ${pkg}=${ver} to match the installed system library."
+                local found=0
+                for i in "${!_PINNED_WANTED[@]}"; do
+                    if [[ "${_PINNED_WANTED[${i}]%%=*}" == "${pkg}" ]]; then
+                        _PINNED_WANTED[i]="${pkg}=${ver}"
+                        found=1
+                        break
+                    fi
+                done
+                [[ "${found}" -eq 1 ]] || _PINNED_WANTED+=("${pkg}=${ver}")
+                changed=1
+            fi
+        done < <(
+            _apt_pin_pairs "${output}"
+            while IFS= read -r dep; do
+                [[ -n "${dep}" ]] || continue
+                sub_out="$(${SUDO} "${_C_ENV[@]}" apt-get install -y -s "${dep}" 2>&1 || true)"
+                _apt_pin_pairs "${sub_out}"
+            done < <(
+                awk '
+                    /Depends:.*but it is not going to be installed/ {
+                        for (i = 1; i <= NF; i++) {
+                            if ($i ~ /^(Pre-?)?Depends:$/) {
+                                dep = $(i + 1)
+                                sub(/:.*/, "", dep)
+                                print dep
+                                break
+                            }
+                        }
+                    }
+                ' <<<"${output}" | sort -u | head -n 6
+            )
+        )
+        [[ "${changed}" -eq 1 ]] || return 1
+    done
+    status=0
+    ${SUDO} "${_C_ENV[@]}" apt-get install -y -s "${_PINNED_WANTED[@]}" &>/dev/null || status=$?
+    [[ "${status}" -eq 0 ]]
+}
 # _apt_update_once: the lists are read before the packages are chosen, so a
 # first install does not pick from whatever the last `apt-get update` left.
 function _apt_update_once() {
@@ -195,7 +277,6 @@ function _apt_update_once() {
     ${SUDO} apt-get update -qq || log_warn "apt-get update failed: the lists already there are used."
     return 0
 }
-
 # _apt_broken <packages...>: what apt makes of the list, before anything is
 # downloaded. Prints the packages the failure is about, one per line:
 #   0  apt cannot install these (each one fails on its own too)
@@ -206,9 +287,9 @@ function _apt_update_once() {
 # a package that is only the victim of another one is not reported and is
 # installed with the rest.
 function _apt_broken() {
-    local output="" status=0 package suspect tries=0 confirmed=0
+    local output="" status=0 package base suspect tries=0 confirmed=0
     local -a offenders=()
-    output="$(${SUDO} apt-get install -y -s "$@" 2>&1)" || status=$?
+    output="$(${SUDO} "${_C_ENV[@]}" apt-get install -y -s "$@" 2>&1)" || status=$?
     [[ "${status}" -eq 0 ]] && return 1
     printf '%s\n' "${output}" >&2
     # the packages apt could not work with, as its answer names them (the
@@ -217,8 +298,9 @@ function _apt_broken() {
     while IFS= read -r suspect; do
         [[ -n "${suspect}" ]] || continue
         for package in "$@"; do
-            [[ "${package}" == "${suspect}" ]] || continue
-            [[ " ${suspects[*]-} " == *" ${suspect} "* ]] || suspects+=("${suspect}")
+            base="${package%%=*}"
+            [[ "${base}" == "${suspect}" ]] || continue
+            [[ " ${suspects[*]-} " == *" ${base} "* ]] || suspects+=("${base}")
         done
     done < <(
         {
@@ -228,12 +310,16 @@ function _apt_broken() {
     )
     # nothing was named: the packages asked for are the suspects (the loop
     # below stops after six of them, so a long list stays affordable)
-    [[ ${#suspects[@]} -gt 0 ]] || suspects=("$@")
+    if [[ ${#suspects[@]} -eq 0 ]]; then
+        for package in "$@"; do
+            suspects+=("${package%%=*}")
+        done
+    fi
     for suspect in "${suspects[@]}"; do
         [[ "${tries}" -lt 6 ]] || break
         tries=$((tries + 1))
         log_info "Asking apt about ${suspect} on its own..." >&2
-        if ! ${SUDO} apt-get install -y -s "${suspect}" &>/dev/null; then
+        if ! ${SUDO} "${_C_ENV[@]}" apt-get install -y -s "${suspect}" &>/dev/null; then
             offenders+=("${suspect}")
             confirmed=1
         fi
@@ -242,14 +328,12 @@ function _apt_broken() {
     printf '%s\n' "${offenders[@]}"
     return 0
 }
-
 # _runtime_names <development package>: the names the library it develops can
 # have (libx11-dev -> libx11, libx11-6, libx110, libx111, libx11t64).
 function _runtime_names() {
     printf '%s\n' "${1%-dev}" "${1%-dev}-6" "${1%-dev}0" "${1%-dev}1" "${1%-dev}t64"
     return 0
 }
-
 # _apt_hint <package>: one line about the usual reason apt cannot install it,
 # when the lists show that reason: a repository other than the distribution's
 # (the L4T one of the Nintendo Switch images) winning the choice of a library
@@ -273,7 +357,6 @@ function _apt_hint() {
     log_warn "${installed} the system runs: that version asks for its own library, and apt has none."
     return 0
 }
-
 # _runtime_of <development package>: the version installed of the library it
 # develops (libx11-dev -> libx11-6, libgl-dev -> libgl1, libfoo-dev -> libfoo0),
 # which is the version its headers have to match. Empty when it is not there.
@@ -288,13 +371,12 @@ function _runtime_of() {
     done < <(_runtime_names "$1")
     return 0
 }
-
 # _depends_of <packages...>: the names their Depends and Pre-Depends ask for,
 # one per line, versions dropped, alternatives kept in their order ("a", then
 # "b" of "a | b"): the caller takes the first one apt has.
 function _depends_of() {
     [[ $# -gt 0 ]] || return 0
-    apt-cache show "$@" 2>/dev/null |
+    "${_C_ENV[@]}" apt-cache show "$@" 2>/dev/null |
         sed -n 's/^\(Pre-\)\?Depends: //p' |
         tr ',' '\n' |
         sed -e 's/([^)]*)//g' -e 's/:[a-z0-9-]*$//' \
@@ -303,12 +385,11 @@ function _depends_of() {
         sed -e '/^$/d'
     return 0
 }
-
 # _provides_of <packages...>: "package provided-name" for every virtual package
 # they provide, so a dependency on one (xorg-dev) is known to be covered.
 function _provides_of() {
     [[ $# -gt 0 ]] || return 0
-    apt-cache show "$@" 2>/dev/null | awk '
+    "${_C_ENV[@]}" apt-cache show "$@" 2>/dev/null | awk '
         /^Package: / { pkg = $2 }
         /^Provides: / {
             line = substr($0, 10)
@@ -319,7 +400,6 @@ function _provides_of() {
     '
     return 0
 }
-
 # _apt_sysroot <packages...>: the files of packages apt refuses to install,
 # unpacked in a folder of their own for the build to compile against.
 #
@@ -340,7 +420,6 @@ function _apt_sysroot() {
     local package dependency provided spec version runtime="" status=0
     local -a names=() versions=() round=() dependencies=()
     declare -A have=() pick=() taken=() provides=()
-
     # What is unpacked: the packages themselves and the dependencies the system
     # does not have, two levels deep (a development package, and the development
     # packages it needs, which is where the headers and the .so links are). What
@@ -396,7 +475,6 @@ function _apt_sysroot() {
             round+=("${dependency}")
         done
     done
-
     # Which version of each: apt would hand over the one its preferences pick,
     # and that is the very one that does not fit the system (the L4T libx11-dev
     # of the Switch images, tied to its own libx11-6). The headers have to be
@@ -419,7 +497,6 @@ function _apt_sysroot() {
             fi
         done
     done
-
     log_warn "That is the system's own doing, not ${LABEL}'s: either a repository next to"
     log_warn "the distribution's offers the same libraries at versions that cannot be"
     log_warn "together ('apt-cache policy $1' says which one wins, and the files in"
@@ -447,27 +524,44 @@ function _apt_sysroot() {
         found=1
     done
     [[ "${found}" -eq 1 ]] || return 1
+    # A -dev package ships a relative symlink (libX11.so -> libX11.so.6.4.0)
+    # whose target belongs to the runtime package installed in /usr/lib, not
+    # in the sysroot: point dangling symlinks at the host library when it is
+    # there, so the linker and cmake's find_library see a valid file.
+    local link target host_target
+    if [[ -d "${sysroot}/usr/lib" ]]; then
+        while IFS= read -r -d '' link; do
+            [[ -e "${link}" ]] && continue
+            target="$(readlink "${link}")"
+            if [[ "${target}" == /* ]]; then
+                host_target="${target}"
+            else
+                host_target="$(dirname "/${link#"${sysroot}/"}")/${target}"
+            fi
+            if [[ -e "${host_target}" ]]; then
+                ln -snf "${host_target}" "${link}"
+            fi
+        done < <(find "${sysroot}/usr/lib" -type l -print0 2>/dev/null)
+    fi
     # where the compiler and cmake look from now on (this build only)
-    local -a roots=("${sysroot}/usr")
     local multiarch="" directory
     multiarch="$(dpkg-architecture -qDEB_HOST_MULTIARCH 2>/dev/null || true)"
     [[ -n "${multiarch}" ]] || multiarch="$(gcc -dumpmachine 2>/dev/null || true)"
+    _prepend_path CPATH "${sysroot}/usr/include"
+    [[ -n "${multiarch}" ]] && _prepend_path CPATH "${sysroot}/usr/include/${multiarch}"
+    _prepend_path LIBRARY_PATH "${sysroot}/usr/lib"
+    _prepend_path PKG_CONFIG_PATH "${sysroot}/usr/lib/pkgconfig" "${sysroot}/usr/share/pkgconfig"
+    _prepend_path CMAKE_PREFIX_PATH "${sysroot}/usr"
     for directory in "${sysroot}/usr/lib/"*; do
         # the multiarch folder of the libraries (x86_64-linux-gnu, aarch64-...)
-        [[ -d "${directory}" && "${directory##*/}" == *-*-* ]] && roots+=("${directory}")
-    done
-    [[ -n "${multiarch}" && -d "${sysroot}/usr/${multiarch}" ]] && roots+=("${sysroot}/usr/${multiarch}")
-    local root
-    for root in "${roots[@]}"; do
-        _prepend_path CPATH "${root}/include"
-        _prepend_path LIBRARY_PATH "${root}/lib"
-        _prepend_path PKG_CONFIG_PATH "${root}/lib/pkgconfig" "${root}/share/pkgconfig"
-        _prepend_path CMAKE_PREFIX_PATH "${root}"
+        [[ -d "${directory}" && "${directory##*/}" == *-*-* ]] || continue
+        _prepend_path LIBRARY_PATH "${directory}"
+        _prepend_path PKG_CONFIG_PATH "${directory}/pkgconfig"
+        _prepend_path CMAKE_PREFIX_PATH "${directory}"
     done
     log_warn "Building against ${sysroot}: the packages above are NOT installed in the system."
     return 0
 }
-
 # _prepend_path VAR <dir>...: the directories that exist, in front of VAR.
 function _prepend_path() {
     local variable="$1" directory added=""
@@ -482,7 +576,6 @@ function _prepend_path() {
     log_info "${variable} += ${added}"
     return 0
 }
-
 # install_packages "<apt packages>" "<dnf packages>"
 # Each list is space-separated; "a|b" picks the first one apt knows about.
 # Only what is missing is installed, and every step says what it found.
@@ -541,29 +634,47 @@ function install_packages() {
             # the solver runs before anything is downloaded, so an impossible
             # install is known (and named) here, not after a long download
             log_info "Asking apt about: ${wanted[*]}"
-            local rejected="" status=0
-            rejected="$(_apt_broken "${wanted[@]}")" || status=$?
-            installable=("${wanted[@]}")
-            if [[ "${status}" -eq 2 ]]; then
-                die "apt cannot install these packages together: ${wanted[*]}"
-            elif [[ "${status}" -eq 0 ]]; then
-                installable=()
-                readarray -t broken <<<"${rejected}"
-                for package in "${wanted[@]}"; do
-                    local skip=0
-                    for alternative in "${broken[@]}"; do
-                        [[ "${package}" == "${alternative}" ]] && skip=1
+            if _apt_pin_mismatched "${wanted[@]}"; then
+                installable=("${_PINNED_WANTED[@]}")
+            else
+                local rejected="" status=0
+                rejected="$(_apt_broken "${_PINNED_WANTED[@]}")" || status=$?
+                installable=("${_PINNED_WANTED[@]}")
+                if [[ "${status}" -eq 2 ]]; then
+                    die "apt cannot install these packages together: ${wanted[*]}"
+                elif [[ "${status}" -eq 0 ]]; then
+                    installable=()
+                    readarray -t broken <<<"${rejected}"
+                    for package in "${_PINNED_WANTED[@]}"; do
+                        local skip=0
+                        for alternative in "${broken[@]}"; do
+                            [[ "${package%%=*}" == "${alternative}" ]] && skip=1
+                        done
+                        [[ "${skip}" -eq 0 ]] && installable+=("${package}")
                     done
-                    [[ "${skip}" -eq 0 ]] && installable+=("${package}")
-                done
-                if [[ ${#installable[@]} -gt 0 ]]; then
-                    log_warn "apt cannot install: ${broken[*]} (the rest is installed anyway)"
-                else
-                    log_warn "apt cannot install: ${broken[*]}"
+                    # any remaining package that depends on a broken one cannot
+                    # be installed by apt either: move it to broken as well
+                    if [[ ${#installable[@]} -gt 0 ]] &&
+                        ! ${SUDO} "${_C_ENV[@]}" apt-get install -y -s "${installable[@]}" &>/dev/null; then
+                        local -a kept=()
+                        for package in "${installable[@]}"; do
+                            if ${SUDO} "${_C_ENV[@]}" apt-get install -y -s "${package}" &>/dev/null; then
+                                kept+=("${package}")
+                            else
+                                broken+=("${package%%=*}")
+                            fi
+                        done
+                        installable=("${kept[@]}")
+                    fi
+                    if [[ ${#installable[@]} -gt 0 ]]; then
+                        log_warn "apt cannot install: ${broken[*]} (the rest is installed anyway)"
+                    else
+                        log_warn "apt cannot install: ${broken[*]}"
+                    fi
+                    _apt_hint "${broken[0]}"
+                    _apt_sysroot "${broken[@]}" \
+                        || die "Could not install the packages (apt): ${broken[*]}"
                 fi
-                _apt_hint "${broken[0]}"
-                _apt_sysroot "${broken[@]}" \
-                    || die "Could not install the packages (apt): ${broken[*]}"
             fi
             if [[ ${#installable[@]} -gt 0 ]]; then
                 log_info "Installing packages: ${installable[*]}"
@@ -599,7 +710,6 @@ function install_packages() {
     esac
     return 0
 }
-
 # need <command>...: install the commands that are missing.
 function need() {
     local command apt_list="" dnf_list=""
@@ -614,16 +724,13 @@ function need() {
         install_packages "${apt_list}" "${dnf_list}"
     fi
 }
-
 ## Downloads ---------------------------------------------------------------
-
 function fetch() {
     local url="$1" destination="$2"
     log_info "Downloading ${url}"
     curl -fL --retry 3 --progress-bar -o "${destination}" "${url}" \
         || die "The download of ${url} failed"
 }
-
 # release_asset <forge> <regex> [any]
 # Print the download URL of the newest release asset whose name matches
 # <regex> (Python syntax, case-insensitive). <forge> is github:<owner>/<repo>
@@ -667,9 +774,7 @@ sys.exit(3)' "${pattern}" "${prereleases}" <<<"${json}")" || status=$?
         *) die "Could not read the releases of ${forge#*:}" ;;
     esac
 }
-
 ## Unpacking ---------------------------------------------------------------
-
 # extract_appimage <file>: the AppImage's files become ${STAGE}.
 function extract_appimage() {
     local appimage="$1" work root
@@ -690,7 +795,6 @@ function extract_appimage() {
     rm -rf "${STAGE}"
     mv "${root}" "${STAGE}"
 }
-
 # extract_archive <file> <folder>: unpack a tarball, zip or 7z into <folder>,
 # without the archive's single top-level folder if it has one.
 function extract_archive() {
@@ -711,9 +815,7 @@ function extract_archive() {
     [[ ${#entries[@]} -gt 0 ]] && mv "${entries[@]}" "${destination}/"
     shopt -u dotglob nullglob
 }
-
 ## Building ----------------------------------------------------------------
-
 # git_clone <url> [ref]: a fresh shallow clone (with submodules) in ${SRC_DIR}.
 function git_clone() {
     local url="$1" ref="${2:-}"
@@ -725,7 +827,6 @@ function git_clone() {
     log_info "Cloning ${url}${ref:+ (${ref})}..."
     git clone "${options[@]}" "${url}" "${SRC_DIR}" || die "Could not clone ${url}"
 }
-
 # cmake_build [cmake options...]: configure and build ${SRC_DIR} in
 # ${SRC_DIR}/build, with the final prefix baked in.
 function cmake_build() {
@@ -740,12 +841,10 @@ function cmake_build() {
     cmake --build "${build}" -j "${JOBS}" \
         || die "The build failed (lower JOBS if the linker ran out of memory)"
 }
-
 # cmake_install: install what cmake_build built into ${STAGE}.
 function cmake_install() {
     cmake --install "${SRC_DIR}/build" --prefix "${STAGE}" || die "cmake --install failed"
 }
-
 function remove_sources() {
     if [[ "${KEEP_SRC}" == "1" ]]; then
         log_info "Source tree kept in ${SRC_DIR}."
@@ -754,14 +853,11 @@ function remove_sources() {
     rm -rf "${SRC_DIR}"
     rmdir "$(dirname "${SRC_DIR}")" 2>/dev/null || true
 }
-
 # require_executable <path inside ${STAGE}>: fail unless the install produced it.
 function require_executable() {
     [[ -x "${STAGE}/$1" ]] || die "The install did not produce $1"
 }
-
 ## Installing and removing -------------------------------------------------
-
 function _remove_legacy() {
     local entry
     for entry in "${LEGACY[@]}"; do
@@ -771,7 +867,6 @@ function _remove_legacy() {
         fi
     done
 }
-
 function _kept() {
     local entry
     for entry in "${KEEP[@]}"; do
@@ -779,7 +874,6 @@ function _kept() {
     done
     return 1
 }
-
 function _remove_manifest_files() {
     [[ -f "${_MANIFEST}" ]] || return 0
     local file
@@ -789,7 +883,6 @@ function _remove_manifest_files() {
     done <"${_MANIFEST}"
     rm -f "${_MANIFEST}"
 }
-
 # Put ${STAGE} in place: as app/, or file by file for a portable emulator.
 function _activate() {
     [[ -n "$(ls -A "${STAGE}" 2>/dev/null)" ]] || die "The install produced nothing"
@@ -815,11 +908,9 @@ function _activate() {
     fi
     _remove_legacy
 }
-
 function _has_method() {
     declare -F "install_$1" >/dev/null
 }
-
 function _install_with() {
     local method="$1"
     _has_method "${method}" || die "${LABEL} has no ${method} install"
@@ -835,7 +926,6 @@ function _install_with() {
     fi
     log_ok "${LABEL} installed (${method}) in ${INSTALL_DIR}."
 }
-
 # -i: each method in its own process, so `unavailable` can hand over to the next.
 function _install_preferred() {
     local method flag status
@@ -856,7 +946,6 @@ function _install_preferred() {
     done
     die "${LABEL} can't be installed on this machine (${ARCH})"
 }
-
 function _uninstall() {
     if declare -F before_uninstall >/dev/null; then
         before_uninstall
@@ -869,7 +958,6 @@ function _uninstall() {
     fi
     log_ok "${LABEL} uninstalled (its configuration and saves are kept)."
 }
-
 function _usage() {
     cat <<EOF
 Usage: $(basename "$0") -i | -a | -t | -s | -u | -l
@@ -879,7 +967,6 @@ Usage: $(basename "$0") -i | -a | -t | -s | -u | -l
   -l  list the methods this installer has
 EOF
 }
-
 function _list_methods() {
     local method
     local -a found=()
@@ -888,7 +975,6 @@ function _list_methods() {
     done
     echo "${found[*]}"
 }
-
 function installer_main() {
     case "${1:-}" in
         -i) _install_preferred ;;
