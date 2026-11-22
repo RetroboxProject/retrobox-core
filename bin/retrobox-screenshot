@@ -6,13 +6,26 @@ RETROBOX_ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." &> /dev/null && pwd
 source "${RETROBOX_ROOT}/tools/lib/paths.sh"
 ES_METADATA_FILE="/tmp/game.xml"
 
-if [[ ! -f "${ES_METADATA_FILE}" ]]; then
-    NAME="retrobox"
-else
-    GAME_PATH=$(xmllint --xpath 'string(//game/path)' "${ES_METADATA_FILE}")
-    NAME=$(basename "${GAME_PATH}")
-    NAME="${NAME%.*}"
-fi
+# The running game's name, for the file: its ROM's name (scraped or not, every
+# game has one), from the metadata EmulationStation writes when it launches
+# one; "retrobox" in EmulationStation or when it can't be read.
+game_name() {
+    [[ -f "${ES_METADATA_FILE}" ]] || return 0
+    python3 - "${ES_METADATA_FILE}" <<'PY' 2> /dev/null || true
+import os
+import re
+import sys
+import xml.etree.ElementTree as ET
+
+path = ET.parse(sys.argv[1]).findtext(".//game/path") or ""
+name = os.path.splitext(os.path.basename(path.strip()))[0]
+# no separators nor control characters in a file name
+print(re.sub(r"[/\\\x00-\x1f]", "_", name).strip())
+PY
+}
+
+NAME="$(game_name)"
+NAME="${NAME:-retrobox}"
 
 SCREENSHOT_DIR="${RETROBOX_SCREENSHOTS_DIR}"
 mkdir -p "${SCREENSHOT_DIR}"

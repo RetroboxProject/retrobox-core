@@ -18,7 +18,6 @@ unzip
 wget
 zstd
 p7zip
-# retrobox-screenshot: scrot on X11 sessions, grim on Wayland ones (xmllint
-# for the game's name is in libxml2, always there)
+# retrobox-screenshot: scrot on X11 sessions, grim on Wayland ones
 scrot
 grim
