@@ -25,11 +25,22 @@ function build_librashader() {
 }
 
 function install_source() {
+    # What the build asks for and what it links (ruby/cmake/os-linux.cmake and
+    # hiro/cmake/os-linux.cmake): find_package(X11 REQUIRED) and its X11::Xrandr
+    # target, which cmake makes carry X11::Xrender, X11::Xext and X11::X11;
+    # find_package(OpenGL REQUIRED) for OpenGL::GLX (libGLX and libOpenGL, both
+    # of libgl-dev); find_package(GTK) for the GTK3 interface; SDL3 for the
+    # audio and the joypads.
+    # libxrandr-dev and libxrender-dev were missing: without the first,
+    # configure stops at "X11::Xrandr ... but the target was not found".
+    # libice-dev and libglu1-mesa-dev were asked for by mistake: no ICE header
+    # is included anywhere and GLU is not used.
     install_packages \
         "build-essential cmake ninja-build git pkg-config libsdl3-dev libgtk-3-dev
-         libx11-dev libxext-dev libice-dev libgl-dev libglu1-mesa-dev" \
+         libx11-dev libxext-dev libxrandr-dev libxrender-dev libgl-dev" \
         "gcc-c++ cmake ninja-build git pkgconf-pkg-config SDL3-devel gtk3-devel
-         libX11-devel libXext-devel libICE-devel mesa-libGL-devel mesa-libGLU-devel"
+         libX11-devel libXext-devel libXrandr-devel libXrender-devel
+         mesa-libGL-devel"
     git_clone https://github.com/ares-emulator/ares.git
     cmake_build
     cmake_install
