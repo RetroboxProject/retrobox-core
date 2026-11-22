@@ -483,7 +483,12 @@ def _check_system_bios(bios: ModuleType, name: str, emulator: str, core: str,
             problems = True
             yield Check(section, name, Status.ERROR,
                         f"{requirement.name} missing, {chosen} needs it", _bios_hint(requirement))
-        elif not requirement.optional and requirement.required_for:
+        elif requirement.optional:
+            problems = True
+            yield Check(section, name, Status.WARN,
+                        f"{requirement.name} missing: {chosen} runs without it, "
+                        f"but it works better with it", _bios_hint(requirement))
+        elif requirement.required_for:
             problems = True
             yield Check(section, name, Status.INFO,
                         f"{requirement.name} missing: {chosen} runs without it, "

@@ -82,23 +82,30 @@ def _append_emulator_nodes(parent_elem, emulators_data):
             core_elem = ET.SubElement(emulator_elem, "core", **core_attrs)
             core_elem.text = core_name
 
-def _system_yaml_files(base_path: Path | None) -> list[str]:
-    """The system definitions to use, sorted by their relative path.
+def _system_yaml_files(base_path: Path | None, system: str | None = None) -> list[str]:
+    """The system definitions to use, optionally narrowed by filename.
 
     Without `base_path`, the layers (shipped resources, /etc/retrobox, the
     user's config) are merged: a file of a later layer replaces the one of the
-    same relative path, and extra files add systems.
+    same relative path, and extra files add systems. System files normally use
+    their system name as their filename; fall back to every file for a custom
+    definition that does not.
     """
     if base_path is None:
         found = layered_files("systems", "*.yaml")
         if not found:
             raise FileNotFoundError("No systems found in any configuration layer")
-        return [str(path) for path in found.values()]
-    if not os.path.exists(base_path):
-        raise FileNotFoundError(f"Systems dir not found: {base_path}")
-    if not os.path.isdir(base_path):
-        raise NotADirectoryError(f"Systems dir isn't a directory: {base_path}")
-    return sorted(str(p) for p in Path(base_path).rglob("*.yaml"))
+        files = [str(path) for path in found.values()]
+    else:
+        if not os.path.exists(base_path):
+            raise FileNotFoundError(f"Systems dir not found: {base_path}")
+        if not os.path.isdir(base_path):
+            raise NotADirectoryError(f"Systems dir isn't a directory: {base_path}")
+        files = sorted(str(path) for path in Path(base_path).rglob("*.yaml"))
+    if system is None:
+        return files
+    named = [path for path in files if Path(path).stem == system]
+    return named or files
 
 
 def _load_system(yaml_path: str, log_skipped: bool = True) -> tuple[str, dict] | None:
@@ -135,12 +142,15 @@ def _load_system(yaml_path: str, log_skipped: bool = True) -> tuple[str, dict] |
     return sys_name, sys_content
 
 
-def load_systems(base_path: Path | None = None) -> list[tuple[str, dict]]:
-    """Every system definition that is not ignored, in the order of es_systems.cfg.
+def load_systems(base_path: Path | None = None,
+                 system: str | None = None) -> list[tuple[str, dict]]:
+    """Every selected system definition that is not ignored, in es_systems.cfg order.
 
     Args:
         base_path: Directory of the system YAML files; None (default) merges
             systems/ across the configuration layers.
+        system: Return only this system. Its matching filename is loaded alone
+            when possible, which keeps per-game checks fast.
 
     Returns:
         (system name, its settings) of each one. The settings are what the YAML
@@ -151,9 +161,11 @@ def load_systems(base_path: Path | None = None) -> list[tuple[str, dict]]:
         NotADirectoryError: If `base_path` exists but isn't a directory.
     """
     loaded = (
-        _load_system(yaml_path, log_skipped=False) for yaml_path in _system_yaml_files(base_path)
+        _load_system(yaml_path, log_skipped=False)
+        for yaml_path in _system_yaml_files(base_path, system)
     )
-    return [system for system in loaded if system is not None]
+    return [item for item in loaded if item is not None and
+            (system is None or item[0] == system)]
 
 
 # The placeholders a system's ``path`` may use. EmulationStation does not

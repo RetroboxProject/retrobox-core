@@ -21,7 +21,10 @@ the job::
 ``required_for`` lists the emulators (``ares``) or cores (``libretro/swanstation``)
 that can't run the system without it; with no list, all of them can't.
 ``optional: true`` marks a file that only improves something (an emulator has
-a replacement of its own, or few games use it). A file may be a glob
+a replacement of its own, or few games use it). An optional file is reported
+like any other one (the doctor and EmulationStation's missing BIOS check,
+which asks before a game), but it never stops a game: only a file the
+emulator really can't run without does. A file may be a glob
 (``pcsx2/bios/*.bin``) when any dump in a folder does, and start with
 ``{roms}/`` for one an emulator also finds in the ROMs folder
 (``{roms}/neogeo/neogeo.zip``), and ``min_size`` (in
@@ -385,7 +388,9 @@ def require(system: str, emulator: str, core: str = "") -> None:
     """Check the BIOS ``emulator`` (and ``core``) needs to run a game of ``system``.
 
     A file that is there but is not a known dump is only logged: many
-    alternative dumps work.
+    alternative dumps work. An optional file is left out of this check on
+    purpose: it is reported by the doctor and by EmulationStation's missing
+    BIOS check, but a game must still start without it.
 
     Raises:
         RetroboxException: When a BIOS it can't run without is missing (its
@@ -457,17 +462,18 @@ def es_report(systems: Iterable[tuple[str, Mapping[str, Any]]], settings: Mappin
               folder: Path = BIOS) -> list[str]:
     """EmulationStation's missing BIOS list, in batocera-systems' format.
 
-    For each system, the BIOS the emulator it runs with can't do without
-    (``MISSING``), or that is there but not a known dump (``INVALID``): a
-    ``> system`` line, then ``STATUS MD5 file`` lines. Systems with nothing
-    to report are left out.
+    For each system, the BIOS the emulator it runs with can't do without, the
+    optional ones too (a game may run without them, but not as well), and the
+    files that are there but are not known dumps: a ``> system`` line, then
+    ``STATUS MD5 file`` lines (``MISSING`` or ``INVALID``). Systems with
+    nothing to report are left out.
     """
     lines = []
     contents = dict(systems)
     for system, requirements in sorted(load_requirements(contents.items()).items()):
         emulator, core = chosen_emulator(system, contents[system], settings)
-        needed = [r for r in requirements if r.required_by(emulator, core)]
-        problems = [r for r in check(needed, folder) if r.state is not State.FOUND]
+        reported = [r for r in requirements if r.optional or r.required_by(emulator, core)]
+        problems = [r for r in check(reported, folder) if r.state is not State.FOUND]
         if problems:
             lines.append(f"> {system}")
             lines.extend(_es_line(result, folder) for result in problems)
@@ -490,8 +496,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--filter", metavar="SYSTEM", help="only this system")
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.WARNING, format="retrobox-bios: %(message)s")
-    systems = [(name, content) for name, content in load_systems()
-               if args.filter is None or name == args.filter]
+    systems = load_systems(system=args.filter)
     for line in es_report(systems, read_es_settings(ES_SETTINGS_CFG)):
         print(line)
     return 0
