@@ -147,8 +147,10 @@ def test_doctor_reports_for_the_chosen_emulator(tmp_path: Path) -> None:
 
     lines = _bios_lines(tmp_path)
     assert set(lines) == {"saturn", "ps2", "psx"}
-    assert [line["status"] for line in lines["saturn"]] == ["ERR"]
+    # the BIOS mednafen_saturn needs, then the optional ones (Saturn runs without them)
+    assert [line["status"] for line in lines["saturn"]] == ["ERR", "WARN", "WARN", "WARN"]
     assert "mpr-17933.bin" in lines["saturn"][0]["hint"]
+    assert "saturn_bios.bin" in lines["saturn"][1]["detail"]
     assert lines["ps2"][0]["status"] == "OK"
     # pcsx_rearmed (the default) runs without one: only a note
     assert {line["status"] for line in lines["psx"]} == {"INFO"}
@@ -157,8 +159,20 @@ def test_doctor_reports_for_the_chosen_emulator(tmp_path: Path) -> None:
                        psx__emulator="libretro", psx__core="swanstation")
     lines = _bios_lines(tmp_path)
     # Kronos has a BIOS of its own: a note on who needs the real one
-    assert [line["status"] for line in lines["saturn"]] == ["INFO"]
+    assert [line["status"] for line in lines["saturn"]][:1] == ["INFO"]
     assert "ERR" in {line["status"] for line in lines["psx"]}
+
+
+def test_doctor_reports_optional_bios(tmp_path: Path) -> None:
+    """A GBA game: its BIOS only helps, but the doctor still says it is missing."""
+    data = tmp_path / "home" / ".local" / "share" / "retrobox"
+    (data / "roms" / "gba").mkdir(parents=True)
+    (data / "roms" / "gba" / "game.gba").write_bytes(b"")
+    lines = _bios_lines(tmp_path)
+    assert set(lines) == {"gba"}
+    assert [line["status"] for line in lines["gba"]] == ["WARN"] * 4
+    assert any("gba_bios.bin" in line["detail"] for line in lines["gba"])
+    assert all("works better" in line["detail"] for line in lines["gba"])
 
 
 def _bios_root(root: Path) -> Path:
@@ -247,13 +261,24 @@ def test_emulationstation_list(tmp_path: Path) -> None:
         assert line.startswith("> ") or line.split(" ", 2)[0] in ("MISSING", "INVALID"), line
 
     saturn = _es_list(tmp_path, "--filter", "saturn")
-    assert saturn[0] == "> saturn" and len(saturn) == 2
+    assert saturn[0] == "> saturn" and len(saturn) == 5
     assert "mpr-17933.bin" in saturn[1]
+    # the optional ones are listed too: EmulationStation asks before the game
+    assert "saturn_bios.bin" in saturn[2] and "mpr-18811-mx.ic1" in saturn[3]
+    assert all(line.startswith("MISSING ") for line in saturn[1:])
     assert _es_list(tmp_path, "--filter", "ps2") == [
         "> ps2", "MISSING - PlayStation 2 BIOS: one of 82 files in pcsx2/bios/"]
 
     _write_es_settings(tmp_path, saturn__emulator="libretro", saturn__core="kronos")
-    assert not _es_list(tmp_path, "--filter", "saturn")
+    # Kronos has a BIOS of its own, but the optional files are still reported
+    assert _es_list(tmp_path, "--filter", "saturn")[1:] == saturn[2:]
+
+    # the BIOS of a Game Boy Advance only helps: still in the list...
+    gba = _es_list(tmp_path, "--filter", "gba")
+    assert gba[0] == "> gba" and len(gba) == 5
+    assert any("gba_bios.bin" in line for line in gba)
+    # ...but the launcher lets the game start without it
+    assert _require(tmp_path, "gba", "libretro", "mgba").strip() == "OK"
 
 
 def test_emulationstation_list_flags_bad_dumps(tmp_path: Path) -> None:
