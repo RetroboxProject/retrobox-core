@@ -11,19 +11,20 @@ Both come from two settings of es_settings.cfg, which Retrobox writes before
 EmulationStation starts: ``ShowOnlyExit`` (QUIT is only a "Really quit?"
 question) and ``ShowExit`` (quitting EmulationStation is offered).
 
-The machine's own settings (time zone, keyboard layout) are not Retrobox's: a
-system settings program provided by what turns the machine into a console
-(retrobox-system-settings) sets them. In console mode its path goes into
-es_settings.cfg (``RetroboxSystemSettings``), and EmulationStation's system
-settings then offer them (patch 0019); with no such program, they don't. It is
-``[core] system_settings`` in retrobox.ini, else ``retrobox-system-settings``
-from the PATH. EmulationStation runs it as::
+The machine's own settings (time zone, keyboard layout, language) are not
+Retrobox's: a system settings program provided by what turns the machine into a
+console (retrobox-system-settings) sets them. In console mode its path goes
+into es_settings.cfg (``RetroboxSystemSettings``), and EmulationStation's
+system settings then offer them (patches 0019 and 0020); with no such program,
+they don't. It is ``[core] system_settings`` in retrobox.ini, else
+``retrobox-system-settings`` from the PATH. EmulationStation runs it as::
 
     <program> timezone get | set ZONE
     <program> keyboard get | list-layouts | list-variants LAYOUT | set LAYOUT [VARIANT]
+    <program> locale get | list | set LANGUAGE
 
 ``get`` prints the value (``<layout> <variant>`` for the keyboard, ``none``
-for no variant), lists print ``<code> <description>`` lines, and a failure
+for no variant; a language is ``es_ES``), lists print ``<code> <description>`` lines, and a failure
 exits non-zero with the reason as its last line, which EmulationStation shows.
 """
 

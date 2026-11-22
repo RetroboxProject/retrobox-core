@@ -133,14 +133,16 @@ The Eden and Ryujinx generators were adapted from a third-party batocera package
 
 ### Console mode and the system's settings
 
-In console mode EmulationStation is the machine's only screen, so its *System settings* can offer the machine's **time zone** and **keyboard layout and variant**, as batocera's do (retrobox-emulationstation's patch 0019). Those are the system's settings, not Retrobox's, so Retrobox doesn't set them: what turns the machine into a console (its session, its user and their permissions) provides a program that does, and Retrobox only tells EmulationStation where it is. That program is `[core] system_settings` in `retrobox.ini`, else `retrobox-system-settings` from the `PATH`; in console mode its path goes into `es_settings.cfg` (`RetroboxSystemSettings`), and with none the two settings are not offered. EmulationStation runs it as:
+In console mode EmulationStation is the machine's only screen, so its *System settings* can offer the machine's **time zone**, **keyboard layout and variant** and **language**, as batocera's do (retrobox-emulationstation's patches 0019 and 0020). Those are the system's settings, not Retrobox's, so Retrobox doesn't set them: what turns the machine into a console (its session, its user and their permissions) provides a program that does, and Retrobox only tells EmulationStation where it is. That program is `[core] system_settings` in `retrobox.ini`, else `retrobox-system-settings` from the `PATH`; in console mode its path goes into `es_settings.cfg` (`RetroboxSystemSettings`), and with none these settings are not offered (the language is then EmulationStation's own, as on a desktop). EmulationStation runs it as:
 
 ```
 <program> timezone get | set ZONE
 <program> keyboard get | list-layouts | list-variants LAYOUT | set LAYOUT [VARIANT]
+<program> locale get | list | set LANGUAGE
 ```
 
-`get` prints the value (`<layout> <variant>` for the keyboard, `none` when there is no variant), the lists print `<code> <description>` lines, and a failure exits non-zero with the reason as its last line, which EmulationStation shows. After a new keyboard layout EmulationStation offers to restart, so the session starts with it.
+`get` prints the value (`<layout> <variant>` for the keyboard, `none` when there is no variant; a language is `es_ES`), the lists print `<code> <description>` lines, and a failure exits non-zero with the reason as its last line, which EmulationStation shows. After a new keyboard layout or language EmulationStation offers to restart, so the session starts with it. In console mode the language EmulationStation offers is the system's: only those it has a translation for and the system has a locale for (on Debian, the generated ones); choosing one sets the system's and EmulationStation's.
+
 ## New components
 
 ### Pad-to-keyboard mappings
