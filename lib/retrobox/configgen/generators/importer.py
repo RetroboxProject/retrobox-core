@@ -11,6 +11,7 @@ if TYPE_CHECKING:
 _GENERATOR_MAP: Final[dict[str, tuple[str, str]]] = {
     'libretro': ('libretro.libretroGenerator', 'LibretroGenerator'),
     'ares': ('ares.ares_generator', 'AresGenerator'),
+    'mupen64plus': ('mupen64plus.mupen64plus_generator', 'Mupen64PlusGenerator'),
     'dolphin-emu': ('dolphin.dolphinGenerator', 'DolphinGenerator'),
     'dosbox': ('dosbox.dosboxGenerator', 'DosBoxGenerator'),
     'melonds': ('melonds.melondsGenerator', 'MelonDSGenerator'),
