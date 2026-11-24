@@ -61,6 +61,9 @@ _INSTALLABLE: Final[dict[str, Installable]] = {
     "eden": _EDEN,
     "eden-emu": _EDEN,
     "flycast": Installable("flycast", "Flycast", "flycast.flycastPaths", "FLYCAST"),
+    "mupen64plus": Installable(
+        "mupen64plus", "Mupen64Plus", "mupen64plus.mupen64plus_paths", "MUPEN64PLUS"
+    ),
     "pcsx2": Installable("pcsx2", "PCSX2", "pcsx2.pcsx2_paths", "PCSX2"),
     "ppsspp": Installable("ppsspp", "PPSSPP", "ppsspp.ppssppPaths", "PPSSPP"),
     "redream": Installable(

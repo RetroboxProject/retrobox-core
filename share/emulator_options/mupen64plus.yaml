@@ -26,7 +26,6 @@ groups:
               value: "4/3"
             - name: "16:9"
               value: "16/9"
-      GRAPHICS:
         - name: RENDERING RESOLUTION (GLIDEN64 ONLY)
           value: mupen64plus_NativeResFactor
           description: Render at the screen resolution or at a multiple of the N64 native resolution.
@@ -172,7 +171,7 @@ groups:
               value: "True"
   CONTROLS:
     submenus:
-      CONTROLLER 1:
+      PORT 1:
         - name: CONTROLLER TYPE
           value: mupen64-controller1
           description: The layout of the buttons. Use N64 for a pad with the buttons of the Nintendo 64.
@@ -207,7 +206,7 @@ groups:
             - {name: "15%", value: "0.15"}
             - {name: "20%", value: "0.2"}
             - {name: "25%", value: "0.25"}
-      CONTROLLER 2:
+      PORT 2:
         - name: CONTROLLER TYPE
           value: mupen64-controller2
           description: The layout of the buttons. Use N64 for a pad with the buttons of the Nintendo 64.
@@ -220,7 +219,7 @@ groups:
           value: mupen64-deadzone2
           description: The area around the neutral position of the stick where the input is ignored.
           choices: *deadzone
-      CONTROLLER 3:
+      PORT 3:
         - name: CONTROLLER TYPE
           value: mupen64-controller3
           description: The layout of the buttons. Use N64 for a pad with the buttons of the Nintendo 64.
@@ -233,7 +232,7 @@ groups:
           value: mupen64-deadzone3
           description: The area around the neutral position of the stick where the input is ignored.
           choices: *deadzone
-      CONTROLLER 4:
+      PORT 4:
         - name: CONTROLLER TYPE
           value: mupen64-controller4
           description: The layout of the buttons. Use N64 for a pad with the buttons of the Nintendo 64.
