@@ -55,6 +55,7 @@ def _checks(
 def test_cascade_only_goes_down(
     start: str, vulkan: bool, glcore: bool, expected: str, checked: list[str]
 ) -> None:
+    """The first usable driver wins, and only the drivers below the start are checked."""
     calls: list[str] = []
     assert backend.resolve(start, _checks(vulkan, glcore, calls)) == expected
     assert calls == checked
@@ -77,6 +78,7 @@ def test_cascade_only_goes_down(
     ],
 )
 def test_where_the_cascade_starts(data: dict[str, str], expected: str) -> None:
+    """The chosen driver, else the core's best one, is where the cascade starts."""
     assert backend.start_backend(SystemConfig(data)) == expected
 
 
@@ -90,6 +92,7 @@ def test_preload_follows_the_resolved_driver(monkeypatch: pytest.MonkeyPatch) ->
 
 
 def test_core_profile_is_what_counts(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A core profile of 3.2 or later is enough for glcore."""
     monkeypatch.setattr(opengl, "probe", lambda: opengl.parse(CORE_4_6))
     assert opengl.core_profile_status((3, 2))[0] is True
     # Intel is not left out any more
@@ -97,6 +100,7 @@ def test_core_profile_is_what_counts(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_no_core_profile_means_no_glcore(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Without a core profile glcore is not usable."""
     monkeypatch.setattr(opengl, "probe", lambda: opengl.parse(NO_CORE))
     assert backend._glcore_usable()[0] is False  # pylint: disable=protected-access
 
@@ -109,6 +113,7 @@ def test_unknown_gl_does_not_drop_glcore(monkeypatch: pytest.MonkeyPatch) -> Non
 
 
 def test_versions_are_not_floats() -> None:
+    """Versions are compared as tuples: 4.10 is later than 4.9."""
     info = opengl.parse(CORE_4_6.replace("4.6 (Core", "4.10 (Core"))
     assert info is not None
     assert info.core_version == (4, 10)
@@ -116,5 +121,6 @@ def test_versions_are_not_floats() -> None:
 
 
 def test_empty_output_is_unknown() -> None:
+    """Output with no OpenGL information gives no result."""
     assert opengl.parse("") is None
     assert opengl.parse("Error: unable to open display") is None

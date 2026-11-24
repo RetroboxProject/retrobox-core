@@ -52,8 +52,11 @@ FORCE_GLCORE_CORES: Final = ("kronos", "mupen64plus_next", "melonds", "beetle-ps
 FORCE_GL_CORES: Final = ("parallel_n64", "yabasanshiro")
 
 
-class _Config(Protocol):
-    def get_str(self, key: str, default: str, /) -> str: ...
+class _Config(Protocol):  # pylint: disable=too-few-public-methods
+    """The part of a game's configuration the driver choice reads."""
+
+    def get_str(self, key: str, default: str, /) -> str:
+        """The string stored under ``key``, ``default`` when it is not set."""
 
 
 def normalize(value: object) -> str | None:
