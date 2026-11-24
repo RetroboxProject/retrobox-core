@@ -4,11 +4,12 @@ import csv
 import logging
 import re
 import subprocess
-import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, Final
 
 from retrobox.paths import ROTATION_FILE, DEFAULTS_DIR, LIBEXEC_DIR
+
+from . import opengl
 
 if TYPE_CHECKING:
     from ..config import SystemConfig
@@ -17,7 +18,6 @@ if TYPE_CHECKING:
 _logger = logging.getLogger(__name__)
 
 _ROTATION_FILE: Final = ROTATION_FILE
-_GLXINFO_BIN: Final = Path("/usr/bin/glxinfo")
 
 
 def getScreensInfos(config: SystemConfig) -> list[ScreenInfo]:
@@ -141,33 +141,16 @@ def checkModeExists(videomode: str) -> bool:
 
 
 def getGLVersion() -> float:
-    try:
-        # optim for most sbc having not glxinfo
-        if not _GLXINFO_BIN.exists():
-            return 0
-
-        glxVerCmd = 'glxinfo | grep "OpenGL version"'
-        glVerOutput = subprocess.check_output(glxVerCmd, shell=True).decode(sys.stdout.encoding)
-        glVerString = glVerOutput.split()
-        glVerTemp = glVerString[3].split(".")
-        if len(glVerTemp) > 2:
-            del glVerTemp[2:]
-        return float('.'.join(glVerTemp))
-    except Exception:
+    """Version of the OpenGL core profile (0 when unknown), e.g. 4.6."""
+    info = opengl.probe()
+    if info is None or info.core_version is None:
         return 0
+    return float(f"{info.core_version[0]}.{info.core_version[1]}")
 
 def getGLVendor() -> str:
-    try:
-        # optim for most sbc having not glxinfo
-        if not _GLXINFO_BIN.exists():
-            return "unknown"
-
-        glxVendCmd = 'glxinfo | grep "OpenGL vendor string"'
-        glVendOutput = subprocess.check_output(glxVendCmd, shell=True).decode(sys.stdout.encoding)
-        glVendString = glVendOutput.split()
-        return glVendString[3].casefold()
-    except Exception:
-        return "unknown"
+    """Lower-case vendor string of the OpenGL driver, \"unknown\" when it can't be told."""
+    info = opengl.probe()
+    return info.vendor if info else "unknown"
 
 def get_alt_decoration(systemName: str, rom: str | Path, emulator: str) -> str:
     # Returns an ID for games that need rotated bezels/shaders or have special art

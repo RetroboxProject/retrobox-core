@@ -14,6 +14,7 @@ from retrobox.configgen.Emulator import generate_bash_wrapper
 from retrobox.configgen.exceptions import RetroboxException
 from retrobox.configgen.generators.Generator import Generator
 from retrobox.configgen.generators.libretro import (
+    libretro_backend,
     libretro_hotkeys,
     libretro_netplay,
     libretroConfig,
@@ -27,7 +28,7 @@ from retrobox.configgen.generators.libretro.libretroPaths import (
     RETROARCH_CORES,
     RETROARCH_SHADERS,
 )
-from retrobox.configgen.utils import videoMode, vulkan
+from retrobox.configgen.utils import videoMode
 from retrobox.configgen.hotkeys import load_table
 from retrobox.configgen.utils.bezel_policy import configured_bezel
 from retrobox.cores import migrate_legacy_cores
@@ -45,18 +46,7 @@ if TYPE_CHECKING:
 
 _logger = logging.getLogger(__name__)
 
-_GL_BACKENDS = ("gl", "glcore")
-# video drivers, best first: an unavailable one falls back to the next ones
-_BACKEND_ORDER = ("vulkan", "glcore", "gl")
-_BACKEND_ALIASES = {"opengl": "gl"}
-_MIN_GLCORE_VERSION = 3.1
-_GLCORE_VENDORS = ("nvidia", "amd")
-# cores whose hardware renderer needs an OpenGL context: without a driver
-# chosen, they start the cascade at glcore / gl instead of vulkan
-_FORCE_GLCORE_CORES = ("kronos", "mupen64plus_next", "melonds", "beetle-psx-hw")
-_FORCE_GL_CORES = ("parallel_n64", "yabasanshiro")
 _AUTO_STATE_SUFFIX = ".auto"
-_AUTO_BACKEND = "auto"
 
 
 # RetroArch's commands (command.h) for the control channel
@@ -120,64 +110,14 @@ def _resolve_shader(system: Emulator, rom: Path, gfx_backend: str) -> tuple[Path
     return video_shader, "noBezel" in video_shader.name
 
 
-def _backend_available(backend: str) -> bool:
-    """Whether RetroArch can use the video driver ``backend`` here."""
-    if backend == "vulkan":
-        return vulkan.is_available()
-    if backend == "glcore":
-        return (
-            videoMode.getGLVendor() in _GLCORE_VENDORS
-            and videoMode.getGLVersion() >= _MIN_GLCORE_VERSION
-        )
-    return True  # gl
-
-
-def _first_available(start: str) -> str:
-    """``start`` if it is available, else the next one of _BACKEND_ORDER that is."""
-    for backend in _BACKEND_ORDER[_BACKEND_ORDER.index(start):]:
-        if _backend_available(backend):
-            return backend
-    return _BACKEND_ORDER[-1]
-
-
-def _requested_backend(system: Emulator) -> str | None:
-    """The video driver chosen for the game ("gfxbackend"), if any.
-
-    retroarch.cfg is not looked at: its video_driver is written by this very
-    generator on every launch, so it would only echo the previous choice.
-    """
-    chosen = system.config.get_str("gfxbackend", "")
-    chosen = _BACKEND_ALIASES.get(chosen.strip().lower(), chosen.strip().lower())
-    if not chosen or chosen == _AUTO_BACKEND:
-        return None
-    if chosen not in _BACKEND_ORDER:
-        _logger.warning("unknown video driver %r, choosing one automatically", chosen)
-        return None
-    return chosen
-
-
 def gfx_backend_get(system: Emulator) -> str:
     """Return the video driver to use: "vulkan", "glcore" or "gl".
 
-    The driver chosen for the game, or else the best one for its core
-    (vulkan, except for the cores that need OpenGL), falling back in the
-    order vulkan > glcore > gl when it isn't available. Shader presets need
-    vulkan or glcore (.slangp); gl only runs .glslp ones.
+    See libretro_backend: the cascade starts at the driver chosen for the
+    game (or the best one for its core) and only goes down vulkan > glcore > gl.
+    Shader presets need vulkan or glcore (.slangp); gl only runs .glslp ones.
     """
-    start = _requested_backend(system)
-    if start is None:
-        core = system.config.core
-        if core in _FORCE_GL_CORES:
-            start = "gl"
-        elif core in _FORCE_GLCORE_CORES:
-            start = "glcore"
-        else:
-            start = _BACKEND_ORDER[0]
-    backend = _first_available(start)
-    if backend != start:
-        _logger.info("video driver %s not available, using %s", start, backend)
-    _logger.debug("video driver: %s", backend)
-    return backend
+    return libretro_backend.get_backend(system.config)
 
 
 def _extra_config_files(system: Emulator, rom: Path) -> list[Path]:
@@ -201,8 +141,13 @@ class LibretroGenerator(Generator):
         return True
 
     def usesOpenGLDirectPreload(self, config) -> bool:
-        """Tell whether the emulator needs the OpenGL preload for MangoHud."""
-        return config.get("gfxbackend") in _GL_BACKENDS
+        """Tell whether the emulator needs the OpenGL preload for MangoHud.
+
+        It asks for the driver RetroArch really gets (the cascade included),
+        not for the one the option names: "Default" and a driver that fell
+        back to another one would otherwise be taken for Vulkan.
+        """
+        return libretro_backend.uses_opengl(config)
 
     def hotkey_bindings(self, system):
         """RetroArch reads most hotkeys itself (see libretro_hotkeys)."""
