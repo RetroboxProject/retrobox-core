@@ -48,7 +48,8 @@ _GLOBAL_CONFIG_NAME = "_global_config"
 _GENERAL_GROUP = "GENERAL"  # the features of this group have no "group" attribute
 _NO_SUBMENU = "NONE"
 # keys of the YAML that are not attributes of the element they describe
-_LAUNCHER_KEYS = ("core_option", "core_options", "retroarch_option")  # read by the launcher only
+# read by the launcher only
+_LAUNCHER_KEYS = ("core_option", "core_options", "retroarch_option", "screen_auto")
 _STRUCTURE_KEYS = (
     "emulator_name",
     "core_name",

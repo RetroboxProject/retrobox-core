@@ -6,41 +6,27 @@ groups:
       SCREEN:
         - name: RENDERING RESOLUTION (4:3)
           value: mupen64plus-43screensize
-          description: Render viewport of 4:3 games. Bigger is sharper and slower.
+          description: Internal render size of 4:3 games, whatever the window. Auto takes the largest that fits the screen.
+          screen_auto: true
           choices:
-            - name: Default
+            - name: Auto (Screen) (Default)
               value: auto
-            - name: 320x240
+            - name: 320x240 (1x, native)
               value: 320x240
-            - name: 640x480
+            - name: 640x480 (2x)
               value: 640x480
-            - name: 960x720
+            - name: 960x720 (3x)
               value: 960x720
-            - name: 1280x960
+            - name: 1280x960 (4x)
               value: 1280x960
-            - name: 1440x1080
+            - name: 1440x1080 (4.5x)
               value: 1440x1080
-            - name: 1600x1200
-              value: 1600x1200
-            - name: 1920x1440
-              value: 1920x1440
-            - name: 2240x1680
-              value: 2240x1680
-            - name: 2560x1920
-              value: 2560x1920
-            - name: 2880x2160
-              value: 2880x2160
-            - name: 3200x2400
-              value: 3200x2400
-            - name: 3520x2640
-              value: 3520x2640
-            - name: 3840x2880
-              value: 3840x2880
         - name: RENDERING RESOLUTION (WIDE)
           value: mupen64plus-169screensize
-          description: Render viewport when widescreen is on.
+          description: Internal render size when widescreen is on, whatever the window. Auto takes the largest that fits the screen.
+          screen_auto: true
           choices:
-            - name: Default
+            - name: Auto (Screen) (Default)
               value: auto
             - name: 640x360
               value: 640x360
@@ -52,10 +38,6 @@ groups:
               value: 1366x768
             - name: 1920x1080
               value: 1920x1080
-            - name: 2560x1440
-              value: 2560x1440
-            - name: 3840x2160
-              value: 3840x2160
   CONTROLS:
     submenus:
       PORT 1:

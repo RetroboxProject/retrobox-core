@@ -28,17 +28,17 @@ groups:
               value: "16/9"
         - name: RENDERING RESOLUTION (GLIDEN64 ONLY)
           value: mupen64plus_NativeResFactor
-          description: Render at the screen resolution or at a multiple of the N64 native resolution.
+          description: Internal render size, whatever the window. Auto renders at the screen resolution. Games with a 640-wide picture double it.
           choices:
-            - name: Screen Resolution (Default)
+            - name: Auto (Screen) (Default)
               value: 0
-            - name: 1x (Native)
+            - name: 320x240 (1x, native)
               value: 1
-            - name: 2x
+            - name: 640x480 (2x)
               value: 2
-            - name: 3x
+            - name: 960x720 (3x)
               value: 3
-            - name: 4x
+            - name: 1280x960 (4x)
               value: 4
         - name: ANTI-ALIASING (MSAA)
           value: mupen64plus_AntiAliasing

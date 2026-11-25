@@ -25,11 +25,17 @@ choice is written as it is)::
 A game that leaves the feature unset (or on ``auto``) gets the core default:
 the options the feature manages are removed from the core options file, so a
 value picked for another game never leaks into this one.
+
+A feature whose choices are render sizes (``WIDTHxHEIGHT``) can make ``auto``
+follow the screen instead of the core default::
+
+    screen_auto: true      # auto: the largest choice that fits in the screen
 """
 
 from __future__ import annotations
 
 import logging
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -43,6 +49,7 @@ if TYPE_CHECKING:
 
     from ...config import SystemConfig
     from ...settings.unixSettings import UnixSettings
+    from ...typedefs import Resolution
 
 _logger = logging.getLogger(__name__)
 
@@ -51,6 +58,39 @@ _DEFAULT_VALUES = ("", "auto")
 _CORE_OPTION_KEY = "core_option"
 _CORE_OPTIONS_KEY = "core_options"
 _RETROARCH_OPTION_KEY = "retroarch_option"
+_SCREEN_AUTO_KEY = "screen_auto"
+# a choice that is a render size: WIDTHxHEIGHT
+_SIZE_PATTERN = re.compile(r"^(\d+)x(\d+)$")
+
+
+def _sizes_of(choices: object) -> tuple[tuple[int, int], ...]:
+    """Return the render sizes (``WIDTHxHEIGHT``) among the choices of an item."""
+    sizes: list[tuple[int, int]] = []
+    for choice in choices if isinstance(choices, list) else []:
+        value = str(choice.get("value", "")) if isinstance(choice, dict) else ""
+        if match := _SIZE_PATTERN.match(value):
+            sizes.append((int(match[1]), int(match[2])))
+    return tuple(sizes)
+
+
+def fit_screen(sizes: tuple[tuple[int, int], ...], screen: Resolution) -> str | None:
+    """Return the largest size that fits in the screen, as ``WIDTHxHEIGHT``.
+
+    Args:
+        sizes: The render sizes to pick from.
+        screen: The resolution of the screen (its sides are swapped when it is
+            rotated, as the picture is always drawn landscape).
+
+    Returns:
+        The largest size whose two sides fit; the smallest size when none fits;
+        None when there are no sizes.
+    """
+    if not sizes:
+        return None
+    width, height = sorted((screen["width"], screen["height"]), reverse=True)
+    fitting = [size for size in sizes if size[0] <= width and size[1] <= height]
+    best = max(fitting) if fitting else min(sizes)
+    return f"{best[0]}x{best[1]}"
 
 
 @dataclass(frozen=True)
@@ -64,12 +104,15 @@ class CoreFeature:
             ``option`` is not used then.
         in_retroarch_cfg: True when ``option`` is a setting of retroarch.cfg and
             not a core option.
+        screen_sizes: The render sizes ``auto`` picks from to fit the screen;
+            empty when ``auto`` is the core default.
     """
 
     feature: str
     option: str = ""
     choices: Mapping[str, Mapping[str, str]] = field(default_factory=dict)
     in_retroarch_cfg: bool = False
+    screen_sizes: tuple[tuple[int, int], ...] = ()
 
     @property
     def managed_options(self) -> set[str]:
@@ -78,17 +121,22 @@ class CoreFeature:
             return {self.option}
         return {option for choice in self.choices.values() for option in choice}
 
-    def options_for(self, selected: str | None) -> dict[str, str]:
+    def options_for(
+        self, selected: str | None, screen: Resolution | None = None
+    ) -> dict[str, str]:
         """Return the options to write for the selected choice.
 
         Args:
             selected: The value of the feature in the game, None if unset.
+            screen: The resolution of the screen, for a feature whose ``auto``
+                follows it.
 
         Returns:
             The options to write; empty when the core default must be used.
         """
         if selected is None or selected in _DEFAULT_VALUES:
-            return {}
+            fitted = fit_screen(self.screen_sizes, screen) if screen else None
+            return {self.option: fitted} if fitted and not self.choices else {}
         if not self.choices:
             return {self.option: selected}
         return dict(self.choices.get(selected, {}))
@@ -123,7 +171,10 @@ def _feature_of(item: Mapping[str, Any]) -> CoreFeature | None:
     declared = item.get(_CORE_OPTION_KEY)
     if declared is False:
         return None
-    return CoreFeature(name, option=str(declared or "").strip() or name)
+    sizes = _sizes_of(item.get("choices")) if item.get(_SCREEN_AUTO_KEY) is True else ()
+    return CoreFeature(
+        name, option=str(declared or "").strip() or name, screen_sizes=sizes
+    )
 
 
 def parse_core_features(data: Mapping[str, Any]) -> list[CoreFeature]:
@@ -164,7 +215,10 @@ def load_core_features(core: str, features_dir: Path | None = None) -> list[Core
 
 
 def apply_core_features(
-    core_settings: UnixSettings, config: SystemConfig, features: list[CoreFeature]
+    core_settings: UnixSettings,
+    config: SystemConfig,
+    features: list[CoreFeature],
+    screen: Resolution | None = None,
 ) -> None:
     """Write (or remove) the core options of the features for the current game.
 
@@ -172,12 +226,15 @@ def apply_core_features(
         core_settings: The core options file, updated in place.
         config: The configuration of the running game.
         features: The core option features of the core.
+        screen: The resolution of the screen, for the features whose ``auto``
+            follows it.
     """
     for feature in features:
         if feature.in_retroarch_cfg:
             continue
         selected = config.get(feature.feature)
-        wanted = feature.options_for(None if selected is config.MISSING else str(selected))
+        value = None if selected is config.MISSING else str(selected)
+        wanted = feature.options_for(value, screen)
         for option in feature.managed_options - wanted.keys():
             core_settings.remove(option)
         for option, value in wanted.items():

@@ -2,7 +2,9 @@
 # Mupen64Plus (Nintendo 64), standalone: a build from source of the console
 # frontend, the core and the plugins that batocera ships. Each part is built at
 # the version batocera pins for it, with the patches batocera applies to it (the
-# states and saves named after the ROM, no start message...).
+# states and saves named after the ROM, no start message...). On x86_64 the core
+# uses the new dynamic recompiler, as on ARM: the old one loops on some games
+# (1080 Snowboarding fills the memory until the system kills it).
 #
 #   MUPEN64PLUS_CFLAGS        optimization flags of the build (default:
 #                             -O3 -march=native -pipe, for the machine it is built on)
@@ -99,13 +101,14 @@ function fetch_part() {
     apply_batocera_patches "${part}" "${folder}"
 }
 
-# make_part <part> <flags>: build a part with its Makefile, installed in ${STAGE}.
+# make_part <part> <flags> [VARIABLE=value...]: build a part with its Makefile,
+# installed in ${STAGE}; the variables go to make.
 function make_part() {
     local part="$1" flags="$2"
     local -a args=(
         -C "${SRC_DIR}/${part}/projects/unix"
         PREFIX="${STAGE}" APIDIR="${SRC_DIR}/core/src/api"
-        OPTFLAGS="${flags}" VULKAN=0
+        OPTFLAGS="${flags}" VULKAN=0 "${@:3}"
     )
     log_info "Building $(package_of "${part}") with ${JOBS} jobs..."
     make "${args[@]}" all -j "${JOBS}" \
@@ -171,12 +174,17 @@ function install_source() {
     local core_flags="${flags} -std=gnu17 -D_GNU_SOURCE"
     core_flags+=" -Wno-error=implicit-function-declaration -Wno-error=int-conversion"
     core_flags+=" -Wno-error=incompatible-pointer-types"
+    # the Makefile picks the new dynamic recompiler on ARM only
+    local -a core_vars=()
+    if [[ "${ARCH}" == "x86_64" ]]; then
+        core_vars+=(NEW_DYNAREC=1)
+    fi
     rm -rf "${SRC_DIR}"
     mkdir -p "${SRC_DIR}"
     for part in "${MAKE_PARTS[@]}"; do
         fetch_part "${part}" "${SRC_DIR}/${part}"
         if [[ "${part}" == "core" ]]; then
-            make_part "${part}" "${core_flags}"
+            make_part "${part}" "${core_flags}" "${core_vars[@]}"
         else
             make_part "${part}" "${flags}"
         fi

@@ -748,7 +748,7 @@ def create_libretro_config(launch: LibretroLaunch, /) -> dict[str, object]:
     features = load_core_features(system.config.core)
     _apply_input_settings(config, launch)
     apply_retroarch_settings(config, system.config, features)
-    apply_core_features(core_settings, system.config, features)
+    apply_core_features(core_settings, system.config, features, launch.resolution)
     core_settings.write()
 
     drop_bezel = _apply_video_and_misc_settings(config, launch)
