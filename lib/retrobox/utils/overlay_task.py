@@ -23,7 +23,6 @@ import shutil
 import subprocess
 from typing import TYPE_CHECKING, Final
 
-from retrobox.paths import layered_file
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -38,9 +37,6 @@ EXIT_UNAVAILABLE: Final = 12
 
 OVERLAY_COMMAND: Final = "retrobox-overlay"
 """The overlay's command, found through ``PATH``."""
-
-# overridable like any shared file: /etc/retrobox/<path> or ~/.config/retrobox/<path>
-BACKGROUND: Final = "emusetup/background.png"
 
 _FORCE_REINSTALL: Final = "RETROBOX_REINSTALL_EMULATOR"
 _HELD_TIMEOUT_S: Final = 5
@@ -109,9 +105,6 @@ def run_task(  # pylint: disable=too-many-arguments
     screen = [overlay, "--task", "--label", label, "--log", str(log_path)]
     if check is not None:
         screen += ["--check", str(check)]
-    background = layered_file(BACKGROUND)
-    if background is not None:
-        screen += ["--background", str(background)]
     if download:
         screen.append("--download")
     if reinstall:
