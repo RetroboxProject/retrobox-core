@@ -874,9 +874,18 @@ function cmake_build() {
     cmake --build "${build}" -j "${JOBS}" \
         || die "The build failed (lower JOBS if the linker ran out of memory)"
 }
-# cmake_install: install what cmake_build built into ${STAGE}.
+# cmake_install: install what cmake_build built into ${STAGE}. It goes through
+# DESTDIR rather than --prefix: projects such as Kodi install to absolute paths
+# taken from the configured prefix (${FINAL_APP_DIR}), which --prefix does not
+# move, so their files would land in the live install instead of the stage.
 function cmake_install() {
-    cmake --install "${SRC_DIR}/build" --prefix "${STAGE}" || die "cmake --install failed"
+    local root="${TMP_DIR}/destdir"
+    rm -rf "${root}"
+    DESTDIR="${root}" cmake --install "${SRC_DIR}/build" || die "cmake --install failed"
+    [[ -d "${root}${FINAL_APP_DIR}" ]] || die "cmake --install put nothing under ${FINAL_APP_DIR}"
+    mkdir -p "${STAGE}"
+    cp -a "${root}${FINAL_APP_DIR}/." "${STAGE}/" || die "Could not stage the install"
+    rm -rf "${root}"
 }
 function remove_sources() {
     if [[ "${KEEP_SRC}" == "1" ]]; then
