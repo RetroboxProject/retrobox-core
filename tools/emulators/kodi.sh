@@ -91,6 +91,9 @@ function install_source() {
     local -a extra=()
     # SWIG 4.5 or newer for the Python bindings of newer Kodi: else its own copy
     swig_too_old && extra+=(-DENABLE_INTERNAL_SWIG=ON)
+    # Kodi up to 21 needs PCRE1, gone from Debian 13 and recent Fedora: build
+    # its own static copy (newer Kodi uses PCRE2 and ignores the option)
+    pkg-config --exists libpcre 2>/dev/null || extra+=(-DENABLE_INTERNAL_PCRE=ON)
     git_clone https://github.com/xbmc/xbmc.git "${ref}"
     cmake_build -DCORE_PLATFORM_NAME="${KODI_PLATFORM:-x11}" -DAPP_RENDER_SYSTEM="${render}" \
         -DENABLE_INTERNAL_FFMPEG=ON -DENABLE_INTERNAL_CROSSGUID=ON -DENABLE_TESTING=OFF \
