@@ -7,6 +7,8 @@
 #   EMULATOR="dolphin-emu"      its folder: <emulators>/dolphin-emu
 #   LABEL="Dolphin"             its name in messages
 #   source "<root>/tools/lib/installer.sh"
+#   install_flatpak()  { ...; }   a Flatpak (installed by flatpak itself;
+#                                 the method leaves a marker in ${STAGE})
 #   install_appimage() { ...; }   the release AppImage, extracted
 #   install_archive()  { ...; }   a prebuilt release archive (tarball, zip)
 #   install_source()   { ...; }   a build from source
@@ -14,7 +16,9 @@
 #
 # Options (the same for every installer):
 #   -i   install with the best method this machine can use, in this order:
-#        the extracted AppImage, the release archive, the source build
+#        the Flatpak, the extracted AppImage, the release archive, the source
+#        build
+#   -f   only the Flatpak
 #   -a   only the AppImage        -t   only the archive        -s   only the source build
 #   -u   uninstall: the program goes, the configuration and saves stay
 #   -l   print the methods the installer has, in that order
@@ -66,7 +70,7 @@ SRC_DIR="${RETROBOX_EMULATORS_DIR}/_src/${EMULATOR}"
 JOBS="${JOBS:-$(nproc)}"
 KEEP_SRC="${KEEP_SRC:-0}"
 _MANIFEST="${INSTALL_DIR}/.retrobox-files"
-_METHODS=(appimage archive source)
+_METHODS=(flatpak appimage archive source)
 _UNAVAILABLE=2
 case "$(uname -m)" in
     x86_64 | amd64) ARCH="x86_64" ;;
@@ -774,6 +778,35 @@ sys.exit(3)' "${pattern}" "${prereleases}" <<<"${json}")" || status=$?
         *) die "Could not read the releases of ${forge#*:}" ;;
     esac
 }
+## Flatpaks ----------------------------------------------------------------
+# The Flatpak that a "flatpak" install put in place (its marker in app/).
+FLATPAK_MARKER=".retrobox-flatpak"
+# flatpak_install <app id>: install or update <app id> from Flathub for this
+# user, and leave the marker (with its id) in ${STAGE}, so the install has a
+# program in its app/ folder like any other: -u removes the Flatpak too.
+function flatpak_install() {
+    local app="$1"
+    command -v flatpak &>/dev/null || unavailable "flatpak is not installed."
+    log_info "Adding Flathub (for this user) if it is not there..."
+    flatpak remote-add --user --if-not-exists flathub \
+        https://dl.flathub.org/repo/flathub.flatpakrepo \
+        || die "Could not add the Flathub remote"
+    log_info "Installing or updating the ${app} Flatpak..."
+    flatpak install --user --or-update --noninteractive -y flathub "${app}" \
+        || die "flatpak could not install ${app}"
+    printf '%s\n' "${app}" >"${STAGE}/${FLATPAK_MARKER}"
+}
+# flatpak_uninstall: remove the Flatpak of the marker in app/, if any.
+function flatpak_uninstall() {
+    local marker="${APP_DIR}/${FLATPAK_MARKER}" app
+    [[ -f "${marker}" ]] || return 0
+    app="$(head -n 1 "${marker}")"
+    if [[ -n "${app}" ]] && command -v flatpak &>/dev/null \
+        && flatpak info --user "${app}" &>/dev/null; then
+        log_info "Removing the ${app} Flatpak..."
+        flatpak uninstall --user --noninteractive -y "${app}" || log_warn "flatpak could not remove ${app}"
+    fi
+}
 ## Unpacking ---------------------------------------------------------------
 # extract_appimage <file>: the AppImage's files become ${STAGE}.
 function extract_appimage() {
@@ -932,6 +965,7 @@ function _install_preferred() {
     for method in "${_METHODS[@]}"; do
         _has_method "${method}" || continue
         case "${method}" in
+            flatpak) flag="-f" ;;
             appimage) flag="-a" ;;
             archive) flag="-t" ;;
             source) flag="-s" ;;
@@ -950,6 +984,7 @@ function _uninstall() {
     if declare -F before_uninstall >/dev/null; then
         before_uninstall
     fi
+    flatpak_uninstall
     rm -rf "${APP_DIR}" "${STAGE}" "${INSTALL_DIR}/app.old"
     _remove_manifest_files
     _remove_legacy
@@ -960,9 +995,9 @@ function _uninstall() {
 }
 function _usage() {
     cat <<EOF
-Usage: $(basename "$0") -i | -a | -t | -s | -u | -l
+Usage: $(basename "$0") -i | -f | -a | -t | -s | -u | -l
   -i  install ${LABEL} the best way this machine allows ($(_list_methods))
-  -a  the AppImage    -t  the release archive    -s  a build from source
+  -f  the Flatpak     -a  the AppImage    -t  the release archive    -s  a build from source
   -u  uninstall (the configuration and saves are kept)
   -l  list the methods this installer has
 EOF
@@ -978,6 +1013,7 @@ function _list_methods() {
 function installer_main() {
     case "${1:-}" in
         -i) _install_preferred ;;
+        -f) _install_with flatpak ;;
         -a) _install_with appimage ;;
         -t) _install_with archive ;;
         -s) _install_with source ;;

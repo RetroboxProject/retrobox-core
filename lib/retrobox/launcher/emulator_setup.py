@@ -73,6 +73,9 @@ _INSTALLABLE: Final[dict[str, Installable]] = {
     "ryujinx": _RYUJINX,
     "ryujinx-emu": _RYUJINX,
     "keisho": Installable("keisho", "Keisho", "keisho.keisho_paths", "KEISHO"),
+    # the apps system's Kodi (and EmulationStation's Kodi entry): the Flatpak on
+    # x86_64, a build elsewhere; its data is in ~/.kodi or the Flatpak's, not app/
+    "kodi": Installable("kodi", "Kodi", "kodi.kodi_paths", "KODI", keep=()),
     "supermodel": Installable(
         "supermodel3", "Supermodel", "supermodel.supermodel_paths", "SUPERMODEL",
         keep=("Config/Supermodel.ini", "NVRAM", "Saves"),

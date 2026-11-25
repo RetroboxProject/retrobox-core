@@ -56,8 +56,10 @@ Configuration is layered, read-only code and writable user data are separate, an
 **Configuration layers**, lowest priority first. Each mirrors the `share/` tree (`systems/`, `emulator_options/`, `hooks/retrohook.d/`, ...) and a file with the same relative path replaces the one below it; extra files add systems, emulator options or hooks:
 
 1. `<install dir>/share` — shipped defaults
-2. `/etc/retrobox` — administrator (optional; `RETROBOX_SYSCONFDIR`)
-3. `~/.config/retrobox` — user (`RETROBOX_CONFIGDIR`)
+2. `/etc/retrobox` — administrator (optional)
+3. `~/.config/retrobox` — user (`$XDG_CONFIG_HOME/retrobox`)
+
+Every Retrobox program (the core, the overlay, the system settings and sessions) reads its configuration from these two places only: only `XDG_CONFIG_HOME` moves the user's. `RETROBOX_CONFIGDIR` is exported to the programs Retrobox starts, but setting it moves nothing.
 
 `retrobox.ini` is merged the same way, key by key: `/etc/retrobox/retrobox.ini`, `/etc/retrobox/retrobox.ini.d/*.ini`, `~/.config/retrobox/retrobox.ini`, `~/.config/retrobox/retrobox.ini.d/*.ini` (drop-ins in alphabetical order). Retrobox never writes these files: defaults live in code and the files only hold changes. The package ships a commented template in `/etc/retrobox/retrobox.ini`.
 
@@ -65,7 +67,7 @@ Configuration is layered, read-only code and writable user data are separate, an
 
 | Directory | Default | Override | Holds |
 |---|---|---|---|
-| config | `~/.config/retrobox` | `RETROBOX_CONFIGDIR` | `retrobox.ini(.d)`, overrides of `share/` (same tree), `emulators/<emu>/` (each emulator's `XDG_CONFIG_HOME`), `frontend/` (EmulationStation home), `pad2key/profiles/`, `hooks/` |
+| config | `~/.config/retrobox` | `XDG_CONFIG_HOME` only | `retrobox.ini(.d)`, overrides of `share/` (same tree), `emulators/<emu>/` (each emulator's `XDG_CONFIG_HOME`), `frontend/` (EmulationStation home), `pad2key/profiles/`, `hooks/` |
 | data | `~/.local/share/retrobox` | `RETROBOX_DATADIR` | `roms/`, `saves/`, `bios/`, `themes/`, `music/`, `decorations/` (+ `decorations-default/`), `shaders/`, `emulators/` (installed binaries), `screenshots/`, `recordings/`, `cheats/`, `overlay/` |
 | state | `~/.local/state/retrobox` | `RETROBOX_STATEDIR` | `logs/`, installer manifests |
 
@@ -238,7 +240,7 @@ When a game needs an emulator that has an installer in `tools/emulators/` but is
 
 ### Installing emulators
 
-Each installer in `tools/emulators/` (they share `tools/lib/installer.sh`) takes the same options. `-i`, which `retrobox --install-emulator` and the setup screen use, installs the best way the machine allows: the release **AppImage, extracted** when there is one for its architecture, else the **release archive** (tarball or zip), else a **build from source**. `-a`, `-t` and `-s` pick one of them, `-u` uninstalls (what `retrobox --remove-emulator` runs) and `-l` lists what the installer has. `retrobox --install-emulator` with no name lists them all:
+Each installer in `tools/emulators/` (they share `tools/lib/installer.sh`) takes the same options. `-i`, which `retrobox --install-emulator` and the setup screen use, installs the best way the machine allows: a **Flatpak** for the one program whose Flatpak Retrobox can use (Kodi), else the release **AppImage, extracted** when there is one for its architecture, else the **release archive** (tarball or zip), else a **build from source**. `-f`, `-a`, `-t` and `-s` pick one of them, `-u` uninstalls (what `retrobox --remove-emulator` runs) and `-l` lists what the installer has. `retrobox --install-emulator` with no name lists them all:
 
 | Emulator | AppImage | Archive | Source |
 | --- | --- | --- | --- |
@@ -248,6 +250,7 @@ Each installer in `tools/emulators/` (they share `tools/lib/installer.sh`) takes
 | Flycast | ✓ (x86_64) | | ✓ |
 | RetroArch | ✓ (x86_64) | ✓ (aarch64: the buildbot's binary, plus the assets) | ✓ |
 | Keisho | | ✓ | ✓ |
+| Kodi | | | ✓ (aarch64; x86_64 takes the Flathub Flatpak when `flatpak` is installed) |
 | Redream, Supermodel | | ✓ | |
 | Vita3K | ✓ | ✓ | ✓ |
 
@@ -279,7 +282,9 @@ In the *Controls* menu of Ares and of the RetroArch PlayStation cores (`pcsx_rea
 
 An `apps` system with app-like shortcuts to web streaming services (opened in Chrome or Firefox kiosk mode, so one of them must be installed) and Kodi (which needs Kodi).
 
-**Kodi** is started through `bin/retrobox-kodi`, which only launches it: the Flatpak (`tv.kodi.Kodi`) if installed, else a native `kodi` (`RETROBOX_KODI=flatpak|native` forces one; `--which` prints the one it would start). Before that, configgen writes the controllers' button maps for Kodi's `peripheral.joystick` add-on into the userdata folder of that Kodi (`~/.var/app/tv.kodi.Kodi/data/userdata` or `~/.kodi/userdata`), mirroring EmulationStation's layout (the buttons by position, L3/R3 included; with *Switch confirm & cancel buttons* the east button confirms, as in EmulationStation). The hotkey is not mapped, because it is a modifier in Retrobox. A native Kodi needs the `peripheral.joystick` add-on, which some distributions package separately. If neither Kodi is installed, configgen stops before anything starts with a `RetroboxException` ("Kodi is not installed: install the tv.kodi.Kodi Flatpak or the kodi package"), also when no controller is connected. EmulationStation's *Kodi media center* menu entry shows when `retrobox-kodi --check` succeeds and goes through the same path (`retrobox-launch -system apps -emulator kodi -rom config`). Kodi uses its own gamepad handling, so its `apps.kodi.keys` pad profile is empty (it only gets the standard hotkeys, such as Hotkey+Start to leave).
+**Kodi** is started through `bin/retrobox-kodi`, which only launches it: the Flatpak (`tv.kodi.Kodi`) if installed, else a native `kodi`, Retrobox's build (`<emulators>/kodi/app/bin/kodi`) first (`RETROBOX_KODI=flatpak|native` forces one; `--which` prints the one it would start).
+
+It is installed like an emulator (`tools/emulators/kodi.sh`, `retrobox --install-emulator kodi`), and the same screen offers it when Kodi is started and missing, or again with L1 and R1 held to update it. On x86_64 with `flatpak` installed it is the Flathub Flatpak, for the user (Flathub is added for the user if needed; `<emulators>/kodi/app/.retrobox-flatpak` marks it, and `-u` removes the Flatpak); otherwise, and always on aarch64, it is built from source: Kodi's latest stable release (`KODI_REF` picks another tag), X11 (`KODI_PLATFORM`), OpenGL on x86_64 and OpenGL ES on ARM (`KODI_RENDER`), with its `peripheral.joystick` add-on. Either way it comes with the [WebApp Launcher](https://github.com/manu-romero-411/plugin.program.webapplauncher) add-on (`plugin.program.webapplauncher`), copied into that Kodi's add-ons folder (`~/.var/app/tv.kodi.Kodi/data/addons` or `~/.kodi/addons`) and enabled by configgen in Kodi's add-on database every time Kodi starts from Retrobox (Kodi keeps add-ons copied by hand disabled; on its very first start, before it has a database, the add-on is enabled from the next one on). EmulationStation's Kodi entry shows when Kodi is installed or can be (`retrobox-kodi --check`), so that it can offer the install. Before that, configgen writes the controllers' button maps for Kodi's `peripheral.joystick` add-on into the userdata folder of that Kodi (`~/.var/app/tv.kodi.Kodi/data/userdata` or `~/.kodi/userdata`), mirroring EmulationStation's layout (the buttons by position, L3/R3 included; with *Switch confirm & cancel buttons* the east button confirms, as in EmulationStation). The hotkey is not mapped, because it is a modifier in Retrobox. A native Kodi needs the `peripheral.joystick` add-on, which some distributions package separately. If no Kodi is installed and the install is declined or can't be shown (no overlay), configgen stops before anything starts with a `RetroboxException` ("Kodi is not installed: install it with 'retrobox --install-emulator kodi'..."), also when no controller is connected. EmulationStation's *Kodi media center* menu entry shows when `retrobox-kodi --check` succeeds and goes through the same path (`retrobox-launch -system apps -emulator kodi -rom config`). Kodi uses its own gamepad handling, so its `apps.kodi.keys` pad profile is empty (it only gets the standard hotkeys, such as Hotkey+Start to leave).
 
 The input daemon maps the player 1 gamepad so the web pages can be used without a mouse (`share/pad2key/profiles/apps.keys`; buttons in SNES layout):
 

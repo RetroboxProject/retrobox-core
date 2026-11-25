@@ -144,6 +144,52 @@ def test_install_falls_back_and_keeps_user_data(fake: tuple[Path, dict[str, str]
     assert sorted(path.name for path in folder.iterdir()) == ["saves"]
 
 
+_FAKE_FLATPAK = """#!/bin/sh
+echo "flatpak $*" >>"${FAKE_FLATPAK_LOG}"
+case "$1" in
+    info) [ -e "${FAKE_FLATPAK_LOG}.installed" ] ;;
+    install) : >"${FAKE_FLATPAK_LOG}.installed" ;;
+    uninstall) rm -f "${FAKE_FLATPAK_LOG}.installed" ;;
+esac
+"""
+
+
+def test_flatpak_install(fake: tuple[Path, dict[str, str], Path], tmp_path: Path) -> None:
+    """A Flatpak install leaves its marker in app/, and -u removes the Flatpak."""
+    script, environment, folder = fake
+    script.write_text(script.read_text(encoding="utf-8").replace(
+        "function install_appimage()",
+        'function install_flatpak() { flatpak_install org.example.Fake; }\n'
+        "function install_appimage()",
+    ), encoding="utf-8")
+    bin_dir = tmp_path / "fakebin"
+    bin_dir.mkdir()
+    (bin_dir / "flatpak").write_text(_FAKE_FLATPAK, encoding="utf-8")
+    (bin_dir / "flatpak").chmod(0o755)
+    log = tmp_path / "flatpak.log"
+    extra = {"PATH": f"{bin_dir}:{environment['PATH']}", "FAKE_FLATPAK_LOG": str(log)}
+    assert _install(fake, "-l").stdout.split() == ["flatpak", "appimage", "archive"]
+
+    result = _install(fake, "-i", **extra)
+    assert result.returncode == 0, result.stderr
+    marker = folder / "app" / ".retrobox-flatpak"
+    assert marker.read_text(encoding="utf-8") == "org.example.Fake\n"
+    assert "install --user --or-update --noninteractive -y flathub org.example.Fake" in (
+        log.read_text(encoding="utf-8"))
+
+    assert _install(fake, "-u", **extra).returncode == 0
+    assert not (folder / "app").exists()
+    uninstalled = "uninstall --user --noninteractive -y org.example.Fake"
+    assert uninstalled in log.read_text(encoding="utf-8")
+
+    # no flatpak command: -i goes on with the next method
+    if shutil.which("flatpak"):
+        return  # this machine has one: it would really be used
+    result = _install(fake, "-i", PATH=f"{tmp_path / 'nothing'}:{environment['PATH']}")
+    assert result.returncode == 0, result.stderr
+    assert (folder / "app" / "bin" / "fake").is_file()
+
+
 def test_portable_install(fake: tuple[Path, dict[str, str], Path]) -> None:
     """A portable emulator is installed at the top of its folder, keeping KEEP files."""
     _, _, folder = fake

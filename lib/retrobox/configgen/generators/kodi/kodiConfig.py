@@ -109,7 +109,8 @@ def kodi_install() -> str:
                 "not installed"
             )
         raise RetroboxException(
-            "Kodi is not installed: install the tv.kodi.Kodi Flatpak or the kodi package"
+            "Kodi is not installed: install it with 'retrobox --install-emulator kodi' "
+            "(the tv.kodi.Kodi Flatpak, or a build), or the kodi package"
         )
     return kind
 

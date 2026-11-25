@@ -5,12 +5,21 @@
 #
 #   retrobox-kodi [kodi args...]   start Kodi (the Flatpak first, then a native one)
 #   retrobox-kodi --which          print "flatpak" or "native"; exit 1 if none
-#   retrobox-kodi --check          the same, without output (EmulationStation's menu)
+#   retrobox-kodi --check          whether EmulationStation shows its Kodi entry:
+#                                  Kodi is there, or Retrobox can install it
+#                                  (tools/emulators/kodi.sh, offered when it starts)
 #
-# RETROBOX_KODI=flatpak|native forces one of them.
+# A native Kodi is Retrobox's own build (<emulators>/kodi/app/bin/kodi, from
+# tools/emulators/kodi.sh) or the distribution's. RETROBOX_KODI=flatpak|native
+# forces one of them.
 set -u
 
 FLATPAK_ID="tv.kodi.Kodi"
+RETROBOX_ROOT="$(cd -- "$(dirname -- "$(readlink -f -- "${BASH_SOURCE[0]}")")/.." && pwd -P)"
+if [[ -z "${RETROBOX_EMULATORS_DIR:-}" ]]; then
+    # shellcheck source=/dev/null
+    source "${RETROBOX_ROOT}/tools/lib/paths.sh"
+fi
 
 has_flatpak() {
     command -v flatpak >/dev/null 2>&1 && flatpak info "${FLATPAK_ID}" >/dev/null 2>&1
@@ -18,6 +27,11 @@ has_flatpak() {
 
 native_kodi() {
     local candidate
+    candidate="${RETROBOX_EMULATORS_DIR:-}/kodi/app/bin/kodi"
+    if [[ -n "${RETROBOX_EMULATORS_DIR:-}" && -x "${candidate}" ]]; then
+        echo "${candidate}"
+        return 0
+    fi
     command -v kodi 2>/dev/null && return 0
     for candidate in /usr/bin/kodi /usr/local/bin/kodi "${HOME}/.local/bin/kodi"; do
         if [[ -x "${candidate}" ]]; then
@@ -43,9 +57,19 @@ find_kodi() {
     fi
 }
 
+# Whether Retrobox can install Kodi on this machine (its installer is there,
+# for an architecture it builds or downloads for).
+installable() {
+    [[ -f "${RETROBOX_ROOT}/tools/emulators/kodi.sh" ]] || return 1
+    case "$(uname -m)" in
+        x86_64 | amd64 | aarch64 | arm64) return 0 ;;
+    esac
+    return 1
+}
+
 case "${1:-}" in
     --which) find_kodi; exit $? ;;
-    --check) find_kodi >/dev/null; exit $? ;;
+    --check) find_kodi >/dev/null || installable; exit $? ;;
 esac
 
 kind="$(find_kodi)" || { echo "retrobox-kodi: Kodi not found (Flatpak ${FLATPAK_ID} or native kodi)" >&2; exit 127; }

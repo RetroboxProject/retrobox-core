@@ -18,12 +18,12 @@ STATE="$3"
 # and the user's (~/.config/retrobox). Every layer has the same layout:
 #   <layer>/hooks/retrohook.d/<platform>/<game>/<state>/
 # The launcher exports the RETROBOX_* variables; when called by hand, ask the
-# shared path library.
-if [ -z "${RETROBOX_CONFIGDIR:-}" ]; then
+# shared path library. The user's layer is always $XDG_CONFIG_HOME/retrobox.
+if [ -z "${RETROBOX_ROOTDIR:-}" ]; then
 	# shellcheck source=/dev/null
 	source "$(cd "$(dirname "${BASH_SOURCE[0]}")"/../.. && pwd)/tools/lib/paths.sh"
 fi
-LAYERS=("${RETROBOX_ROOTDIR}/share" "${RETROBOX_SYSCONFDIR:-/etc/retrobox}" "${RETROBOX_CONFIGDIR}")
+LAYERS=("${RETROBOX_ROOTDIR}/share" "${RETROBOX_SYSCONFDIR:-/etc/retrobox}" "${XDG_CONFIG_HOME:-${HOME}/.config}/retrobox")
 
 failed=0
 

@@ -11,7 +11,7 @@ from retrobox.configgen.exceptions import RetroboxException
 
 from ... import Command
 from ..Generator import Generator
-from . import kodiConfig
+from . import kodi_addons, kodiConfig
 
 
 class KodiGenerator(Generator):
@@ -33,4 +33,6 @@ class KodiGenerator(Generator):
         # anything is written or retrobox-kodi is started; the Flatpak is preferred
         userdata = kodiConfig.kodi_userdata()
         kodiConfig.write_kodi_config(playersControllers, userdata)
+        # the add-ons kodi.sh installs with Kodi (the WebApp Launcher), enabled
+        kodi_addons.enable_addons(userdata)
         return Command.Command(array=[kodiConfig.KODI_LAUNCHER])

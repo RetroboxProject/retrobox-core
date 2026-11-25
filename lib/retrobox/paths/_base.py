@@ -299,10 +299,12 @@ def get_ini_value(section: str, key: str, default: str = "") -> str:
 #   STATE_DIR   ~/.local/state/retrobox  logs, installer manifests
 #
 # (~/.config, ~/.local/share and ~/.local/state when the XDG variables are
-# unset.) Each one can be moved with RETROBOX_CONFIGDIR / RETROBOX_DATADIR /
-# RETROBOX_STATEDIR, and /etc/retrobox with RETROBOX_SYSCONFDIR. The big
-# content directories (roms, saves, bios) can be moved on their own from the
-# [paths] section of retrobox.ini.
+# unset.) The configuration is always /etc/retrobox (system) and
+# $XDG_CONFIG_HOME/retrobox (user): every Retrobox program reads it there, so
+# only XDG_CONFIG_HOME moves the user's (RETROBOX_SYSCONFDIR moves the system's,
+# for the tests only). The data and state ones can be moved with
+# RETROBOX_DATADIR / RETROBOX_STATEDIR, and the big content directories (roms,
+# saves, bios) on their own from the [paths] section of retrobox.ini.
 #
 # The resolved values are exported back to os.environ (see _env.py) so child
 # processes (emulatorlauncher, shell scripts, hooks) see exactly the same
@@ -341,12 +343,21 @@ def _resolve_dir(override: str, xdg_var: str, xdg_fallback: Path, ini_key: str =
 SYSCONF_DIR: Final[Path] = Path(
     os.environ.get("RETROBOX_SYSCONFDIR", "").strip() or "/etc/retrobox"
 )
-CONFIG_DIR: Final[Path] = _resolve_dir("RETROBOX_CONFIGDIR", "XDG_CONFIG_HOME", _XDG_CONFIG)
+def _config_dir() -> Path:
+    """The user's configuration: $XDG_CONFIG_HOME/retrobox, else
+    ~/.config/retrobox. Nothing else moves it (RETROBOX_CONFIGDIR is only
+    exported, for the programs Retrobox starts)."""
+    xdg = os.environ.get("XDG_CONFIG_HOME", "").strip()
+    base = Path(xdg) if xdg and os.path.isabs(xdg) else _XDG_CONFIG
+    return base / "retrobox"
+
+
+CONFIG_DIR: Final[Path] = _config_dir()
 
 # retrobox.ini must be read as soon as CONFIG_DIR is known and BEFORE the other
 # directories are resolved: [environ] (RETROBOX_DATADIR, SCREENSHOTS_DIR...) and
 # [paths] data_dir / state_dir feed them. CONFIG_DIR itself, where the file
-# lives, can only come from the environment / XDG.
+# lives, only comes from XDG_CONFIG_HOME.
 _PATHS_CONFIG: Final[CaseSensitiveConfigParser] = _load_layered_ini(
     _ini_files(SYSCONF_DIR, CONFIG_DIR)
 )

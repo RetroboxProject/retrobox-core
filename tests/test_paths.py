@@ -39,6 +39,15 @@ def test_defaults_follow_xdg(tmp_path: Path) -> None:
     assert paths["RETROBOX_BIOS_DIR"] == paths["RETROBOX_DATADIR"] + "/bios"
 
 
+def test_only_xdg_moves_the_config(tmp_path: Path) -> None:
+    """RETROBOX_CONFIGDIR moves nothing; XDG_CONFIG_HOME does."""
+    home = tmp_path / "home"
+    paths = _paths(tmp_path, env={"RETROBOX_CONFIGDIR": str(tmp_path / "elsewhere")})
+    assert paths["RETROBOX_CONFIGDIR"] == str(home / ".config" / "retrobox")
+    paths = _paths(tmp_path, env={"XDG_CONFIG_HOME": str(tmp_path / "xdg")})
+    assert paths["RETROBOX_CONFIGDIR"] == str(tmp_path / "xdg" / "retrobox")
+
+
 def test_runtime_dir_is_private(tmp_path: Path) -> None:
     """The runtime directory is created with mode 0700."""
     paths = _paths(tmp_path)
