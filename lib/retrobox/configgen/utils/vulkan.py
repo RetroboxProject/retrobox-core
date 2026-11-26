@@ -12,11 +12,22 @@ _GPU_HEADER_RE = re.compile(r'^GPU(\d+):?\s*$')
 _KV_RE = re.compile(r'^(\w+)\s*=\s*(.+)$')
 _VERSION_RE = re.compile(r'\d+\.\d+\.\d+')
 _DISCRETE_TYPE = 'PHYSICAL_DEVICE_TYPE_DISCRETE_GPU'
+_SOFTWARE_TYPE = 'PHYSICAL_DEVICE_TYPE_CPU'
+
+
+def _is_software(device: dict) -> bool:
+    """Whether the device is Mesa's software renderer (llvmpipe, lavapipe) or another CPU one."""
+    return ('llvmpipe' in device.get('deviceName', '').lower()
+            or device.get('deviceType') == _SOFTWARE_TYPE)
 
 
 @functools.lru_cache(maxsize=1)
 def _devices() -> list[dict]:
-    """Launches vulkaninfo --summary once and parses all GPU blocks."""
+    """Launches vulkaninfo --summary once and parses the blocks of the real GPUs.
+
+    llvmpipe is left out: Mesa always offers it, so counting it would make
+    Vulkan look available on a machine whose GPU has no Vulkan driver.
+    """
     try:
         output = subprocess.check_output(
             ['vulkaninfo', '--summary'], text=True, stderr=subprocess.DEVNULL,
@@ -41,7 +52,7 @@ def _devices() -> list[dict]:
             current[kv.group(1)] = kv.group(2).strip()
 
     devices.sort(key=lambda d: d['index'])
-    return devices
+    return [device for device in devices if not _is_software(device)]
 
 
 def _discrete_device() -> dict | None:
@@ -49,7 +60,7 @@ def _discrete_device() -> dict | None:
 
 
 def is_available() -> bool:
-    """Whether vulkaninfo lists at least one real device (a working loader and ICD)."""
+    """Whether vulkaninfo lists at least one real GPU (a working loader and ICD)."""
     return bool(_devices())
 
 
