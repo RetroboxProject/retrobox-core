@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Final
 
+from retrobox.configgen.hotkeys import HotkeyAction, Keys
 from retrobox.paths import SCREENSHOTS
 
 from .mupen64plus_paths import MUPEN64PLUS_SAVES
@@ -101,6 +102,35 @@ def _write_core(ini: CaseSensitiveConfigParser, config: SystemConfig) -> None:
     set_value(ini, section, "AutoStateSlotIncrement", autoincrement)
 
 
+# The keyboard hotkeys of the core that Retrobox's pad mapper presses (the overlay's
+# menu does too): the action, the key of [CoreEvents] and the SDL keysym the core
+# stores for it (the legacy SDL 1.2 value: F5 is 286), and the same key as evdev
+# names it. They are written in every start, so that a mupen64plus.cfg of an older
+# Mupen64Plus (or one edited by hand) cannot leave one of them on another key.
+# The core has no key for the previous slot, and only advances (F6 here, which it
+# leaves free) or takes a slot by number.
+_KEYBOARD_HOTKEYS: Final = (
+    (HotkeyAction.PAUSE, "Kbd Mapping Pause", 112, "KEY_P"),
+    (HotkeyAction.SAVE_STATE, "Kbd Mapping Save State", 286, "KEY_F5"),
+    (HotkeyAction.SLOT_NEXT, "Kbd Mapping Increment Slot", 287, "KEY_F6"),
+    (HotkeyAction.LOAD_STATE, "Kbd Mapping Load State", 288, "KEY_F7"),
+    (HotkeyAction.RESET, "Kbd Mapping Reset", 290, "KEY_F9"),
+    # held while the pad's combination is: the core speeds up only while it is down
+    (HotkeyAction.FAST_FORWARD, "Kbd Mapping Fast Forward", 102, "KEY_F"),
+)
+
+
+def hotkey_bindings() -> dict[HotkeyAction, Keys]:
+    """The keys the pad mapper presses for each standard action Mupen64Plus can do."""
+    return {action: Keys((evdev,)) for action, _key, _keysym, evdev in _KEYBOARD_HOTKEYS}
+
+
+def _write_hotkeys(ini: CaseSensitiveConfigParser) -> None:
+    """Write the keyboard hotkeys of the core."""
+    for _action, key, keysym, _evdev in _KEYBOARD_HOTKEYS:
+        set_value(ini, "CoreEvents", key, keysym)
+
+
 def _clear_hotkeys(ini: CaseSensitiveConfigParser) -> None:
     """Empty the joystick hotkeys of the core, so a pad cannot trigger them by itself."""
     if not ini.has_section("CoreEvents"):
@@ -195,6 +225,7 @@ def write_config(
     """
     _write_core(ini, config)
     _clear_hotkeys(ini)
+    _write_hotkeys(ini)
     _write_audio(ini, config)
     _write_video_general(ini, resolution)
     core = core_name(config)

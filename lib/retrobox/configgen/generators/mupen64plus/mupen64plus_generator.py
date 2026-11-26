@@ -106,8 +106,10 @@ class Mupen64PlusGenerator(Generator):
     # pylint: disable=invalid-name
 
     def hotkey_bindings(self, system):
-        """Hotkey+Start closes the window (Alt+F4), so Mupen64Plus quits cleanly."""
-        return {HotkeyAction.EXIT: CLOSE_WINDOW}
+        """Hotkey+Start closes the window (Alt+F4), so Mupen64Plus quits cleanly; the rest
+        are the core's own keys (pause, states, reset, fast forward), which the overlay's
+        menu presses too."""
+        return {HotkeyAction.EXIT: CLOSE_WINDOW, **mupen64plus_config.hotkey_bindings()}
 
     def usesOpenGLDirectPreload(self, config) -> bool:
         """MangoHud is preloaded: every video plugin draws with OpenGL."""
