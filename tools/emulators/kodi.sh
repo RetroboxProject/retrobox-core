@@ -112,24 +112,59 @@ function install_source() {
 
     # the release the add-on of --joystick-addon has to be built from
     printf '%s\n' "${ref}" >"${STAGE}/${REF_FILE}"
-    build_joystick_addon "${STAGE}"
+    # an add-on that fails does not throw away the hours of Kodi's build: Kodi
+    # is installed, and --joystick-addon builds the add-on again in minutes
+    if ! (build_joystick_addon "${ref}" "${STAGE}"); then
+        log_warn "Kodi is installed without peripheral.joystick (controllers will not work in it):"
+        log_warn "build it with '$0 --joystick-addon' once the problem above is solved."
+    fi
     remove_sources
 }
 
-# peripheral.joystick: Kodi reads the controllers (and Retrobox's button maps)
-# through it; it is a binary add-on, built against the Kodi source tree in
-# ${SRC_DIR} (which needs no build of its own) and installed under <prefix>.
+# The branch of Kodi's binary add-ons that goes with a Kodi ref: the codename of
+# a release tag (21.3-Omega: Omega), else master.
+function addons_branch() {
+    local ref="$1"
+    if [[ "${ref}" =~ ^[0-9]+\.[0-9]+(\.[0-9]+)?-([A-Za-z]+)$ ]]; then
+        echo "${BASH_REMATCH[2]}"
+    else
+        echo "master"
+    fi
+}
+
+# build_joystick_addon <kodi ref> <prefix>: peripheral.joystick, through which
+# Kodi reads the controllers (and Retrobox's button maps), built against the
+# Kodi source tree in ${SRC_DIR} (which needs no build of its own) and
+# installed under <prefix> (lib/kodi/addons and share/kodi/addons).
+#
+# Kodi's add-on superbuild (cmake/addons) is only configured, for the CMake
+# files the add-on builds against: built, it downloads the add-on and its
+# dependencies as tarballs, and when a download fails it says nothing and
+# installs nothing. So the add-on is cloned with git and built on its own,
+# with the distribution's tinyxml and libudev.
 function build_joystick_addon() {
-    local prefix="$1"
-    log_info "Building Kodi's peripheral.joystick add-on..."
-    cmake -S "${SRC_DIR}/cmake/addons" -B "${SRC_DIR}/build-addons" \
-        -DADDONS_TO_BUILD=peripheral.joystick -DCORE_SOURCE_DIR="${SRC_DIR}" \
-        -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="${prefix}" -DPACKAGE_ZIP=OFF \
-        || die "CMake could not configure Kodi's add-ons"
-    cmake --build "${SRC_DIR}/build-addons" -j "${JOBS}" \
-        || die "The peripheral.joystick add-on did not build"
-    [[ -d "${prefix}/share/kodi/addons/peripheral.joystick" ]] \
-        || die "The build did not produce the peripheral.joystick add-on"
+    local ref="$1" prefix="$2" branch sources="${SRC_DIR}/addon-sources"
+    local env="${SRC_DIR}/build-addons" build="${SRC_DIR}/build-joystick"
+    branch="$(addons_branch "${ref}")"
+    log_info "Building Kodi's peripheral.joystick add-on (${branch})..."
+    rm -rf "${sources}" "${env}" "${build}"
+    git clone --depth 1 --branch "${branch}" https://github.com/xbmc/peripheral.joystick.git \
+        "${sources}/peripheral.joystick" || die "Could not clone peripheral.joystick (${branch})"
+    cmake -S "${SRC_DIR}/cmake/addons" -B "${env}" -DADDONS_TO_BUILD=peripheral.joystick \
+        -DADDON_SRC_PREFIX="${sources}" -DCORE_SOURCE_DIR="${SRC_DIR}" \
+        -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="${env}/unused" -DPACKAGE_ZIP=OFF \
+        || die "CMake could not prepare Kodi's add-on environment"
+    [[ -f "${env}/build/depends/lib/kodi/KodiConfig.cmake" ]] \
+        || die "Kodi's add-on environment has no KodiConfig.cmake"
+    cmake -S "${sources}/peripheral.joystick" -B "${build}" -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_PREFIX_PATH="${env}/build/depends" -DOVERRIDE_PATHS=ON \
+        -DCMAKE_INSTALL_PREFIX="${prefix}" || die "CMake could not configure peripheral.joystick"
+    cmake --build "${build}" -j "${JOBS}" || die "The peripheral.joystick add-on did not build"
+    cmake --install "${build}" || die "The peripheral.joystick add-on did not install"
+    if [[ ! -f "${prefix}/share/kodi/addons/peripheral.joystick/addon.xml" ]] ||
+        ! compgen -G "${prefix}/lib/kodi/addons/peripheral.joystick/peripheral.joystick.so*" >/dev/null; then
+        die "The build did not produce the peripheral.joystick add-on"
+    fi
 }
 
 # The Kodi release to build the add-on from: KODI_REF, else the one the install
@@ -163,7 +198,8 @@ function repair_joystick_addon() {
         || die "No Kodi built by Retrobox in ${APP_DIR}: install it first."
     [[ ! -f "${APP_DIR}/${FLATPAK_MARKER}" ]] \
         || die "The Flatpak Kodi comes with its own peripheral.joystick."
-    need git cmake
+    install_packages "git cmake build-essential pkg-config libtinyxml-dev libudev-dev" \
+        "git cmake gcc-c++ make pkgconf-pkg-config tinyxml-devel systemd-devel"
     local ref
     ref="$(installed_kodi_ref)"
     # a failure removes the sources (the exit trap does it while staging)
@@ -173,7 +209,7 @@ function repair_joystick_addon() {
     mkdir -p "$(dirname "${SRC_DIR}")"
     git clone --depth 1 --branch "${ref}" https://github.com/xbmc/xbmc.git "${SRC_DIR}" \
         || die "Could not clone Kodi ${ref}"
-    build_joystick_addon "${APP_DIR}"
+    build_joystick_addon "${ref}" "${APP_DIR}"
     printf '%s\n' "${ref}" >"${APP_DIR}/${REF_FILE}"
     remove_sources
     _STAGING=0
