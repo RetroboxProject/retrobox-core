@@ -3,13 +3,18 @@ name: Build packages
 # Runs the checks of dev/check.sh (pytest on Ubuntu 24.04, Debian 13 and
 # Fedora; pylint and shellcheck), builds retrobox-core_<version>_all.deb,
 # retrobox-core-<version>-1.noarch.rpm and retrobox-core-all.tar.gz (the
-# payload of install.sh) and smoke-tests them on the same distributions. It
-# only runs by hand: run this workflow with a version (see release-dispatch)
-# to publish them (plus install.sh and SHA256SUMS) as a GitHub Release, or
-# with no version to only build and test. Pushes build nothing (run
-# dev/check.sh before pushing).
+# payload of install.sh) and smoke-tests them on the same distributions.
+#
+# * a push to main publishes the continuous pre-release (tag "continuous", made
+#   again on each push): version <last release>.<UTC time>, which installs over
+#   the last release and over the previous build (.github/scripts);
+# * this workflow run by hand with a version (see release-dispatch) publishes
+#   a release of that tag (plus install.sh and SHA256SUMS);
+# * run by hand with no version, it only builds and tests.
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
       version:
@@ -33,6 +38,8 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     steps:
       - name: Check out (full history, for version detection)
         uses: actions/checkout@v7
@@ -40,18 +47,25 @@ jobs:
           fetch-depth: 0
           submodules: false
 
-      # The requested version is passed to every builder: tagging HEAD and
-      # letting them derive it picks an older tag already on the same commit.
-      - name: Use the requested version
-        if: inputs.version != ''
+      # The version is passed to every builder: tagging HEAD and letting them
+      # derive it picks an older tag already on the same commit. The one asked
+      # for by hand, else (a push) the continuous one; empty: they derive it.
+      - name: Choose the version
+        id: version
         env:
-          VERSION: ${{ inputs.version }}
+          REQUESTED: ${{ inputs.version }}
         run: |
-          if [[ ! "${VERSION}" =~ ^v[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then
-            echo "Invalid version: ${VERSION}" >&2
-            exit 1
+          if [[ -n "${REQUESTED}" ]]; then
+            if [[ ! "${REQUESTED}" =~ ^v[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then
+              echo "Invalid version: ${REQUESTED}" >&2
+              exit 1
+            fi
+            version="${REQUESTED#v}"
+          elif [[ "${GITHUB_EVENT_NAME}" == push ]]; then
+            version="$(.github/scripts/continuous-version.sh)"
           fi
-          echo "VERSION_ARGS=--version ${VERSION#v}" >> "${GITHUB_ENV}"
+          echo "version=${version:-}" >> "${GITHUB_OUTPUT}"
+          echo "VERSION_ARGS=${version:+--version ${version}}" >> "${GITHUB_ENV}"
 
       - name: Build the .deb
         run: packaging/deb/build-deb.sh ${VERSION_ARGS:-} --outdir dist
@@ -250,34 +264,43 @@ jobs:
       - name: bash -n and shellcheck
         run: dev/check.sh shell
 
-  release:
-    if: github.event_name == 'workflow_dispatch' && inputs.version != ''
+      - name: Tests of the release scripts
+        run: .github/scripts/ci-scripts-test.sh
+
+  publish:
+    # the continuous pre-release of a push, or the release asked for by hand
+    if: github.event_name == 'push' || inputs.version != ''
     needs: [tests, lint, build, smoke-test, smoke-test-rpm, install-test]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
+    concurrency:
+      group: publish-${{ github.repository }}
+      cancel-in-progress: false
     steps:
+      - name: Check out (for the publishing scripts only)
+        uses: actions/checkout@v7
+        with:
+          sparse-checkout: .github/scripts
+          sparse-checkout-cone-mode: false
+
       - name: Download the packages
         uses: actions/download-artifact@v8
         with:
           name: retrobox-dist
           path: dist
 
+      - name: Publish the continuous pre-release
+        if: inputs.version == ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.build.outputs.version }}
+        run: .github/scripts/publish-release.sh continuous dist "${VERSION}"
+
       - name: Publish the GitHub Release
+        if: inputs.version != ''
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ inputs.version }}
-          REPO: ${{ github.repository }}
-          SHA: ${{ github.sha }}
-          PRERELEASE: ${{ inputs.prerelease }}
-        run: |
-          flags=()
-          if [[ "${PRERELEASE}" == "true" ]]; then
-            flags+=(--prerelease)
-          fi
-          if gh release view "${TAG}" --repo "${REPO}" >/dev/null 2>&1; then
-            gh release upload "${TAG}" dist/* --repo "${REPO}" --clobber
-          else
-            gh release create "${TAG}" dist/* --repo "${REPO}" \
-              --target "${SHA}" --title "${TAG}" --generate-notes "${flags[@]}"
-          fi
+          PRERELEASE: ${{ inputs.prerelease && '--prerelease' || '' }}
+        run: .github/scripts/publish-release.sh tag "${TAG}" dist ${PRERELEASE}

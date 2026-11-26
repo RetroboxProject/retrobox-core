@@ -322,8 +322,10 @@ sudo dnf install ./retrobox-core-<version>-1.noarch.rpm   # same layout as the .
 
 ```bash
 curl -fsSL https://github.com/RetroboxProject/retrobox-core/releases/latest/download/install.sh | bash
-# options: --prefix DIR  --user  --version X.Y.Z  --with COMPONENT  --no-deps  --uninstall  (see --help)
+# options: --prefix DIR  --user  --version X.Y.Z  --continuous  --with COMPONENT  --no-deps  --uninstall  (see --help)
 ```
+
+Every push to `main` publishes a rolling **continuous** pre-release (`X.Y.Z.<UTC timestamp>`, above the last release, below the next), so each build installs over the previous one: `install.sh --continuous`, or `sudo retrobox-update --allow-prereleases` once installed. Real releases are published by hand: run the *build* workflow with a tag.
 
 It installs the same layout as the package: `/opt/retrobox` (or `/var/opt/retrobox` if `/opt` isn't writable, or `--prefix`), a `retrobox` launcher in `/usr/local/bin`, the application menu entry and its icon in `/usr/local/share` (the packages use `/usr/share`; `--user`, `~/.local/share`), udev rules and the optional `/etc/retrobox`. Dependencies come from apt/dnf (`tools/deps/*.list`, shipped in the tarball's `extras/`, not in the installed tree); on immutable systems (ostree) or with `--no-deps` the Python ones go into a virtualenv inside the install and the script prints the system libraries to layer (e.g. with `rpm-ostree install`). Without root, `--user` installs under `~/.local`.
 

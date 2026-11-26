@@ -13,6 +13,8 @@
 #   --user            no root: install under ~/.local (opt/retrobox, bin/,
 #                     share/), no udev rules, no /etc
 #   --version X.Y.Z   install that release instead of the latest
+#   --continuous      install the continuous build (the pre-release that every
+#                     push to main makes) instead of the latest release
 #   --tarball FILE    install from a local retrobox-core-all.tar.gz
 #                     (skips the download; checksum checked if a SHA256SUMS
 #                     file sits next to it)
@@ -55,6 +57,7 @@ ASSET="retrobox-core-all.tar.gz"
 PREFIX=""
 USER_MODE=0
 VERSION=""
+CONTINUOUS=0
 TARBALL=""
 BASE_URL=""
 DO_DEPS=1
@@ -74,6 +77,7 @@ while [[ $# -gt 0 ]]; do
         --prefix)    PREFIX="${2:?--prefix needs a directory}"; shift 2 ;;
         --user)      USER_MODE=1; shift ;;
         --version)   VERSION="${2:?--version needs a value}"; shift 2 ;;
+        --continuous) CONTINUOUS=1; shift ;;
         --tarball)   TARBALL="${2:?--tarball needs a file}"; shift 2 ;;
         --base-url)  BASE_URL="${2:?--base-url needs a URL}"; shift 2 ;;
         --with)
@@ -228,6 +232,7 @@ if [[ -n "${TARBALL}" ]]; then
     [[ -f "$(dirname "${TARBALL}")/SHA256SUMS" ]] && cp "$(dirname "${TARBALL}")/SHA256SUMS" "${WORK}/SHA256SUMS"
 else
     if [[ -n "${BASE_URL}" ]]; then URL="${BASE_URL%/}"
+    elif [[ "${CONTINUOUS}" -eq 1 ]]; then URL="https://github.com/${REPO}/releases/download/continuous"
     elif [[ -n "${VERSION}" ]]; then URL="https://github.com/${REPO}/releases/download/v${VERSION#v}"
     else URL="https://github.com/${REPO}/releases/latest/download"; fi
     info "Downloading ${URL}/${ASSET}..."
