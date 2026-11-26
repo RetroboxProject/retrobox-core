@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from retrobox.configgen.generators.mupen64plus import mupen64plus_config
 from retrobox.configgen.generators.mupen64plus.mupen64plus_generator import Mupen64PlusGenerator
-from retrobox.configgen.hotkeys import CLOSE_WINDOW, HotkeyAction, Keys
+from retrobox.configgen.hotkeys import HotkeyAction, Keys
 from retrobox.configgen.utils.configparser import CaseSensitiveConfigParser
 
 
@@ -31,9 +31,9 @@ def test_keys_are_written_over_the_ones_of_the_file() -> None:
 
 
 def test_bindings_are_the_same_keys() -> None:
-    """The generator binds exit and every action it writes a key for."""
+    """The generator binds every action it writes a key for; leaving is not its own."""
     bindings = Mupen64PlusGenerator().hotkey_bindings(None)
-    assert bindings[HotkeyAction.EXIT] == CLOSE_WINDOW
+    assert HotkeyAction.EXIT not in bindings  # retrobox-emukill, as in every emulator
     assert bindings[HotkeyAction.SAVE_STATE] == Keys(("KEY_F5",))
     assert bindings[HotkeyAction.LOAD_STATE] == Keys(("KEY_F7",))
     assert bindings[HotkeyAction.SLOT_NEXT] == Keys(("KEY_F6",))

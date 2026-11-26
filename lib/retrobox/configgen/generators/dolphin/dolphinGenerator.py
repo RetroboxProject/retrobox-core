@@ -9,7 +9,6 @@ import logging
 from typing import TYPE_CHECKING
 
 from retrobox.configgen.Emulator import generate_bash_wrapper
-from retrobox.configgen.hotkeys import CLOSE_WINDOW, HotkeyAction
 from retrobox.paths import configure_emulator, mkdir_if_not_exists
 
 from ... import Command
@@ -37,8 +36,8 @@ class DolphinGenerator(Generator):
     # pylint: disable=invalid-name
 
     def hotkey_bindings(self, system):
-        """Dolphin's own keyboard hotkeys (Hotkeys.ini); Alt+F4 lets it quit cleanly."""
-        return {HotkeyAction.EXIT: CLOSE_WINDOW, **dolphin_config.hotkey_bindings()}
+        """Dolphin's own keyboard hotkeys (Hotkeys.ini)."""
+        return dolphin_config.hotkey_bindings()
 
     def usesOpenGLDirectPreload(self, config) -> bool:
         """MangoHud is preloaded when the graphics API that ends up used is OpenGL."""

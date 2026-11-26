@@ -6,7 +6,6 @@ import configparser
 from typing import TYPE_CHECKING, Final
 
 from retrobox.configgen import Command
-from retrobox.configgen.hotkeys import CLOSE_WINDOW, HotkeyAction
 from retrobox.configgen.utils.configparser import CaseSensitiveConfigParser
 from retrobox.paths import (
     SCREENSHOTS,
@@ -106,10 +105,9 @@ class Mupen64PlusGenerator(Generator):
     # pylint: disable=invalid-name
 
     def hotkey_bindings(self, system):
-        """Hotkey+Start closes the window (Alt+F4), so Mupen64Plus quits cleanly; the rest
-        are the core's own keys (pause, states, reset, fast forward), which the overlay's
-        menu presses too."""
-        return {HotkeyAction.EXIT: CLOSE_WINDOW, **mupen64plus_config.hotkey_bindings()}
+        """The core's own keys (pause, states, reset, fast forward), which the overlay's
+        menu presses too. Leaving the game is retrobox-emukill's, as everywhere."""
+        return mupen64plus_config.hotkey_bindings()
 
     def usesOpenGLDirectPreload(self, config) -> bool:
         """MangoHud is preloaded: every video plugin draws with OpenGL."""

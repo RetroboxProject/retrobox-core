@@ -8,7 +8,6 @@ from ruamel.yaml import YAML
 
 from ... import Command
 from retrobox.paths import BIOS, CACHE, configure_emulator, mkdir_if_not_exists
-from retrobox.configgen.hotkeys import CLOSE_WINDOW, HotkeyAction
 from ...exceptions import RetroboxException
 from ...utils import vulkan
 from ...utils.configparser import CaseSensitiveConfigParser
@@ -24,10 +23,6 @@ if TYPE_CHECKING:
 _logger = logging.getLogger(__name__)
 
 class Rpcs3Generator(Generator):
-
-    def hotkey_bindings(self, system):
-        """Hotkey+Start closes the window (Alt+F4), so RPCS3 quits cleanly."""
-        return {HotkeyAction.EXIT: CLOSE_WINDOW}
 
     def generate(self, system, rom, playersControllers, metadata, guns, wheels, gameResolution):
 

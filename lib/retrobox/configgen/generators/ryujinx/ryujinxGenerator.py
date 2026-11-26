@@ -14,7 +14,6 @@ from retrobox.paths import (
     ensure_symlink,
     mkdir_if_not_exists
 )
-from retrobox.configgen.hotkeys import CLOSE_WINDOW, HotkeyAction
 
 from ...controller import generate_sdl_game_controller_config
 
@@ -93,10 +92,6 @@ def sync_firmware(src: Path, registered: Path, checksum_file: Path):
 
 
 class RyujinxGenerator(Generator):
-
-    def hotkey_bindings(self, system):
-        """Hotkey+Start closes the window (Alt+F4), so Ryujinx quits cleanly."""
-        return {HotkeyAction.EXIT: CLOSE_WINDOW}
 
     def generate(self, system, rom, playersControllers, metadata, guns, wheels, gameResolution):
         _logger.warning("DEBUG: generate() llamado, emulator=%s", system.config['emulator'])

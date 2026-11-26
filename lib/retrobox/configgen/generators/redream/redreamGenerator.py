@@ -6,14 +6,9 @@ from ...controller import generate_sdl_game_controller_config
 from ..Generator import Generator
 from .redream_paths import _REDREAM_ROMS, REDREAM, REDREAM_CFG, REDREAM_DIR
 from retrobox.paths import mkdir_if_not_exists
-from retrobox.configgen.hotkeys import CLOSE_WINDOW, HotkeyAction
 
 
 class RedreamGenerator(Generator):
-
-    def hotkey_bindings(self, system):
-        """Hotkey+Start closes the window (Alt+F4), so Redream quits cleanly."""
-        return {HotkeyAction.EXIT: CLOSE_WINDOW}
 
     def generate(self, system, rom, playersControllers, metadata, guns, wheels, gameResolution):
 

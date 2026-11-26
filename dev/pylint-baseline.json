@@ -156,7 +156,7 @@
   "too-many-arguments": 1,
   "too-many-positional-arguments": 1,
   "trailing-whitespace": 2,
-  "wrong-import-order": 2
+  "wrong-import-order": 1
  },
  "lib/retrobox/configgen/generators/eden/edenPaths.py": {
   "invalid-name": 1,
@@ -222,7 +222,7 @@
   "too-many-locals": 1,
   "too-many-positional-arguments": 1,
   "too-many-statements": 1,
-  "wrong-import-order": 3
+  "wrong-import-order": 2
  },
  "lib/retrobox/configgen/generators/flycast/flycastPaths.py": {
   "invalid-name": 1,
@@ -353,7 +353,7 @@
   "too-many-locals": 1,
   "too-many-positional-arguments": 1,
   "too-many-statements": 1,
-  "wrong-import-order": 2
+  "wrong-import-order": 1
  },
  "lib/retrobox/configgen/generators/redream/redream_paths.py": {
   "missing-module-docstring": 1
@@ -383,7 +383,7 @@
   "too-many-positional-arguments": 1,
   "too-many-statements": 1,
   "trailing-whitespace": 1,
-  "wrong-import-order": 2
+  "wrong-import-order": 1
  },
  "lib/retrobox/configgen/generators/rpcs3/rpcs3Paths.py": {
   "invalid-name": 1,
@@ -488,7 +488,7 @@
   "too-many-arguments": 1,
   "too-many-locals": 1,
   "too-many-positional-arguments": 1,
-  "wrong-import-order": 2
+  "wrong-import-order": 1
  },
  "lib/retrobox/configgen/generators/vita3k/vita3k_paths.py": {
   "missing-module-docstring": 1

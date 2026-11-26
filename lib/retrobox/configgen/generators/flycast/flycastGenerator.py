@@ -24,17 +24,12 @@ from retrobox.paths import (
     mkdir_if_not_exists
 )
 from retrobox.configgen.utils.configparser import CaseSensitiveConfigParser
-from retrobox.configgen.hotkeys import CLOSE_WINDOW, HotkeyAction
 
 
 class FlycastGenerator(Generator):
 
     # Main entry of the module
     # Configure fba and return a command
-    def hotkey_bindings(self, system):
-        """Hotkey+Start closes the window (Alt+F4), so Flycast quits cleanly."""
-        return {HotkeyAction.EXIT: CLOSE_WINDOW}
-
     def generate(self, system, rom, playersControllers, metadata, guns, wheels, gameResolution):
         # Write emu.cfg to map joysticks, init with the default emu.cfg
         Config = CaseSensitiveConfigParser(interpolation=None)

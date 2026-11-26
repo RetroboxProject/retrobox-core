@@ -6,17 +6,12 @@ from .eden_config import _eden_write_config
 from ..Generator import Generator
 from ... import Command
 from retrobox.paths import DEFAULTS_DIR, SAVES, configure_emulator
-from retrobox.configgen.hotkeys import CLOSE_WINDOW, HotkeyAction
 from .edenPaths import _EDEN_INI, _EDEN_XDG, EDEN, setup_eden_environments
 
 _logger = logging.getLogger(__name__)
 
 
 class EdenGenerator(Generator):
-    def hotkey_bindings(self, system):
-        """Hotkey+Start closes the window (Alt+F4), so Eden quits cleanly."""
-        return {HotkeyAction.EXIT: CLOSE_WINDOW}
-
     def generate(self, system, rom, playersControllers, metadata, guns, wheels, gameResolution):
         _logger.warning("DEBUG: generate() llamado, emulator=%s", system.config['emulator'])
         emulator = system.config['emulator']

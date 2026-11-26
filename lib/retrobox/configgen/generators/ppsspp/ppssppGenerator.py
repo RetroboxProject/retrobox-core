@@ -8,7 +8,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from retrobox.configgen.Emulator import generate_bash_wrapper
-from retrobox.configgen.hotkeys import CLOSE_WINDOW, HotkeyAction
 from retrobox.paths import SAVES, configure_emulator, ensure_symlink
 
 from ... import Command
@@ -35,8 +34,8 @@ class PPSSPPGenerator(Generator):
     # pylint: disable=invalid-name
 
     def hotkey_bindings(self, system):
-        """PPSSPP's own keyboard hotkeys (controls.ini); Alt+F4 lets it quit cleanly."""
-        return {HotkeyAction.EXIT: CLOSE_WINDOW, **ppssppControllers.hotkey_bindings()}
+        """PPSSPP's own keyboard hotkeys (controls.ini)."""
+        return ppssppControllers.hotkey_bindings()
 
     def usesOpenGLDirectPreload(self, config) -> bool:
         """MangoHud is preloaded when the graphics API that ends up used is OpenGL."""
