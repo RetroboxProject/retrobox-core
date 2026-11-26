@@ -90,6 +90,22 @@ fi
 # sudo, which cleans the environment. LANGUAGE is set too: gettext gives it
 # priority over the locale variables in locales other than "C".
 _C_ENV=(env LC_ALL=C LANGUAGE=C)
+# retrobox-apt (retrobox-system-settings) is the one apt command that a Retrobox
+# console's user may run as root without a password (/etc/sudoers.d): it takes
+# only "update" and "install" with plain package names. Without it, the plain
+# sudo apt-get of any other machine.
+APT_HELPER="$(command -v retrobox-apt 2>/dev/null || true)"
+# _apt_root <update|install> [options] [packages]: apt-get as root. A
+# simulation (-s) is read, so it gets the untranslated text, as _C_ENV says.
+function _apt_root() {
+    local -a untranslated=()
+    [[ " $* " != *" -s "* ]] || untranslated=("${_C_ENV[@]}")
+    if [[ -n "${APT_HELPER}" ]]; then
+        ${SUDO} "${APT_HELPER}" "$@"
+    else
+        ${SUDO} "${untranslated[@]}" apt-get "$@"
+    fi
+}
 TMP_DIR="$(mktemp -d)"
 _STAGING=0
 # shellcheck disable=SC2329  # called by the EXIT trap
@@ -225,7 +241,7 @@ function _apt_pin_mismatched() {
     while [[ "${round}" -lt 8 ]]; do
         round=$((round + 1))
         status=0
-        output="$(${SUDO} "${_C_ENV[@]}" apt-get install -y -s "${_PINNED_WANTED[@]}" 2>&1)" || status=$?
+        output="$(_apt_root install -y -s "${_PINNED_WANTED[@]}" 2>&1)" || status=$?
         [[ "${status}" -eq 0 ]] && return 0
         changed=0
         while read -r pkg ver; do
@@ -249,7 +265,7 @@ function _apt_pin_mismatched() {
             _apt_pin_pairs "${output}"
             while IFS= read -r dep; do
                 [[ -n "${dep}" ]] || continue
-                sub_out="$(${SUDO} "${_C_ENV[@]}" apt-get install -y -s "${dep}" 2>&1 || true)"
+                sub_out="$(_apt_root install -y -s "${dep}" 2>&1 || true)"
                 _apt_pin_pairs "${sub_out}"
             done < <(
                 awk '
@@ -269,7 +285,7 @@ function _apt_pin_mismatched() {
         [[ "${changed}" -eq 1 ]] || return 1
     done
     status=0
-    ${SUDO} "${_C_ENV[@]}" apt-get install -y -s "${_PINNED_WANTED[@]}" &>/dev/null || status=$?
+    _apt_root install -y -s "${_PINNED_WANTED[@]}" &>/dev/null || status=$?
     [[ "${status}" -eq 0 ]]
 }
 # _apt_update_once: the lists are read before the packages are chosen, so a
@@ -278,7 +294,7 @@ function _apt_update_once() {
     [[ -z "${_APT_UPDATED:-}" ]] || return 0
     _APT_UPDATED=1
     log_info "Updating the package lists (apt-get update)..."
-    ${SUDO} apt-get update -qq || log_warn "apt-get update failed: the lists already there are used."
+    _apt_root update -qq || log_warn "apt-get update failed: the lists already there are used."
     return 0
 }
 # _apt_broken <packages...>: what apt makes of the list, before anything is
@@ -293,7 +309,7 @@ function _apt_update_once() {
 function _apt_broken() {
     local output="" status=0 package base suspect tries=0 confirmed=0
     local -a offenders=()
-    output="$(${SUDO} "${_C_ENV[@]}" apt-get install -y -s "$@" 2>&1)" || status=$?
+    output="$(_apt_root install -y -s "$@" 2>&1)" || status=$?
     [[ "${status}" -eq 0 ]] && return 1
     printf '%s\n' "${output}" >&2
     # the packages apt could not work with, as its answer names them (the
@@ -323,7 +339,7 @@ function _apt_broken() {
         [[ "${tries}" -lt 6 ]] || break
         tries=$((tries + 1))
         log_info "Asking apt about ${suspect} on its own..." >&2
-        if ! ${SUDO} "${_C_ENV[@]}" apt-get install -y -s "${suspect}" &>/dev/null; then
+        if ! _apt_root install -y -s "${suspect}" &>/dev/null; then
             offenders+=("${suspect}")
             confirmed=1
         fi
@@ -659,10 +675,10 @@ function install_packages() {
                     # any remaining package that depends on a broken one cannot
                     # be installed by apt either: move it to broken as well
                     if [[ ${#installable[@]} -gt 0 ]] &&
-                        ! ${SUDO} "${_C_ENV[@]}" apt-get install -y -s "${installable[@]}" &>/dev/null; then
+                        ! _apt_root install -y -s "${installable[@]}" &>/dev/null; then
                         local -a kept=()
                         for package in "${installable[@]}"; do
-                            if ${SUDO} "${_C_ENV[@]}" apt-get install -y -s "${package}" &>/dev/null; then
+                            if _apt_root install -y -s "${package}" &>/dev/null; then
                                 kept+=("${package}")
                             else
                                 broken+=("${package%%=*}")
@@ -682,7 +698,7 @@ function install_packages() {
             fi
             if [[ ${#installable[@]} -gt 0 ]]; then
                 log_info "Installing packages: ${installable[*]}"
-                ${SUDO} apt-get install -y "${installable[@]}" \
+                _apt_root install -y "${installable[@]}" \
                     || die "Could not install the packages (apt)"
             fi
             ;;
