@@ -2,7 +2,7 @@
 any Flatpak of Kodi, or the distribution's package.
 
 Kodi is the one program whose Flatpak counts: ``bin/retrobox-kodi`` starts it
-(and configgen writes its controllers in the Flatpak's userdata), so the
+(and ``retrobox-kodi-launch`` writes its controllers in the Flatpak's userdata), so the
 installer (``tools/emulators/kodi.sh``) installs the Flathub one on x86_64.
 That install leaves a marker in ``<emulators>/kodi/app`` instead of a program,
 which is what the launcher and the update screen look for.

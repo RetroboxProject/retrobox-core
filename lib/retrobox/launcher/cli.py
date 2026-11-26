@@ -47,11 +47,16 @@ def _resolve_rom_path(path_str: str) -> Path:
     return Path(path_str).resolve()
 
 
-def build_argument_parser(max_players: int = MAX_PLAYERS) -> argparse.ArgumentParser:
+def build_argument_parser(
+    max_players: int = MAX_PLAYERS, require_game: bool = True
+) -> argparse.ArgumentParser:
     """Build the command-line parser of the launcher.
 
     Args:
         max_players: How many players get their own ``-p<N>...`` options.
+        require_game: Whether ``-system`` and ``-rom`` are mandatory. The Kodi
+            launcher has no game, but takes the command line EmulationStation
+            builds for any command (the controllers' options above all).
 
     Returns:
         The configured argument parser.
@@ -67,8 +72,12 @@ def build_argument_parser(max_players: int = MAX_PLAYERS) -> argparse.ArgumentPa
                 required=False,
             )
 
-    parser.add_argument("-system", help="select the system to launch", type=str, required=True)
-    parser.add_argument("-rom", help="rom absolute path", type=_resolve_rom_path, required=True)
+    parser.add_argument(
+        "-system", help="select the system to launch", type=str, required=require_game
+    )
+    parser.add_argument(
+        "-rom", help="rom absolute path", type=_resolve_rom_path, required=require_game
+    )
 
     for name, description in _STRING_ARGUMENTS:
         parser.add_argument(name, help=description, type=str, required=False)

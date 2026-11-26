@@ -3,8 +3,8 @@
 Kodi keeps add-ons copied into its ``addons`` folder by hand disabled until
 someone enables them in its add-on manager (its database, ``Addons<N>.db``,
 says so). ``tools/emulators/kodi.sh`` puts the WebApp Launcher there, so
-configgen marks it enabled in that database each time Kodi is started from
-Retrobox. Before Kodi's first start there is no database yet: Kodi then finds
+``retrobox-kodi-launch`` marks it enabled in that database each time Kodi is
+started from Retrobox. Before Kodi's first start there is no database yet: Kodi then finds
 the add-on on its own, and it is enabled from the next start on.
 """
 

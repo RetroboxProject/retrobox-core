@@ -6,7 +6,6 @@ apps:
   path: "{data}/apps"
   extension:
   - .webapp
-  - .kodi
   - .steam
   platform:
   - apps
@@ -17,23 +16,14 @@ apps:
         chrome:
           default: true
           incompatible_extensions:
-          - .kodi
           - .steam
     firefox:
       cores:
         firefox:
           incompatible_extensions:
-          - .kodi
-          - .steam
-    kodi:
-      cores:
-        kodi:
-          incompatible_extensions:
-          - .webapp
           - .steam
     steam:
       cores:
         steam:
           incompatible_extensions:
-          - .kodi
           - .webapp

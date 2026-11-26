@@ -17,6 +17,13 @@ open while a game is starting or ending: there is no menu to show then.
 ``game_state.process_start_time()``) tells it apart from a later process that
 reused the pid: a file left by a launcher that died counts as no launch at
 all. The layout is versioned (``version``) and only ever extended.
+
+A frontend that is not a game (Kodi, see ``kodi_launch``) says so in
+``frontend.json`` (``{"version": 1, "pid": ..., "start_time": ...}``, the same
+meaning of ``pid`` and ``start_time``) for as long as it runs: the overlay does
+not open over it, as long as no game session (``session.json``) is above it.
+It is a file of its own because a game launched from the frontend writes and
+removes ``launch.json`` for itself.
 """
 
 from __future__ import annotations
@@ -37,6 +44,7 @@ _logger = logging.getLogger(__name__)
 
 LAUNCH_FILE: Final = RUNTIME_DIR / "launch.json"
 LAUNCH_VERSION: Final = 1
+FRONTEND_FILE: Final = RUNTIME_DIR / "frontend.json"
 
 
 class Phase(StrEnum):
@@ -100,6 +108,22 @@ def set_phase(phase: Phase, launcher_pid: int | None = None, path: Path = LAUNCH
 
 def end_launch(path: Path = LAUNCH_FILE) -> None:
     """This process's launch is over: remove the file, if it is still its."""
+    data = _read(path)
+    if data is not None and data.get("pid") == os.getpid():
+        path.unlink(missing_ok=True)
+
+
+def start_frontend(path: Path = FRONTEND_FILE) -> None:
+    """This process is a frontend that is not a game (Kodi): no overlay over it."""
+    pid = os.getpid()
+    _write(
+        {"version": LAUNCH_VERSION, "pid": pid, "start_time": process_start_time(pid) or 0},
+        path,
+    )
+
+
+def end_frontend(path: Path = FRONTEND_FILE) -> None:
+    """This process's frontend is over: remove the file, if it is still its."""
     data = _read(path)
     if data is not None and data.get("pid") == os.getpid():
         path.unlink(missing_ok=True)

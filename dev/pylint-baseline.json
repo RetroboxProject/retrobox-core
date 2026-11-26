@@ -233,9 +233,6 @@
   "missing-module-docstring": 1,
   "unused-argument": 1
  },
- "lib/retrobox/configgen/generators/kodi/__init__.py": {
-  "missing-module-docstring": 1
- },
  "lib/retrobox/configgen/generators/libretro/libretroControllers.py": {
   "broad-exception-caught": 1,
   "consider-using-dict-items": 5,

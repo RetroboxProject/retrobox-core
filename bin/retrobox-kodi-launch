@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# retrobox-kodi-launch: start Kodi from EmulationStation (its Kodi entry runs
+# this). Kodi is a frontend, not a game, so it has no game session and no
+# overlay; what it starts with retrobox-launch does.
+#
+#   retrobox-kodi-launch %CONTROLLERSCONFIG%
+#
+# It offers to install Kodi when it is missing (or to update it with L1 and R1
+# held), writes its controller configuration and runs bin/retrobox-kodi. It
+# only picks the interpreter and sets up the import path; everything else is
+# lib/retrobox/launcher/kodi_launch.py.
+set -eo pipefail
+SELF="$(readlink -f "${BASH_SOURCE[0]}")"
+RETROBOX_ROOTDIR="${RETROBOX_ROOTDIR:-$(dirname "$(dirname "${SELF}")")}"
+export RETROBOX_ROOTDIR
+export PYTHONPATH="${RETROBOX_ROOTDIR}/lib${PYTHONPATH:+:${PYTHONPATH}}"
+
+if [[ -z "${RETROBOX_PYTHON:-}" ]]; then
+    if [[ -x "${RETROBOX_ROOTDIR}/venv/bin/python3" ]]; then
+        RETROBOX_PYTHON="${RETROBOX_ROOTDIR}/venv/bin/python3"
+    else
+        RETROBOX_PYTHON="$(command -v python3 || true)"
+    fi
+fi
+[[ -n "${RETROBOX_PYTHON}" ]] || { echo "retrobox-kodi-launch: python3 not found" >&2; exit 1; }
+
+exec "${RETROBOX_PYTHON}" -m retrobox.launcher.kodi_launch "$@"

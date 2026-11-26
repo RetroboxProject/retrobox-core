@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # retrobox-kodi: start the right Kodi. It only launches it: the controller
-# configuration is written beforehand by configgen (generators/kodi), which
-# also asks this script which Kodi is installed.
+# configuration is written beforehand by retrobox-kodi-launch (the command of
+# EmulationStation's Kodi entry), which also asks this script which Kodi is
+# installed.
 #
 #   retrobox-kodi [kodi args...]   start Kodi (the Flatpak first, then a native one)
 #   retrobox-kodi --which          print "flatpak" or "native"; exit 1 if none
