@@ -30,6 +30,8 @@ zstd
 # retrobox-screenshot: scrot on X11 sessions, grim on Wayland ones
 scrot
 grim
+# retrobox-emukill asks the game's windows to close before it signals: wmctrl on X11 sessions (wlrctl on Wayland ones, where it is optional)
+wmctrl
 
 # mesa-utils and vulkan-tools for gpu api detection on emulators
 mesa-utils

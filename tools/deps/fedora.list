@@ -21,3 +21,5 @@ p7zip
 # retrobox-screenshot: scrot on X11 sessions, grim on Wayland ones
 scrot
 grim
+# retrobox-emukill asks the game's windows to close before it signals: wmctrl on X11 sessions (wlrctl on Wayland ones, where it is optional)
+wmctrl
