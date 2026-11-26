@@ -9,12 +9,21 @@
 # or branch), with the peripheral.joystick add-on that Retrobox's controller
 # maps need. KODI_PLATFORM (x11) and KODI_RENDER (gl on x86_64, gles on ARM)
 # are passed to its CMAKE (CORE_PLATFORM_NAME, APP_RENDER_SYSTEM).
+#
+#   kodi.sh --joystick-addon   build only peripheral.joystick for the Kodi
+#                              already installed (one built before Retrobox
+#                              added the add-on, or whose add-on is gone): it
+#                              builds from the sources of that Kodi's release
+#                              in minutes, not hours; the build tools are
+#                              those of the source install above
 EMULATOR="kodi"
 LABEL="Kodi"
 # shellcheck source=tools/lib/installer.sh
 source "$(dirname "$(readlink -f "$0")")/../lib/installer.sh"
 
 readonly FLATPAK_ID="tv.kodi.Kodi"
+# in the install: the Kodi release it was built from
+readonly REF_FILE=".retrobox-kodi-ref"
 readonly ADDON_ID="plugin.program.webapplauncher"
 readonly ADDON_REPO="https://github.com/manu-romero-411/plugin.program.webapplauncher.git"
 
@@ -101,18 +110,74 @@ function install_source() {
     cmake_install
     require_executable bin/kodi
 
-    # peripheral.joystick: Kodi reads the controllers (and Retrobox's button
-    # maps) through it; it is a binary add-on, built against this source tree
+    # the release the add-on of --joystick-addon has to be built from
+    printf '%s\n' "${ref}" >"${STAGE}/${REF_FILE}"
+    build_joystick_addon "${STAGE}"
+    remove_sources
+}
+
+# peripheral.joystick: Kodi reads the controllers (and Retrobox's button maps)
+# through it; it is a binary add-on, built against the Kodi source tree in
+# ${SRC_DIR} (which needs no build of its own) and installed under <prefix>.
+function build_joystick_addon() {
+    local prefix="$1"
     log_info "Building Kodi's peripheral.joystick add-on..."
     cmake -S "${SRC_DIR}/cmake/addons" -B "${SRC_DIR}/build-addons" \
         -DADDONS_TO_BUILD=peripheral.joystick -DCORE_SOURCE_DIR="${SRC_DIR}" \
-        -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="${STAGE}" -DPACKAGE_ZIP=OFF \
+        -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="${prefix}" -DPACKAGE_ZIP=OFF \
         || die "CMake could not configure Kodi's add-ons"
     cmake --build "${SRC_DIR}/build-addons" -j "${JOBS}" \
         || die "The peripheral.joystick add-on did not build"
-    [[ -d "${STAGE}/share/kodi/addons/peripheral.joystick" ]] \
+    [[ -d "${prefix}/share/kodi/addons/peripheral.joystick" ]] \
         || die "The build did not produce the peripheral.joystick add-on"
+}
+
+# The Kodi release to build the add-on from: KODI_REF, else the one the install
+# recorded, else the one `kodi --version` reports, else the latest.
+function installed_kodi_ref() {
+    local version tag
+    if [[ -n "${KODI_REF:-}" ]]; then
+        echo "${KODI_REF}"
+    elif [[ -s "${APP_DIR}/${REF_FILE}" ]]; then
+        head -n 1 "${APP_DIR}/${REF_FILE}"
+    else
+        version="$(timeout 30 "${APP_DIR}/bin/kodi" --version 2>/dev/null \
+            | grep -oE '[0-9]+\.[0-9]+' | head -n 1 || true)"
+        tag=""
+        if [[ -n "${version}" ]]; then
+            tag="$(git ls-remote --tags --refs https://github.com/xbmc/xbmc.git 2>/dev/null \
+                | sed 's|.*/||' | grep -E "^${version//./\\.}(\.[0-9]+)?-[A-Za-z]+$" \
+                | sort -V | tail -n 1 || true)"
+        fi
+        if [[ -z "${tag}" ]]; then
+            log_warn "Could not tell which release of Kodi is installed: using the latest."
+            tag="$(latest_kodi_tag)" || die "Could not find Kodi's latest release (network down?)"
+        fi
+        echo "${tag}"
+    fi
+}
+
+# --joystick-addon: the add-on for the Kodi that is installed, in place.
+function repair_joystick_addon() {
+    [[ -x "${APP_DIR}/bin/kodi" ]] \
+        || die "No Kodi built by Retrobox in ${APP_DIR}: install it first."
+    [[ ! -f "${APP_DIR}/${FLATPAK_MARKER}" ]] \
+        || die "The Flatpak Kodi comes with its own peripheral.joystick."
+    need git cmake
+    local ref
+    ref="$(installed_kodi_ref)"
+    # a failure removes the sources (the exit trap does it while staging)
+    _STAGING=1
+    log_info "Building the add-on from Kodi ${ref}..."
+    rm -rf "${SRC_DIR}"
+    mkdir -p "$(dirname "${SRC_DIR}")"
+    git clone --depth 1 --branch "${ref}" https://github.com/xbmc/xbmc.git "${SRC_DIR}" \
+        || die "Could not clone Kodi ${ref}"
+    build_joystick_addon "${APP_DIR}"
+    printf '%s\n' "${ref}" >"${APP_DIR}/${REF_FILE}"
     remove_sources
+    _STAGING=0
+    log_ok "peripheral.joystick is in ${APP_DIR}: start Kodi again."
 }
 
 # Where the Kodi just installed keeps its add-ons.
@@ -142,4 +207,8 @@ function after_install() {
     log_ok "The WebApp Launcher add-on is in ${target}/${ADDON_ID}."
 }
 
-installer_main "$@"
+if [[ "${1:-}" == "--joystick-addon" ]]; then
+    repair_joystick_addon
+else
+    installer_main "$@"
+fi
