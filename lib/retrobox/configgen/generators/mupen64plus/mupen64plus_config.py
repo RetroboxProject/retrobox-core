@@ -188,6 +188,9 @@ def _write_glide64mk2(ini: CaseSensitiveConfigParser, config: SystemConfig) -> N
     # 0 forces 4:3 and 1 forces 16:9
     set_value(ini, section, "aspect", 1 if aspect_ratio(config) == "16/9" else 0)
     set_value(ini, section, "fb_read_always", config.get_str("mupen64plus_fb_read_always", "-1"))
+    # the height it draws at, scaled to the window (Retrobox's patch); 0 is the window's
+    render_height = config.get_str("mupen64plus_glide64mk2_RenderHeight", "0")
+    set_value(ini, section, "RenderHeight", render_height)
     anisotropic = config.get_str("mupen64plus_Anisotropic", "0") != "0"
     set_value(ini, section, "wrpAnisotropic", anisotropic)
     set_value(ini, section, "wrpAntiAliasing", config.get_str("mupen64plus_AntiAliasing", "0"))

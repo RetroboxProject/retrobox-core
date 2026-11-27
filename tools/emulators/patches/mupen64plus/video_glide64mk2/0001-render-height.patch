@@ -1,0 +1,475 @@
+Glide64mk2: RenderHeight, the height the game is drawn at.
+
+The plugin draws straight to the window, at its size. With RenderHeight
+(Video-Glide64mk2, 0: the window's) below the window's height, it draws in a
+framebuffer object of that height and of the window's shape, whose two colour
+attachments stand for GL_BACK and GL_FRONT, and scales each frame to the
+window (linear). The window keeps the size of Video-General; anti-aliasing
+is off in this mode (the framebuffer has no samples). OpenGL ES builds
+ignore it.
+
+diff --git a/src/Glide64/Config.cpp b/src/Glide64/Config.cpp
+index f942d9b..f054c8c 100644
+--- a/src/Glide64/Config.cpp
++++ b/src/Glide64/Config.cpp
+@@ -18,6 +18,7 @@
+ * Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+ * Boston, MA  02110-1301, USA
+ */
++#include <string.h>
+ #include "Gfx_1.3.h"
+ #include "Config.h"
+ #include "m64p.h"
+@@ -44,8 +45,19 @@ BOOL Config_Open()
+     return TRUE;
+ }
+ 
++void glitch_render_size(int win_w, int win_h, int *w, int *h);
++
+ int Config_ReadScreenInt(const char *itemname)
+ {
++    // the screen the plugin draws to is RenderHeight's, not the window
++    int is_width = !strcmp(itemname, "ScreenWidth");
++    if (is_width || !strcmp(itemname, "ScreenHeight"))
++    {
++        int w, h;
++        glitch_render_size(ConfigGetParamInt(video_general_section, "ScreenWidth"),
++                           ConfigGetParamInt(video_general_section, "ScreenHeight"), &w, &h);
++        return is_width ? w : h;
++    }
+     return ConfigGetParamInt(video_general_section, itemname);
+ }
+ 
+@@ -53,8 +65,8 @@ PackedScreenResolution Config_ReadScreenSettings()
+ {
+     PackedScreenResolution packedResolution;
+ 
+-    packedResolution.width = ConfigGetParamInt(video_general_section, "ScreenWidth");
+-    packedResolution.height = ConfigGetParamInt(video_general_section, "ScreenHeight");
++    packedResolution.width = Config_ReadScreenInt("ScreenWidth");
++    packedResolution.height = Config_ReadScreenInt("ScreenHeight");
+     packedResolution.fullscreen = ConfigGetParamBool(video_general_section, "Fullscreen");
+ 
+     return packedResolution;
+diff --git a/src/Glide64/Main.cpp b/src/Glide64/Main.cpp
+index 98b1705..9ce7d0a 100644
+--- a/src/Glide64/Main.cpp
++++ b/src/Glide64/Main.cpp
+@@ -368,6 +368,7 @@ void ReadSettings ()
+   //settings.lang_id not needed
+   // depth_bias = -Config_ReadInt ("depth_bias", "Depth bias level", 0, TRUE, FALSE);
+   settings.res_data = 0;
++  Config_ReadInt("RenderHeight", "Height the game is drawn at, scaled to the window (0: the window's)", 0, TRUE, FALSE);
+   settings.scr_res_x = settings.res_x = Config_ReadScreenInt("ScreenWidth");
+   settings.scr_res_y = settings.res_y = Config_ReadScreenInt("ScreenHeight");
+ 
+diff --git a/src/Glitch64/OGLESglitchmain.cpp b/src/Glitch64/OGLESglitchmain.cpp
+index f0aff64..09d0332 100644
+--- a/src/Glitch64/OGLESglitchmain.cpp
++++ b/src/Glitch64/OGLESglitchmain.cpp
+@@ -2571,3 +2571,16 @@ void dump_tex(int id)
+ }
+ 
+ #endif
++
++// RenderHeight is not supported with OpenGL ES: the game is drawn at the
++// window's size.
++void glitch_render_size(int win_w, int win_h, int *w, int *h)
++{
++  *w = win_w;
++  *h = win_h;
++}
++
++GLenum glitch_buffer(GLenum buffer)
++{
++  return buffer;
++}
+diff --git a/src/Glitch64/OGLgeometry.cpp b/src/Glitch64/OGLgeometry.cpp
+index 92f3d9a..506bd24 100644
+--- a/src/Glitch64/OGLgeometry.cpp
++++ b/src/Glitch64/OGLgeometry.cpp
+@@ -258,8 +258,8 @@ void FindBestDepthBias()
+   glEnable(GL_DEPTH_TEST);
+   glDepthFunc(GL_ALWAYS);
+   glEnable(GL_POLYGON_OFFSET_FILL);
+-  glDrawBuffer(GL_BACK);
+-  glReadBuffer(GL_BACK);
++  glDrawBuffer(glitch_buffer(GL_BACK));
++  glReadBuffer(glitch_buffer(GL_BACK));
+   glDisable(GL_BLEND);
+   glDisable(GL_ALPHA_TEST);
+   glColor4ub(255,255,255,255);
+diff --git a/src/Glitch64/OGLglitchmain.cpp b/src/Glitch64/OGLglitchmain.cpp
+index f08d8fc..059ae50 100644
+--- a/src/Glitch64/OGLglitchmain.cpp
++++ b/src/Glitch64/OGLglitchmain.cpp
+@@ -39,6 +39,114 @@
+ #include "glitchmain.h"
+ #include "m64p.h"
+ 
++// Render height (Video-Glide64mk2 RenderHeight): the game is drawn in a
++// framebuffer object of that height (and of the window's shape), and each
++// frame is scaled to the window, which keeps the size of Video-General.
++// GL_BACK and GL_FRONT are its two colour attachments, swapped at each frame.
++static GLuint main_fbo = 0;
++static GLuint main_tex[2] = {0, 0};
++static GLuint main_depth = 0;
++static int window_width = 0, window_height = 0;
++static int render_width = 0, render_height = 0;
++
++void glitch_render_size(int win_w, int win_h, int *w, int *h)
++{
++  m64p_handle section;
++  int render_h = 0;
++  if (ConfigOpenSection("Video-Glide64mk2", &section) == M64ERR_SUCCESS)
++    render_h = ConfigGetParamInt(section, "RenderHeight");
++  *w = win_w;
++  *h = win_h;
++  if (render_h > 0 && win_h > 0 && render_h < win_h) {
++    *h = render_h;
++    *w = (win_w * render_h + win_h / 2) / win_h;
++  }
++}
++
++GLenum glitch_buffer(GLenum buffer)
++{
++  if (!main_fbo) return buffer;
++  if (buffer == GL_BACK) return GL_COLOR_ATTACHMENT0_EXT;
++  if (buffer == GL_FRONT) return GL_COLOR_ATTACHMENT1_EXT;
++  return buffer;
++}
++
++static void attach_main_textures()
++{
++  glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, GL_TEXTURE_2D, main_tex[0], 0);
++  glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT1_EXT, GL_TEXTURE_2D, main_tex[1], 0);
++}
++
++static void create_main_fbo(int w, int h)
++{
++  render_width = w;
++  render_height = h;
++  glGenFramebuffersEXT(1, &main_fbo);
++  glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, main_fbo);
++  for (int i = 0; i < 2; i++) {
++    glBindTexture(GL_TEXTURE_2D, main_tex[i]);
++    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
++    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
++    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
++  }
++  glBindTexture(GL_TEXTURE_2D, 0);
++  attach_main_textures();
++  glGenRenderbuffersEXT(1, &main_depth);
++  glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, main_depth);
++  glRenderbufferStorageEXT(GL_RENDERBUFFER_EXT, GL_DEPTH_COMPONENT24, w, h);
++  glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT, GL_RENDERBUFFER_EXT, main_depth);
++  glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, 0);
++  if (glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT) != GL_FRAMEBUFFER_COMPLETE_EXT) {
++    printf("(EE) Glide64mk2: no %dx%d framebuffer, rendering at the window's size\n", w, h);
++    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
++    glDeleteFramebuffersEXT(1, &main_fbo);
++    glDeleteRenderbuffersEXT(1, &main_depth);
++    main_fbo = main_depth = 0;
++    return;
++  }
++  glDrawBuffer(GL_COLOR_ATTACHMENT0_EXT);
++  glReadBuffer(GL_COLOR_ATTACHMENT0_EXT);
++  glClearColor(0, 0, 0, 1);
++  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
++  printf("(II) Glide64mk2: rendering at %dx%d, scaled to %dx%d\n", w, h, window_width, window_height);
++}
++
++static void destroy_main_fbo()
++{
++  if (!main_fbo) return;
++  glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
++  glDeleteFramebuffersEXT(1, &main_fbo);
++  glDeleteRenderbuffersEXT(1, &main_depth);
++  glDeleteTextures(2, main_tex);
++  main_fbo = main_depth = 0;
++}
++
++// The frame, scaled to the window's back buffer.
++static void present_main_fbo()
++{
++  glPushAttrib(GL_SCISSOR_BIT | GL_COLOR_BUFFER_BIT);
++  glDisable(GL_SCISSOR_TEST);
++  glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
++  glBindFramebufferEXT(GL_READ_FRAMEBUFFER_EXT, main_fbo);
++  glReadBuffer(GL_COLOR_ATTACHMENT0_EXT);
++  glBindFramebufferEXT(GL_DRAW_FRAMEBUFFER_EXT, 0);
++  glDrawBuffer(GL_BACK);
++  glBlitFramebufferEXT(0, 0, render_width, render_height, 0, 0, window_width, window_height,
++    GL_COLOR_BUFFER_BIT, GL_LINEAR);
++  glPopAttrib();
++}
++
++// After the swap: the frame just shown is the front buffer, the other one
++// is drawn next.
++static void flip_main_fbo()
++{
++  GLuint shown = main_tex[0];
++  main_tex[0] = main_tex[1];
++  main_tex[1] = shown;
++  glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, main_fbo);
++  attach_main_textures();
++}
++
+ #ifdef VPDEBUG
+ #include <IL/il.h>
+ #endif
+@@ -490,8 +598,12 @@ grSstWinOpen(
+   ConfigOpenSection("Video-Glide64mk2", &video_glide64mk2_section);
+   int aalevel = ConfigGetParamInt(video_glide64mk2_section, "wrpAntiAliasing");
+ 
+-  screen_width = width = ConfigGetParamInt(video_general_section, "ScreenWidth");
+-  screen_height = height = ConfigGetParamInt(video_general_section, "ScreenHeight");
++  window_width = ConfigGetParamInt(video_general_section, "ScreenWidth");
++  window_height = ConfigGetParamInt(video_general_section, "ScreenHeight");
++  glitch_render_size(window_width, window_height, &width, &height);
++  screen_width = width;
++  screen_height = height;
++  int offscreen = width != window_width || height != window_height;
+   fullscreen = ConfigGetParamBool(video_general_section, "Fullscreen");
+   int vsync = ConfigGetParamBool(video_general_section, "VerticalSync");
+ 
+@@ -510,15 +622,16 @@ grSstWinOpen(
+   //   SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 8);
+   CoreVideo_GL_SetAttribute(M64P_GL_DEPTH_SIZE, 16);
+ 
+-  if(aalevel > 0){
++  // a multisampled window takes no blit: the framebuffer has no samples
++  if(aalevel > 0 && !offscreen){
+     CoreVideo_GL_SetAttribute(M64P_GL_MULTISAMPLEBUFFERS, 1);
+     CoreVideo_GL_SetAttribute(M64P_GL_MULTISAMPLESAMPLES, aalevel);
+   }
+ 
+-  printf("(II) Setting video mode %dx%d...\n", width, height);
+-  if(CoreVideo_SetVideoMode(width, height, 0, fullscreen ? M64VIDEO_FULLSCREEN : M64VIDEO_WINDOWED, (m64p_video_flags) 0) != M64ERR_SUCCESS)
++  printf("(II) Setting video mode %dx%d...\n", window_width, window_height);
++  if(CoreVideo_SetVideoMode(window_width, window_height, 0, fullscreen ? M64VIDEO_FULLSCREEN : M64VIDEO_WINDOWED, (m64p_video_flags) 0) != M64ERR_SUCCESS)
+   {
+-    printf("(EE) Error setting videomode %dx%d\n", width, height);
++    printf("(EE) Error setting videomode %dx%d\n", window_width, window_height);
+     return false;
+   }
+ 
+@@ -567,6 +680,7 @@ grSstWinOpen(
+ 
+   nbAuxBuffers = 0;
+   glGetIntegerv(GL_AUX_BUFFERS, &nbAuxBuffers);
++  if (offscreen) nbAuxBuffers = 0; // the framebuffer object has none
+   if (nbAuxBuffers > 0)
+     printf("Congratulations, you have %d auxilliary buffers, we'll use them wisely !\n", nbAuxBuffers);
+ 
+@@ -681,6 +795,19 @@ grSstWinOpen(
+   //   void do_benchmarks();
+   //   do_benchmarks();
+ 
++  if (offscreen) {
++    main_tex[0] = free_texture++;
++    main_tex[1] = free_texture++;
++    create_main_fbo(width, height);
++    if (!main_fbo) {
++      screen_width = width = window_width;
++      screen_height = height = window_height;
++      glViewport(0, viewport_offset, width, height);
++      viewport_width = width;
++      viewport_height = height;
++    }
++  }
++
+   // VP try to resolve z precision issues
+   glMatrixMode(GL_MODELVIEW);
+   glLoadIdentity();
+@@ -762,6 +889,7 @@ grSstWinClose( GrContext_t context )
+   }
+ 
+   free_combiners();
++  destroy_main_fbo();
+ #ifndef _WIN32
+   try // I don't know why, but opengl can be killed before this function call when emulator is closed (Gonetz).
+     // ZIGGY : I found the problem : it is a function pointer, when the extension isn't supported , it is then zero, so just need to check the pointer prior to do the call.
+@@ -861,7 +989,7 @@ FX_ENTRY void FX_CALL grTextureBufferExt( GrChipID_t  		tmu,
+     //printf("saving %dx%d\n", pBufferWidth, pBufferHeight);
+     // save color buffer
+     if (nbAuxBuffers > 0) {
+-      glDrawBuffer(GL_AUX0);
++      glDrawBuffer(glitch_buffer(GL_AUX0));
+       current_buffer = GL_AUX0;
+     } else {
+       int tw, th;
+@@ -873,7 +1001,7 @@ FX_ENTRY void FX_CALL grTextureBufferExt( GrChipID_t  		tmu,
+         th = pBufferHeight;
+       else
+         th = screen_height;
+-      glReadBuffer(GL_BACK);
++      glReadBuffer(glitch_buffer(GL_BACK));
+       glActiveTextureARB(texture_unit);
+       glBindTexture(GL_TEXTURE_2D, color_texture);
+       // save incrementally the framebuffer
+@@ -1408,7 +1536,7 @@ void reloadTexture()
+   glActiveTextureARB(texture_unit);
+   glBindTexture(GL_TEXTURE_2D, pBufferAddress);
+   glDisable(GL_ALPHA_TEST);
+-  glDrawBuffer(current_buffer);
++  glDrawBuffer(glitch_buffer(current_buffer));
+   glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+   set_copy_shader();
+   glDisable(GL_DEPTH_TEST);
+@@ -1438,7 +1566,7 @@ void updateTexture()
+     glPushAttrib(GL_ALL_ATTRIB_BITS);
+ 
+     // save result of render to texture into actual texture
+-    glReadBuffer(current_buffer);
++    glReadBuffer(glitch_buffer(current_buffer));
+     glActiveTextureARB(texture_unit);
+     // ZIGGY
+     // deleting the texture before resampling it increases speed on certain old
+@@ -1470,7 +1598,7 @@ FX_ENTRY void FX_CALL grFramebufferCopyExt(int x, int y, int w, int h,
+     if (from == GR_FBCOPY_BUFFER_BACK && to == GR_FBCOPY_BUFFER_FRONT) {
+       //printf("save depth buffer %d\n", render_to_texture);
+       // save the depth image in a texture
+-      glReadBuffer(current_buffer);
++      glReadBuffer(glitch_buffer(current_buffer));
+       glBindTexture(GL_TEXTURE_2D, depth_texture);
+       glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT,
+         0, viewport_offset, tw, th, 0);
+@@ -1481,7 +1609,7 @@ FX_ENTRY void FX_CALL grFramebufferCopyExt(int x, int y, int w, int h,
+       //printf("writing to depth buffer %d\n", render_to_texture);
+       glPushAttrib(GL_ALL_ATTRIB_BITS);
+       glDisable(GL_ALPHA_TEST);
+-      glDrawBuffer(current_buffer);
++      glDrawBuffer(glitch_buffer(current_buffer));
+       glActiveTextureARB(texture_unit);
+       glBindTexture(GL_TEXTURE_2D, depth_texture);
+       glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+@@ -1532,7 +1660,7 @@ grRenderBuffer( GrBuffer_t buffer )
+       widtho = savedWidtho;
+       heighto = savedHeighto;
+       if (use_fbo) {
+-        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
++        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, main_fbo);
+         glBindRenderbufferEXT( GL_RENDERBUFFER_EXT, 0 );
+       }
+       curBufferAddr = 0;
+@@ -1544,7 +1672,7 @@ grRenderBuffer( GrBuffer_t buffer )
+       if (!use_fbo && render_to_texture == 2) {
+         // restore color buffer
+         if (nbAuxBuffers > 0) {
+-          glDrawBuffer(GL_BACK);
++          glDrawBuffer(glitch_buffer(GL_BACK));
+           current_buffer = GL_BACK;
+         } else if (save_w) {
+           int tw = 1, th = 1;
+@@ -1559,7 +1687,7 @@ grRenderBuffer( GrBuffer_t buffer )
+ 
+           glPushAttrib(GL_ALL_ATTRIB_BITS);
+           glDisable(GL_ALPHA_TEST);
+-          glDrawBuffer(GL_BACK);
++          glDrawBuffer(glitch_buffer(GL_BACK));
+           glActiveTextureARB(texture_unit);
+           glBindTexture(GL_TEXTURE_2D, color_texture);
+           glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+@@ -1579,7 +1707,7 @@ grRenderBuffer( GrBuffer_t buffer )
+ #endif
+       render_to_texture = 0;
+     }
+-    glDrawBuffer(GL_BACK);
++    glDrawBuffer(glitch_buffer(GL_BACK));
+     break;
+   case 6: // RENDER TO TEXTURE
+     if(!render_to_texture)
+@@ -1698,7 +1826,9 @@ grBufferSwap( FxU32 swap_interval )
+     return;
+   }
+ 
++  if (main_fbo) present_main_fbo();
+   CoreVideo_GL_SwapBuffers();
++  if (main_fbo) flip_main_fbo();
+   for (i = 0; i < nb_fb; i++)
+     fbs[i].buff_clear = 1;
+ 
+@@ -1747,10 +1877,10 @@ grLfbLock( GrLock_t type, GrBuffer_t buffer, GrLfbWriteMode_t writeMode,
+     switch(buffer)
+     {
+     case GR_BUFFER_FRONTBUFFER:
+-      glReadBuffer(GL_FRONT);
++      glReadBuffer(glitch_buffer(GL_FRONT));
+       break;
+     case GR_BUFFER_BACKBUFFER:
+-      glReadBuffer(GL_BACK);
++      glReadBuffer(glitch_buffer(GL_BACK));
+       break;
+     default:
+       display_warning("grLfbLock : unknown buffer : %x", buffer);
+@@ -1826,13 +1956,13 @@ grLfbReadRegion( GrBuffer_t src_buffer,
+   switch(src_buffer)
+   {
+   case GR_BUFFER_FRONTBUFFER:
+-    glReadBuffer(GL_FRONT);
++    glReadBuffer(glitch_buffer(GL_FRONT));
+     break;
+   case GR_BUFFER_BACKBUFFER:
+-    glReadBuffer(GL_BACK);
++    glReadBuffer(glitch_buffer(GL_BACK));
+     break;
+     /*case GR_BUFFER_AUXBUFFER:
+-    glReadBuffer(current_buffer);
++    glReadBuffer(glitch_buffer(current_buffer));
+     break;*/
+   default:
+     display_warning("grReadRegion : unknown buffer : %x", src_buffer);
+@@ -1899,10 +2029,10 @@ grLfbWriteRegion( GrBuffer_t dst_buffer,
+   switch(dst_buffer)
+   {
+   case GR_BUFFER_BACKBUFFER:
+-    glDrawBuffer(GL_BACK);
++    glDrawBuffer(glitch_buffer(GL_BACK));
+     break;
+   case GR_BUFFER_AUXBUFFER:
+-    glDrawBuffer(current_buffer);
++    glDrawBuffer(glitch_buffer(current_buffer));
+     break;
+   default:
+     display_warning("grLfbWriteRegion : unknown buffer : %x", dst_buffer);
+@@ -2023,14 +2153,14 @@ grLfbWriteRegion( GrBuffer_t dst_buffer,
+     glEnable(GL_DEPTH_TEST);
+     glDepthFunc(GL_ALWAYS);
+ 
+-    glDrawBuffer(GL_BACK);
++    glDrawBuffer(glitch_buffer(GL_BACK));
+     glClear( GL_DEPTH_BUFFER_BIT );
+     glDepthMask(1);
+     glDrawPixels(src_width, src_height+(viewport_offset), GL_DEPTH_COMPONENT, GL_FLOAT, buf);
+ 
+     free(buf);
+   }
+-  glDrawBuffer(current_buffer);
++  glDrawBuffer(glitch_buffer(current_buffer));
+   glPopAttrib();
+   return FXTRUE;
+ }
+@@ -2457,7 +2587,7 @@ void dump_stop()
+ 
+   dumping = 0;
+ 
+-  glReadBuffer(GL_FRONT);
++  glReadBuffer(glitch_buffer(GL_FRONT));
+   glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, frameBuffer);
+   ilTexImage(width, height, 1, 4, IL_RGBA, IL_UNSIGNED_BYTE, frameBuffer);
+   ilSaveImage("dump/framecolor.png");
+diff --git a/src/Glitch64/glitchmain.h b/src/Glitch64/glitchmain.h
+index e4f0151..e92c1d4 100644
+--- a/src/Glitch64/glitchmain.h
++++ b/src/Glitch64/glitchmain.h
+@@ -400,4 +400,9 @@ void LOG(const char *text, ...) ATTR_FMT(1,2);
+ #define LOG(...)
+ #endif // LOGGING
+ 
++// Video-Glide64mk2 RenderHeight: the size the game is drawn at, for a window
++// of win_w x win_h, and the buffer that stands for GL_BACK or GL_FRONT.
++void glitch_render_size(int win_w, int win_h, int *w, int *h);
++GLenum glitch_buffer(GLenum buffer);
++
+ #endif

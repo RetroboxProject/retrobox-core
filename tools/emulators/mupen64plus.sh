@@ -2,7 +2,8 @@
 # Mupen64Plus (Nintendo 64), standalone: a build from source of the console
 # frontend, the core and the plugins that batocera ships. Each part is built at
 # the version batocera pins for it, with the patches batocera applies to it (the
-# states and saves named after the ROM, no start message...). On x86_64 the core
+# states and saves named after the ROM, no start message...), and with Retrobox's
+# own (patches/mupen64plus: Glide64mk2's RenderHeight). On x86_64 the core
 # uses the new dynamic recompiler, as on ARM: the old one loops on some games
 # (1080 Snowboarding fills the memory until the system kills it).
 #
@@ -22,6 +23,7 @@ BATOCERA_REF="${MUPEN64PLUS_BATOCERA_REF:-master}"
 BATOCERA_PACKAGES="package/batocera/emulators/mupen64plus"
 BATOCERA_RAW="https://raw.githubusercontent.com/batocera-linux/batocera.linux/${BATOCERA_REF}/${BATOCERA_PACKAGES}"
 BATOCERA_API="https://api.github.com/repos/batocera-linux/batocera.linux/contents/${BATOCERA_PACKAGES}"
+OWN_PATCHES="$(dirname "$(readlink -f "$0")")/patches/mupen64plus"
 # the parts with a Makefile of their own, in the order they are built: the core
 # goes first, the others are compiled against its headers
 MAKE_PARTS=(core ui_console audio_sdl input_sdl rsp_hle video_glide64mk2 video_rice)
@@ -80,8 +82,21 @@ for entry in sorted(json.load(sys.stdin), key=lambda item: item["name"]):
     done <<<"${listing}"
 }
 
+# apply_own_patches <part> <folder>: Retrobox's patches for the part, after
+# batocera's (patches/mupen64plus/<part>/*.patch, next to this script).
+function apply_own_patches() {
+    local patch
+    for patch in "${OWN_PATCHES}/$1"/*.patch; do
+        [[ -f "${patch}" ]] || continue
+        git -C "$2" apply "${patch}" \
+            || die "$(basename "${patch}") does not apply to $(package_of "$1")"
+        log_info "Applied $(basename "${patch}")."
+    done
+}
+
 # fetch_part <part> <folder>: the source of the part at the commit batocera builds it
-# from (or the one MUPEN64PLUS_<PART>_REF names), with batocera's patches applied.
+# from (or the one MUPEN64PLUS_<PART>_REF names), with batocera's patches and
+# Retrobox's applied.
 function fetch_part() {
     local part="$1" folder="$2" override ref
     override="MUPEN64PLUS_${part^^}_REF"
@@ -99,6 +114,7 @@ function fetch_part() {
         || die "Could not fetch ${part} (${ref:-HEAD})"
     git -C "${folder}" checkout -q FETCH_HEAD || die "Could not check out ${part}"
     apply_batocera_patches "${part}" "${folder}"
+    apply_own_patches "${part}" "${folder}"
 }
 
 # make_part <part> <flags> [VARIABLE=value...]: build a part with its Makefile,

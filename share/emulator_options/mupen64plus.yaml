@@ -40,6 +40,22 @@ groups:
               value: 3
             - name: 1280x960 (4x)
               value: 4
+        - name: RENDERING RESOLUTION (GLIDE64MK2 ONLY)
+          value: mupen64plus_glide64mk2_RenderHeight
+          description: Internal render size, scaled to the screen without changing it. Auto renders at the screen resolution. Turns anti-aliasing off.
+          choices:
+            - name: Auto (Screen) (Default)
+              value: 0
+            - name: 320x240 (1x, native)
+              value: 240
+            - name: 640x480 (2x)
+              value: 480
+            - name: 960x720 (3x)
+              value: 720
+            - name: 1280x960 (4x)
+              value: 960
+            - name: 1440x1080
+              value: 1080
         - name: ANTI-ALIASING (MSAA)
           value: mupen64plus_AntiAliasing
           description: Smooth out the jagged edges of 3D polygons (GLideN64 and Glide64mk2).
