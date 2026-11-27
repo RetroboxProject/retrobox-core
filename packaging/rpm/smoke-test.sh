@@ -84,15 +84,19 @@ for gone in LICENSE README.md requirements.txt install.sh .gitmodules system dev
     [[ ! -e "/opt/retrobox/${gone}" ]] || fail "/opt/retrobox/${gone} must not be shipped"
 done
 # leftovers of a build or of a component install (installer.sh is the
-# emulator installers' shared library, which runs)
+# emulator installers' shared library, which runs, and tools/emulators/patches
+# holds the patches the installers apply to what they build)
 stray="$(find /opt/retrobox \( -name README -o -name 'README.md' -o -name 'install*.sh' -o -name 'uninstall*' \
     -o -name requirements.txt -o -name '*.orig' -o -name '*.rej' -o -name '*.bak' -o -name '.directory' \
     -o -name '.git*' -o -name '*.patch' -o -name '*.deb' -o -name '*.rpm' -o -name 'desktop.ini' \) \
     -not -path '*/__pycache__/*' \
-    -not -path /opt/retrobox/tools/lib/installer.sh)"
+    -not -path /opt/retrobox/tools/lib/installer.sh \
+    -not -path '/opt/retrobox/tools/emulators/patches/*')"
 hidden="$(find /opt/retrobox -name '.*' ! -name . ! -name .emulationstation)"
 [[ -z "${hidden}" ]] || fail "hidden files in /opt/retrobox: ${hidden}"
 [[ -z "${stray}" ]] || fail "stray files in /opt/retrobox: ${stray}"
+[[ -f /opt/retrobox/tools/emulators/patches/mupen64plus/video_glide64mk2/0001-render-height.patch ]] \
+    || fail "the emulator installers' patches were not shipped"
 
 echo "--- layered configuration: /etc and ~/.config overrides"
 as_user mkdir -p "${user_home}/.config/retrobox/retrobox.ini.d"
