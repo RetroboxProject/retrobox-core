@@ -1,0 +1,49 @@
+emulator_name: mupen64plus
+core_name: rice
+groups:
+  GENERAL:
+    submenus:
+      SCREEN:
+        - name: TEXTURE MIP-MAPPING
+          value: mupen64plus_Mipmapping
+          description: Blurs the textures of distant objects.
+          choices:
+            - name: "Off"
+              value: 0
+            - name: Nearest
+              value: 1
+            - name: Bilinear
+              value: 2
+            - name: Trilinear
+              value: 3
+        - name: TEXTURE UPSCALING
+          value: mupen64plus_TextureEnhancement
+          description: Upscales the textures of 3D objects.
+          choices:
+            - name: "Off"
+              value: 0
+            - name: 2X
+              value: 1
+            - name: 2XSAI
+              value: 2
+            - name: HQ2X
+              value: 3
+            - name: LQ2X
+              value: 4
+            - name: HQ4X
+              value: 5
+            - name: Sharpen
+              value: 6
+            - name: Sharpen More
+              value: 7
+            - name: External
+              value: 8
+            - name: Mirrored
+              value: 9
+        - name: LOAD CUSTOM TEXTURES
+          value: mupen64plus_LoadHiResTextures
+          choices:
+            - name: "Off"
+              value: "False"
+            - name: "On"
+              value: "True"

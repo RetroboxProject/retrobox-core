@@ -1,0 +1,64 @@
+emulator_name: mupen64plus
+core_name: glide64mk2
+groups:
+  GENERAL:
+    submenus:
+      SCREEN:
+        - name: RENDERING RESOLUTION
+          value: mupen64plus_glide64mk2_RenderHeight
+          description: Renders at this size and scales it to the window. Auto is the screen's.
+          choices:
+            - name: Auto (Default)
+              value: 0
+            - name: 320x240
+              value: 240
+            - name: 640x480
+              value: 480
+            - name: 960x720
+              value: 720
+            - name: 1280x960
+              value: 960
+            - name: 1440x1080
+              value: 1080
+        - name: ANTI-ALIASING (MSAA)
+          value: mupen64plus_AntiAliasing
+          description: Smooths the edges of 3D polygons.
+          choices:
+            - name: "Off"
+              value: 0
+            - name: 2x
+              value: 2
+            - name: 4x
+              value: 4
+            - name: 8x
+              value: 8
+            - name: 16x
+              value: 16
+        - name: READ FRAMEBUFFER EVERY FRAME
+          value: mupen64plus_fb_read_always
+          description: Fixes some effects (Banjo-Kazooie, DK64 transitions), can slow down.
+          choices:
+            - name: Game default
+              value: -1
+            - name: Disable
+              value: 0
+            - name: Enable
+              value: 1
+        - name: FRAMESKIP
+          value: mupen64plus_frameskip
+          description: Skips frames for speed, with choppier motion.
+          choices:
+            - name: "Off"
+              value: 0
+            - name: Autodetect
+              value: automatic
+            - name: "1"
+              value: 1
+            - name: "2"
+              value: 2
+            - name: "3"
+              value: 3
+            - name: "4"
+              value: 4
+            - name: "5"
+              value: 5

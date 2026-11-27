@@ -20,88 +20,15 @@ groups:
       SCREEN:
         - name: GAME ASPECT RATIO
           value: mupen64plus_ratio
-          description: The shape of the picture. Rice always stretches it to the screen.
+          description: Rice always stretches the picture to the screen.
           choices:
             - name: "4:3 (Default)"
               value: "4/3"
             - name: "16:9"
               value: "16/9"
-        - name: HORIZONTAL OVERSCAN (GLIDEN64 AND GLIDE64MK2)
-          value: mupen64plus_OverscanHorizontal
-          description: Pixels cropped on the left and the right to hide junk at the edges of the picture, which is scaled to fill the screen. N64 pixels, up to 20. Rice has none, and Glide64mk2 loses anti-aliasing with it.
-          choices: &overscan
-            - {name: "Off (Default)", value: 0}
-            - {name: "1 px", value: 1}
-            - {name: "2 px", value: 2}
-            - {name: "3 px", value: 3}
-            - {name: "4 px", value: 4}
-            - {name: "5 px", value: 5}
-            - {name: "6 px", value: 6}
-            - {name: "7 px", value: 7}
-            - {name: "8 px", value: 8}
-            - {name: "9 px", value: 9}
-            - {name: "10 px", value: 10}
-            - {name: "11 px", value: 11}
-            - {name: "12 px", value: 12}
-            - {name: "13 px", value: 13}
-            - {name: "14 px", value: 14}
-            - {name: "15 px", value: 15}
-            - {name: "16 px", value: 16}
-            - {name: "17 px", value: 17}
-            - {name: "18 px", value: 18}
-            - {name: "19 px", value: 19}
-            - {name: "20 px", value: 20}
-        - name: VERTICAL OVERSCAN (GLIDEN64 AND GLIDE64MK2)
-          value: mupen64plus_OverscanVertical
-          description: Pixels cropped on the top and the bottom to hide junk at the edges of the picture, which is scaled to fill the screen. N64 pixels, up to 20. Rice has none, and Glide64mk2 loses anti-aliasing with it.
-          choices: *overscan
-        - name: RENDERING RESOLUTION (GLIDEN64 ONLY)
-          value: mupen64plus_NativeResFactor
-          description: Internal render size, whatever the window. Auto renders at the screen resolution. Games with a 640-wide picture double it.
-          choices:
-            - name: Auto (Screen) (Default)
-              value: 0
-            - name: 320x240 (1x, native)
-              value: 1
-            - name: 640x480 (2x)
-              value: 2
-            - name: 960x720 (3x)
-              value: 3
-            - name: 1280x960 (4x)
-              value: 4
-        - name: RENDERING RESOLUTION (GLIDE64MK2 ONLY)
-          value: mupen64plus_glide64mk2_RenderHeight
-          description: Internal render size, scaled to the screen without changing it. Auto renders at the screen resolution. Turns anti-aliasing off.
-          choices:
-            - name: Auto (Screen) (Default)
-              value: 0
-            - name: 320x240 (1x, native)
-              value: 240
-            - name: 640x480 (2x)
-              value: 480
-            - name: 960x720 (3x)
-              value: 720
-            - name: 1280x960 (4x)
-              value: 960
-            - name: 1440x1080
-              value: 1080
-        - name: ANTI-ALIASING (MSAA)
-          value: mupen64plus_AntiAliasing
-          description: Smooth out the jagged edges of 3D polygons (GLideN64 and Glide64mk2).
-          choices:
-            - name: "Off"
-              value: 0
-            - name: 2x
-              value: 2
-            - name: 4x
-              value: 4
-            - name: 8x
-              value: 8
-            - name: 16x
-              value: 16
         - name: ANISOTROPIC FILTERING
           value: mupen64plus_Anisotropic
-          description: Improves the clarity of distant textures (all plugins; in Rice it needs mip-mapping).
+          description: Sharper distant textures (Rice needs mip-mapping).
           choices:
             - name: "Off"
               value: 0
@@ -113,89 +40,10 @@ groups:
               value: 8
             - name: 16x
               value: 16
-        - name: TEXTURE MIP-MAPPING (RICE ONLY)
-          value: mupen64plus_Mipmapping
-          description: Smooth the textures of distant 3D objects (blur).
-          choices:
-            - name: "Off"
-              value: 0
-            - name: Nearest
-              value: 1
-            - name: Bilinear
-              value: 2
-            - name: Trilinear
-              value: 3
-        - name: TEXTURE UPSCALING (RICE ONLY)
-          value: mupen64plus_TextureEnhancement
-          description: Upscale the textures of 3D objects.
-          choices:
-            - name: "Off"
-              value: 0
-            - name: 2X
-              value: 1
-            - name: 2XSAI
-              value: 2
-            - name: HQ2X
-              value: 3
-            - name: LQ2X
-              value: 4
-            - name: HQ4X
-              value: 5
-            - name: Sharpen
-              value: 6
-            - name: Sharpen More
-              value: 7
-            - name: External
-              value: 8
-            - name: Mirrored
-              value: 9
-        - name: LOAD CUSTOM TEXTURES (RICE ONLY)
-          value: mupen64plus_LoadHiResTextures
-          choices:
-            - name: "Off"
-              value: "False"
-            - name: "On"
-              value: "True"
-        - name: READ FRAMEBUFFER EVERY FRAME (GLIDE64MK2 ONLY)
-          value: mupen64plus_fb_read_always
-          description: Required for some effects in-game (Banjo Kazooie and DK64 transitions), can cause slowdown.
-          choices:
-            - name: Game default
-              value: -1
-            - name: Disable
-              value: 0
-            - name: Enable
-              value: 1
-        - name: FRAMESKIP (GLIDE64MK2 ONLY)
-          value: mupen64plus_frameskip
-          description: Skip frames to improve performance, at the cost of choppy motion.
-          choices:
-            - name: "Off"
-              value: 0
-            - name: Autodetect
-              value: automatic
-            - name: "1"
-              value: 1
-            - name: "2"
-              value: 2
-            - name: "3"
-              value: 3
-            - name: "4"
-              value: 4
-            - name: "5"
-              value: 5
-        - name: WAIT FOR THE GPU EVERY FRAME (GLIDE64MK2 ONLY)
-          value: mupen64plus_WaitForGPU
-          description: Off lets the GPU work ahead of the CPU, which can recover speed in slow devices (Switch) at the cost of a frame of latency.
-          choices:
-            - name: On (Default)
-              value: "True"
-            - name: "Off"
-              value: "False"
       AUDIO:
         - name: AUDIO SYNC
           value: mupen64plus_AudioSync
-          description: Enable a second audio limiter. Improves the audio quality at the cost of performance.
+          description: A second audio limiter. Better audio, slower.
           choices:
             - name: "Off"
               value: "False"
@@ -203,7 +51,7 @@ groups:
               value: "True"
         - name: AUDIO BUFFER (SAMPLES)
           value: mupen64plus_AudioBuffer
-          description: Lower values reduce the audio latency and improve performance, but can cause audio issues.
+          description: Lower is faster and has less latency, but can crackle.
           choices:
             - name: Very High
               value: Very High
@@ -216,7 +64,7 @@ groups:
       EMULATION:
         - name: DISABLE 4MB EXPANSION RAM PACK
           value: mupen64plus_DisableExtraMem
-          description: Required by some games.
+          description: Some games need it off.
           choices:
             - name: "Off"
               value: "False"
@@ -227,7 +75,7 @@ groups:
       PORT 1:
         - name: CONTROLLER TYPE
           value: mupen64-controller1
-          description: The layout of the buttons. Use N64 for a pad with the buttons of the Nintendo 64.
+          description: N64 is for a pad with the Nintendo 64 buttons.
           choices: &controller_type
             - name: RetroPad (Default)
               value: retropad
@@ -235,7 +83,7 @@ groups:
               value: n64
         - name: SENSITIVITY
           value: mupen64-sensitivity1
-          description: A multiplier of the input of the stick, to lower or raise its responsiveness.
+          description: Multiplies the stick input.
           choices: &sensitivity
             - {name: "0.5x", value: "0.5"}
             - {name: "0.6x", value: "0.6"}
@@ -250,7 +98,7 @@ groups:
             - {name: "1.5x", value: "1.5"}
         - name: DEADZONE
           value: mupen64-deadzone1
-          description: The area around the neutral position of the stick where the input is ignored.
+          description: Stick area around the centre that is ignored.
           choices: &deadzone
             - {name: "0%", value: "0.0"}
             - {name: "1% (Default)", value: "0.01"}
@@ -262,39 +110,39 @@ groups:
       PORT 2:
         - name: CONTROLLER TYPE
           value: mupen64-controller2
-          description: The layout of the buttons. Use N64 for a pad with the buttons of the Nintendo 64.
+          description: N64 is for a pad with the Nintendo 64 buttons.
           choices: *controller_type
         - name: SENSITIVITY
           value: mupen64-sensitivity2
-          description: A multiplier of the input of the stick, to lower or raise its responsiveness.
+          description: Multiplies the stick input.
           choices: *sensitivity
         - name: DEADZONE
           value: mupen64-deadzone2
-          description: The area around the neutral position of the stick where the input is ignored.
+          description: Stick area around the centre that is ignored.
           choices: *deadzone
       PORT 3:
         - name: CONTROLLER TYPE
           value: mupen64-controller3
-          description: The layout of the buttons. Use N64 for a pad with the buttons of the Nintendo 64.
+          description: N64 is for a pad with the Nintendo 64 buttons.
           choices: *controller_type
         - name: SENSITIVITY
           value: mupen64-sensitivity3
-          description: A multiplier of the input of the stick, to lower or raise its responsiveness.
+          description: Multiplies the stick input.
           choices: *sensitivity
         - name: DEADZONE
           value: mupen64-deadzone3
-          description: The area around the neutral position of the stick where the input is ignored.
+          description: Stick area around the centre that is ignored.
           choices: *deadzone
       PORT 4:
         - name: CONTROLLER TYPE
           value: mupen64-controller4
-          description: The layout of the buttons. Use N64 for a pad with the buttons of the Nintendo 64.
+          description: N64 is for a pad with the Nintendo 64 buttons.
           choices: *controller_type
         - name: SENSITIVITY
           value: mupen64-sensitivity4
-          description: A multiplier of the input of the stick, to lower or raise its responsiveness.
+          description: Multiplies the stick input.
           choices: *sensitivity
         - name: DEADZONE
           value: mupen64-deadzone4
-          description: The area around the neutral position of the stick where the input is ignored.
+          description: Stick area around the centre that is ignored.
           choices: *deadzone

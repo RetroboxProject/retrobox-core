@@ -1,0 +1,34 @@
+emulator_name: mupen64plus
+core_name: gliden64
+groups:
+  GENERAL:
+    submenus:
+      SCREEN:
+        - name: RENDERING RESOLUTION
+          value: mupen64plus_NativeResFactor
+          description: The screen resolution, or a multiple of the native one.
+          choices:
+            - name: Screen Resolution (Default)
+              value: 0
+            - name: 1x (Native)
+              value: 1
+            - name: 2x
+              value: 2
+            - name: 3x
+              value: 3
+            - name: 4x
+              value: 4
+        - name: ANTI-ALIASING (MSAA)
+          value: mupen64plus_AntiAliasing
+          description: Smooths the edges of 3D polygons.
+          choices:
+            - name: "Off"
+              value: 0
+            - name: 2x
+              value: 2
+            - name: 4x
+              value: 4
+            - name: 8x
+              value: 8
+            - name: 16x
+              value: 16
