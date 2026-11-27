@@ -57,7 +57,8 @@ def resolve_shader(shader_id: str | None, shaders_dir: Path) -> str:
 
     The shader choice is shared with RetroArch (``system.renderconfig``), so it
     is the same whatever emulator runs. The id comes without extension, and the
-    ``.slangp`` file must exist in share/ares/Shaders: a missing one must not
+    ``.slangp`` file must exist in ``shaders_dir`` (Retrobox's shaders folder,
+    which Ares sees as its own, see ``link_shaders``): a missing one must not
     break the start of Ares.
     """
     if not shader_id:
@@ -70,6 +71,24 @@ def resolve_shader(shader_id: str | None, shaders_dir: Path) -> str:
         )
         return "None"
     return shader_id
+
+
+def link_shaders(ares_dir: Path, shaders_dir: Path) -> None:
+    """Make Ares load its shaders from Retrobox's shaders folder.
+
+    Ares only looks for ``Shaders/`` next to its executable, in its user data
+    directory and in its install prefix, in that order, so a link in the user
+    data directory is enough to make it use the folder RetroArch uses, where
+    the shader choices come from. Whatever else is at that path is left alone.
+    """
+    link = ares_dir / "Shaders"
+    if link.is_symlink() and link.resolve() == shaders_dir.resolve():
+        return
+    if link.is_symlink():
+        link.unlink()
+    if link.exists():
+        return
+    link.symlink_to(shaders_dir, target_is_directory=True)
 
 
 def _saves_path_for(system: Emulator) -> str:
