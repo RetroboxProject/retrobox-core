@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import os
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from retrobox.configgen import Command
-from retrobox.paths import SCREENSHOTS, configure_emulator, mkdir_if_not_exists
+from retrobox.paths import _SHADERS_DIR, SCREENSHOTS, configure_emulator, mkdir_if_not_exists
 
 from ..Generator import Generator
 from . import ares_config
@@ -19,6 +21,23 @@ from .ares_systems import ares_system_name
 
 if TYPE_CHECKING:
     from ...config import SystemConfig
+
+
+def sound_server_env() -> dict[str, str]:
+    """Tell SDL to use PulseAudio when that is the only sound server running.
+
+    SDL tries PipeWire first and complains about its missing configuration on
+    systems that only have PulseAudio (nx-debian, for one). A driver chosen by
+    the user is respected.
+    """
+    runtime = os.environ.get("XDG_RUNTIME_DIR")
+    if not runtime or os.environ.get("SDL_AUDIODRIVER"):
+        return {}
+    if (Path(runtime) / "pipewire-0").exists():
+        return {}
+    if (Path(runtime) / "pulse" / "native").exists():
+        return {"SDL_AUDIODRIVER": "pulseaudio"}
+    return {}
 
 
 class AresGenerator(Generator):
@@ -68,8 +87,9 @@ class AresGenerator(Generator):
         args_array: list[str] = []
 
         # the shader must be loaded from the command line
+        ares_config.link_shaders(_ARES_CFGDIR, _SHADERS_DIR)
         shader_cfg = system.renderconfig.get("shader")
-        if ares_config.resolve_shader(shader_cfg, share / "Shaders") != "None":
+        if ares_config.resolve_shader(shader_cfg, _SHADERS_DIR) != "None":
             args_array = ["--shader", shader_cfg]
 
         # systems that share file extensions are told apart by name
@@ -88,5 +108,6 @@ class AresGenerator(Generator):
             "XDG_DATA_HOME": str(_ARES_XDG),
             "XDG_CONFIG_HOME": str(_ARES_XDG),
             "LD_LIBRARY_PATH": str(share.parent.parent / "lib"),
+            **sound_server_env(),
         }
         return Command.Command(array=command_array, env=env)
