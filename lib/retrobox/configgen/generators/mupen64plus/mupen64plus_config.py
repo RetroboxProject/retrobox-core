@@ -41,6 +41,9 @@ _DEFAULT_AUDIO_BUFFER: Final = "Medium"
 # the frame skip Glide64mk2 may reach by itself, when it is left to decide
 _AUTO_MAX_FRAMESKIP: Final = 5
 
+# the most pixels of the N64's picture the overscan crops at each side of it
+MAX_OVERSCAN: Final = 20
+
 # the joystick hotkeys of the core: Retrobox's input daemon handles the hotkeys
 _JOYSTICK_HOTKEYS: Final = (
     "Joy Mapping Stop",
@@ -82,6 +85,24 @@ def core_name(config: SystemConfig) -> str:
 def aspect_ratio(config: SystemConfig) -> str:
     """Return the aspect ratio set for the game: ``16/9``, or ``4/3`` (the default)."""
     return "16/9" if config.get_str("mupen64plus_ratio", "4/3") == "16/9" else "4/3"
+
+
+def overscan(config: SystemConfig, name: str) -> int:
+    """Return the overscan the game sets in ``mupen64plus_<name>``, in pixels.
+
+    Args:
+        config: The configuration of the game.
+        name: ``OverscanHorizontal`` (left and right) or ``OverscanVertical`` (top and bottom).
+
+    Returns:
+        The pixels of the N64's picture to crop at each of the two sides, from 0 to
+        ``MAX_OVERSCAN``: what is outside of that, or is not a number, is brought into it.
+    """
+    try:
+        pixels = config.get_int(f"mupen64plus_{name}", 0)
+    except ValueError:
+        return 0
+    return max(0, min(MAX_OVERSCAN, pixels))
 
 
 def _write_core(ini: CaseSensitiveConfigParser, config: SystemConfig) -> None:
@@ -180,6 +201,15 @@ def _write_gliden64(
     version_file = data_dir / GLIDEN64_VERSION_FILE
     if version_file.is_file():
         set_value(ini, section, "configVersion", version_file.read_text(encoding="utf-8").strip())
+    # the picture is cropped by the same pixels in both television standards
+    horizontal = overscan(config, "OverscanHorizontal")
+    vertical = overscan(config, "OverscanVertical")
+    set_value(ini, section, "EnableOverscan", bool(horizontal or vertical))
+    for standard in ("Pal", "Ntsc"):
+        set_value(ini, section, f"Overscan{standard}Left", horizontal)
+        set_value(ini, section, f"Overscan{standard}Right", horizontal)
+        set_value(ini, section, f"Overscan{standard}Top", vertical)
+        set_value(ini, section, f"Overscan{standard}Bottom", vertical)
 
 
 def _write_glide64mk2(ini: CaseSensitiveConfigParser, config: SystemConfig) -> None:
@@ -194,6 +224,11 @@ def _write_glide64mk2(ini: CaseSensitiveConfigParser, config: SystemConfig) -> N
     anisotropic = config.get_str("mupen64plus_Anisotropic", "0") != "0"
     set_value(ini, section, "wrpAnisotropic", anisotropic)
     set_value(ini, section, "wrpAntiAliasing", config.get_str("mupen64plus_AntiAliasing", "0"))
+    # the pixels of the N64's picture cropped at each side (Retrobox's patch)
+    set_value(ini, section, "OverscanHorizontal", overscan(config, "OverscanHorizontal"))
+    set_value(ini, section, "OverscanVertical", overscan(config, "OverscanVertical"))
+    # waiting for the GPU at each frame is what the plugin always did (Retrobox's patch)
+    set_value(ini, section, "WaitForGPU", config.get_bool("mupen64plus_WaitForGPU", True))
     frameskip = config.get_str("mupen64plus_frameskip", "0")
     automatic = frameskip == "automatic"
     set_value(ini, section, "autoframeskip", automatic)

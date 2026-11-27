@@ -1,0 +1,55 @@
+Glide64mk2: WaitForGPU, whether the GPU is waited for at each frame.
+
+grBufferSwap starts with a glFinish: the CPU waits for the GPU to be done with
+the frame before it swaps, and cannot start the next one meanwhile, so the two
+take turns instead of working at the same time. On a SoC where both are close
+to their limit (Tegra X1, Nintendo Switch) the sum of their times can go over
+the frame time and make the game run in halves of the speed. With WaitForGPU 0
+(Video-Glide64mk2) the glFinish is not done and the driver queues the frames
+(the picture is the same, as OpenGL runs its commands in order; the latency may
+grow by a frame). The default, 1, is what the plugin always did. OpenGL ES builds
+ignore it.
+
+diff --git a/src/Glide64/Main.cpp b/src/Glide64/Main.cpp
+index a0c13e9..25a29b3 100644
+--- a/src/Glide64/Main.cpp
++++ b/src/Glide64/Main.cpp
+@@ -400,6 +400,7 @@ void ReadSettings ()
+   Config_ReadInt("RenderHeight", "Height the game is drawn at, scaled to the window (0: the window's)", 0, TRUE, FALSE);
+   Config_ReadInt("OverscanHorizontal", "Pixels of the picture cropped on the left and on the right, 0 to 20", 0, TRUE, FALSE);
+   Config_ReadInt("OverscanVertical", "Pixels of the picture cropped on the top and on the bottom, 0 to 20", 0, TRUE, FALSE);
++  Config_ReadInt("WaitForGPU", "Wait for the GPU to finish each frame before showing it (it may cost speed in slow GPUs, and lowers the latency)", 1, TRUE, TRUE);
+   settings.scr_res_x = settings.res_x = Config_ReadScreenInt("ScreenWidth");
+   settings.scr_res_y = settings.res_y = Config_ReadScreenInt("ScreenHeight");
+ 
+diff --git a/src/Glitch64/OGLglitchmain.cpp b/src/Glitch64/OGLglitchmain.cpp
+index 31b3dfc..289af9c 100644
+--- a/src/Glitch64/OGLglitchmain.cpp
++++ b/src/Glitch64/OGLglitchmain.cpp
+@@ -47,6 +47,8 @@ static GLuint main_fbo = 0;
+ static GLuint main_tex[2] = {0, 0};
+ static GLuint main_depth = 0;
+ static int window_width = 0, window_height = 0;
++// Video-Glide64mk2 WaitForGPU: glFinish before each swap (1, as it always was), or not (0).
++static int wait_for_gpu = 1;
+ static int render_width = 0, render_height = 0;
+ 
+ void glitch_render_size(int win_w, int win_h, int *w, int *h)
+@@ -682,6 +684,7 @@ grSstWinOpen(
+   m64p_handle video_glide64mk2_section;
+   ConfigOpenSection("Video-Glide64mk2", &video_glide64mk2_section);
+   int aalevel = ConfigGetParamInt(video_glide64mk2_section, "wrpAntiAliasing");
++  wait_for_gpu = ConfigGetParamBool(video_glide64mk2_section, "WaitForGPU");
+ 
+   window_width = ConfigGetParamInt(video_general_section, "ScreenWidth");
+   window_height = ConfigGetParamInt(video_general_section, "ScreenHeight");
+@@ -1894,7 +1897,8 @@ grBufferSwap( FxU32 swap_interval )
+ {
+    GLhandleARB program;
+ 
+-	glFinish();
++  // wait for the GPU to be done with the frame (WaitForGPU), or let it work ahead of the CPU
++  if (wait_for_gpu) glFinish();
+ //  printf("rendercallback is %p\n", renderCallback);
+   if(renderCallback) {
+       program = glGetHandleARB(GL_PROGRAM_OBJECT_ARB);

@@ -3,9 +3,9 @@
 # frontend, the core and the plugins that batocera ships. Each part is built at
 # the version batocera pins for it, with the patches batocera applies to it (the
 # states and saves named after the ROM, no start message...), and with Retrobox's
-# own (patches/mupen64plus: Glide64mk2's RenderHeight). On x86_64 the core
-# uses the new dynamic recompiler, as on ARM: the old one loops on some games
-# (1080 Snowboarding fills the memory until the system kills it).
+# own (patches/mupen64plus: Glide64mk2's RenderHeight, overscan and WaitForGPU). On
+# x86_64 the core uses the new dynamic recompiler, as on ARM: the old one loops on
+# some games (1080 Snowboarding fills the memory until the system kills it).
 #
 #   MUPEN64PLUS_CFLAGS        optimization flags of the build (default:
 #                             -O3 -march=native -pipe, for the machine it is built on)

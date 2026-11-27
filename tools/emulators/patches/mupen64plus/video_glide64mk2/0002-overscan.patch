@@ -1,0 +1,240 @@
+Glide64mk2: OverscanHorizontal and OverscanVertical, the pixels of the picture
+that are cropped.
+
+Video-Glide64mk2 gets two options, OverscanHorizontal (the pixels cropped on the
+left and on the right) and OverscanVertical (on the top and on the bottom): 0 to
+20 pixels (values out of that range are brought into it), of the N64's picture,
+whose width is the one the game sets (320 or 640 usually). What is left of the
+picture is scaled to fill its place on the screen, so the junk of the edges,
+which a real TV hid, is not seen. The crop is not applied to the original size
+(aspect 3).
+
+It is done when the frame is presented, in the framebuffer object that
+RenderHeight (0001) added: the picture's rectangle, less the crop, is blitted to
+the picture's place in the window, and the window around it (the bars of a 4:3
+picture on a 16:9 screen) is cleared. An overscan makes the plugin use the
+framebuffer object even when RenderHeight is 0, so anti-aliasing is off then, as
+it is with RenderHeight. OpenGL ES builds ignore it.
+
+diff --git a/src/Glide64/Main.cpp b/src/Glide64/Main.cpp
+index 9ce7d0a..a0c13e9 100644
+--- a/src/Glide64/Main.cpp
++++ b/src/Glide64/Main.cpp
+@@ -200,6 +200,34 @@ void (*renderCallback)(int) = NULL;
+ static void (*l_DebugCallback)(void *, int, const char *) = NULL;
+ static void *l_DebugCallContext = NULL;
+ 
++// Overscan (Video-Glide64mk2 OverscanHorizontal and OverscanVertical): the pixels of
++// the N64's picture that are cropped at each side, so that what is left of it fills its
++// place on the screen. Glitch64 does it when it presents the frame.
++void glitch_overscan_pixels(int *horizontal, int *vertical);
++void glitch_set_overscan(float x0, float y0, float x1, float y1, float dx, float dy);
++
++static void UpdateOverscan ()
++{
++  int pixels_x, pixels_y;
++  // the picture's place, in the pixels of the screen it is drawn at (from the top left)
++  float x0 = rdp.offset_x;
++  float x1 = (float)settings.res_x;
++  float y0 = (float)settings.scr_res_y - (float)settings.res_y;
++  float y1 = (float)settings.res_y;
++  float dx = 0.0f, dy = 0.0f;
++  glitch_overscan_pixels(&pixels_x, &pixels_y);
++  // the original size has no place to scale the picture to
++  if (settings.aspectmode != 3)
++  {
++    // the pixels are the N64's, whatever the size the picture is drawn at
++    if (rdp.vi_width > 2.0f * pixels_x)
++      dx = (x1 - x0) * pixels_x / rdp.vi_width;
++    if (rdp.vi_height > 2.0f * pixels_y)
++      dy = (y1 - y0) * pixels_y / rdp.vi_height;
++  }
++  glitch_set_overscan (x0, y0, x1, y1, dx, dy);
++}
++
+ void _ChangeSize ()
+ {
+   rdp.scale_1024 = settings.scr_res_x / 1024.0f;
+@@ -310,6 +338,7 @@ void ChangeSize ()
+   }
+   //	settings.res_x = settings.scr_res_x;
+   //	settings.res_y = settings.scr_res_y;
++  UpdateOverscan ();
+ }
+ 
+ void ConfigWrapper()
+@@ -369,6 +398,8 @@ void ReadSettings ()
+   // depth_bias = -Config_ReadInt ("depth_bias", "Depth bias level", 0, TRUE, FALSE);
+   settings.res_data = 0;
+   Config_ReadInt("RenderHeight", "Height the game is drawn at, scaled to the window (0: the window's)", 0, TRUE, FALSE);
++  Config_ReadInt("OverscanHorizontal", "Pixels of the picture cropped on the left and on the right, 0 to 20", 0, TRUE, FALSE);
++  Config_ReadInt("OverscanVertical", "Pixels of the picture cropped on the top and on the bottom, 0 to 20", 0, TRUE, FALSE);
+   settings.scr_res_x = settings.res_x = Config_ReadScreenInt("ScreenWidth");
+   settings.scr_res_y = settings.res_y = Config_ReadScreenInt("ScreenHeight");
+ 
+diff --git a/src/Glitch64/OGLESglitchmain.cpp b/src/Glitch64/OGLESglitchmain.cpp
+index 09d0332..c8148dd 100644
+--- a/src/Glitch64/OGLESglitchmain.cpp
++++ b/src/Glitch64/OGLESglitchmain.cpp
+@@ -2580,6 +2580,21 @@ void glitch_render_size(int win_w, int win_h, int *w, int *h)
+   *h = win_h;
+ }
+ 
++// The overscan is not supported with OpenGL ES either.
++int glitch_overscan_wanted()
++{
++  return 0;
++}
++
++void glitch_overscan_pixels(int *horizontal, int *vertical)
++{
++  *horizontal = *vertical = 0;
++}
++
++void glitch_set_overscan(float, float, float, float, float, float)
++{
++}
++
+ GLenum glitch_buffer(GLenum buffer)
+ {
+   return buffer;
+diff --git a/src/Glitch64/OGLglitchmain.cpp b/src/Glitch64/OGLglitchmain.cpp
+index 059ae50..31b3dfc 100644
+--- a/src/Glitch64/OGLglitchmain.cpp
++++ b/src/Glitch64/OGLglitchmain.cpp
+@@ -63,6 +63,55 @@ void glitch_render_size(int win_w, int win_h, int *w, int *h)
+   }
+ }
+ 
++// Overscan (Video-Glide64mk2 OverscanHorizontal, OverscanVertical): the picture's
++// place in the render size's pixels (top-down) and the part of each of its sides
++// that is cropped, set by the plugin each time the picture changes its size.
++static float overscan_pic[4] = {0, 0, 0, 0};
++static float overscan_dx = 0, overscan_dy = 0;
++
++// The most pixels of the N64's picture that can be cropped on each side.
++#define MAX_OVERSCAN 20
++
++static int overscan_option(m64p_handle section, const char *name)
++{
++  int pixels = ConfigGetParamInt(section, name);
++  return pixels < 0 ? 0 : (pixels > MAX_OVERSCAN ? MAX_OVERSCAN : pixels);
++}
++
++// Whether an overscan is set: it needs the framebuffer object, as RenderHeight does.
++int glitch_overscan_wanted()
++{
++  m64p_handle section;
++  if (ConfigOpenSection("Video-Glide64mk2", &section) != M64ERR_SUCCESS)
++    return 0;
++  return overscan_option(section, "OverscanHorizontal") > 0 ||
++         overscan_option(section, "OverscanVertical") > 0;
++}
++
++// The pixels of overscan to crop on each side, as OverscanHorizontal and
++// OverscanVertical set them (0 to 20 pixels of the N64's picture).
++void glitch_overscan_pixels(int *horizontal, int *vertical)
++{
++  m64p_handle section;
++  *horizontal = *vertical = 0;
++  if (ConfigOpenSection("Video-Glide64mk2", &section) != M64ERR_SUCCESS)
++    return;
++  *horizontal = overscan_option(section, "OverscanHorizontal");
++  *vertical = overscan_option(section, "OverscanVertical");
++}
++
++// The picture is the (x0, y0)-(x1, y1) rectangle of the render size's pixels,
++// measured from the top left; dx and dy are the pixels to crop from each side.
++void glitch_set_overscan(float x0, float y0, float x1, float y1, float dx, float dy)
++{
++  overscan_pic[0] = x0;
++  overscan_pic[1] = y0;
++  overscan_pic[2] = x1;
++  overscan_pic[3] = y1;
++  overscan_dx = dx;
++  overscan_dy = dy;
++}
++
+ GLenum glitch_buffer(GLenum buffer)
+ {
+   if (!main_fbo) return buffer;
+@@ -121,9 +170,41 @@ static void destroy_main_fbo()
+   main_fbo = main_depth = 0;
+ }
+ 
+-// The frame, scaled to the window's back buffer.
++static int clamp_int(int value, int low, int high)
++{
++  return value < low ? low : (value > high ? high : value);
++}
++
++// The frame, scaled to the window's back buffer. With an overscan only the
++// picture is drawn, without the pixels cropped from its sides (the window
++// outside of it is cleared).
+ static void present_main_fbo()
+ {
++  int src_x0 = 0, src_y0 = 0, src_x1 = render_width, src_y1 = render_height;
++  int dst_x0 = 0, dst_y0 = 0, dst_x1 = window_width, dst_y1 = window_height;
++  int cropped = overscan_dx > 0 || overscan_dy > 0;
++  if (cropped) {
++    // the rectangles measure from the top, and OpenGL from the bottom
++    float scale_x = (float)window_width / render_width;
++    float scale_y = (float)window_height / render_height;
++    src_x0 = clamp_int((int)(overscan_pic[0] + overscan_dx + 0.5f), 0, render_width);
++    src_x1 = clamp_int((int)(overscan_pic[2] - overscan_dx + 0.5f), 0, render_width);
++    src_y0 = render_height - clamp_int((int)(overscan_pic[3] - overscan_dy + 0.5f), 0, render_height);
++    src_y1 = render_height - clamp_int((int)(overscan_pic[1] + overscan_dy + 0.5f), 0, render_height);
++    dst_x0 = clamp_int((int)(overscan_pic[0] * scale_x + 0.5f), 0, window_width);
++    dst_x1 = clamp_int((int)(overscan_pic[2] * scale_x + 0.5f), 0, window_width);
++    dst_y0 = window_height - clamp_int((int)(overscan_pic[3] * scale_y + 0.5f), 0, window_height);
++    dst_y1 = window_height - clamp_int((int)(overscan_pic[1] * scale_y + 0.5f), 0, window_height);
++    cropped = src_x1 > src_x0 && src_y1 > src_y0 && dst_x1 > dst_x0 && dst_y1 > dst_y0;
++    if (!cropped) {
++      // a picture that cannot be cropped is shown whole
++      src_x0 = src_y0 = dst_x0 = dst_y0 = 0;
++      src_x1 = render_width;
++      src_y1 = render_height;
++      dst_x1 = window_width;
++      dst_y1 = window_height;
++    }
++  }
+   glPushAttrib(GL_SCISSOR_BIT | GL_COLOR_BUFFER_BIT);
+   glDisable(GL_SCISSOR_TEST);
+   glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+@@ -131,7 +212,11 @@ static void present_main_fbo()
+   glReadBuffer(GL_COLOR_ATTACHMENT0_EXT);
+   glBindFramebufferEXT(GL_DRAW_FRAMEBUFFER_EXT, 0);
+   glDrawBuffer(GL_BACK);
+-  glBlitFramebufferEXT(0, 0, render_width, render_height, 0, 0, window_width, window_height,
++  if (cropped && (dst_x0 > 0 || dst_y0 > 0 || dst_x1 < window_width || dst_y1 < window_height)) {
++    glClearColor(0, 0, 0, 1);
++    glClear(GL_COLOR_BUFFER_BIT);
++  }
++  glBlitFramebufferEXT(src_x0, src_y0, src_x1, src_y1, dst_x0, dst_y0, dst_x1, dst_y1,
+     GL_COLOR_BUFFER_BIT, GL_LINEAR);
+   glPopAttrib();
+ }
+@@ -603,7 +688,7 @@ grSstWinOpen(
+   glitch_render_size(window_width, window_height, &width, &height);
+   screen_width = width;
+   screen_height = height;
+-  int offscreen = width != window_width || height != window_height;
++  int offscreen = width != window_width || height != window_height || glitch_overscan_wanted();
+   fullscreen = ConfigGetParamBool(video_general_section, "Fullscreen");
+   int vsync = ConfigGetParamBool(video_general_section, "VerticalSync");
+ 
+diff --git a/src/Glitch64/glitchmain.h b/src/Glitch64/glitchmain.h
+index e92c1d4..6b7bf04 100644
+--- a/src/Glitch64/glitchmain.h
++++ b/src/Glitch64/glitchmain.h
+@@ -404,5 +404,10 @@ void LOG(const char *text, ...) ATTR_FMT(1,2);
+ // of win_w x win_h, and the buffer that stands for GL_BACK or GL_FRONT.
+ void glitch_render_size(int win_w, int win_h, int *w, int *h);
+ GLenum glitch_buffer(GLenum buffer);
++// Video-Glide64mk2 OverscanHorizontal and OverscanVertical: the pixels of the picture
++// cropped at each side, and the picture's place and crop that the plugin has set.
++int glitch_overscan_wanted();
++void glitch_overscan_pixels(int *horizontal, int *vertical);
++void glitch_set_overscan(float x0, float y0, float x1, float y1, float dx, float dy);
+ 
+ #endif
