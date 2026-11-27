@@ -136,5 +136,10 @@ class Mupen64PlusGenerator(Generator):
         for directory in (MUPEN64PLUS_CONFIG_DIR, MUPEN64PLUS_SAVES, SCREENSHOTS):
             mkdir_if_not_exists(directory)
         _write_settings(system.config, playersControllers, gameResolution, data_dir)
-        env = {"SDL_JOYSTICK_ALLOW_BACKGROUND_EVENTS": "1"}
+        env = {
+            "SDL_JOYSTICK_ALLOW_BACKGROUND_EVENTS": "1",
+            # SDL minimizes a fullscreen window that loses the focus (to the
+            # overlay, on X11): it stays where it is
+            "SDL_VIDEO_MINIMIZE_ON_FOCUS_LOSS": "0",
+        }
         return Command.Command(array=_build_command(mupen, system.config, rom), env=env)
