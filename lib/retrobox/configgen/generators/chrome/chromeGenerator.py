@@ -9,7 +9,7 @@ import uuid
 from ...controller import generate_sdl_game_controller_config
 from ... import Command
 from ..Generator import Generator
-from retrobox.paths import RUNTIME_DIR, SAVES
+from retrobox.paths import LOGS, RUNTIME_DIR, SAVES
 
 
 _DDG_SEARCH_DATA = {
@@ -71,6 +71,7 @@ def _make_wrapper(chrome_bin: str, url: str, user_data_dir: str, playersControll
     home = os.environ.get("HOME", f"/home/{os.environ.get('USER', 'manuel')}")
     sdlconfig = generate_sdl_game_controller_config(playersControllers)
     sdl_export = f'export SDL_GAMECONTROLLERCONFIG="{sdlconfig}"' if playersControllers else ""
+    chrome_log = LOGS / "chrome.log"
     ua_flag = f'    --user-agent="{user_agent}" \\' if user_agent else ""
     script = f"""#!/usr/bin/env bash
 set -uo pipefail
@@ -99,8 +100,9 @@ export QT_SCALE_FACTOR="1.5"
     --disable-sync \\
     --no-first-run \\
     --no-default-browser-check \\{ua_flag}
-    "{url}" > /dev/null 2>&1
-echo "[chrome-wrapper] Chrome cerrado."
+    "{url}" > "{chrome_log}" 2>&1
+status=$?
+echo "[chrome-wrapper] Chrome closed with status $status (output: {chrome_log})"
 exit 0
 """
     fd, path = tempfile.mkstemp(prefix="chrome_wrapper_", suffix=".sh", dir=RUNTIME_DIR)
