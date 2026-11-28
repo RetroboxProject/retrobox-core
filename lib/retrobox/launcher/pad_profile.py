@@ -42,7 +42,7 @@ from retrobox.configgen.hotkeys import (
     load_table,
 )
 
-from retrobox.paths import PAD_PROFILES, USER_PAD_PROFILES
+from retrobox.paths import BIN_DIR, PAD_PROFILES, USER_PAD_PROFILES
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -169,7 +169,11 @@ def _read_base(base: Path | None) -> dict[str, Any]:
     if base is None:
         return {}
     try:
-        data = json.loads(base.read_text(encoding="utf-8"))
+        # ${RETROBOX_BIN} stands for the folder of Retrobox's commands
+        text = base.read_text(encoding="utf-8").replace(
+            "${RETROBOX_BIN}", json.dumps(str(BIN_DIR))[1:-1]
+        )
+        data = json.loads(text)
     except (OSError, ValueError) as err:
         _logger.warning("ignoring broken gamepad profile %s: %s", base, err)
         return {}

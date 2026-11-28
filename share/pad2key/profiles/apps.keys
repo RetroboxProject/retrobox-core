@@ -9,17 +9,16 @@
             "acceleration": 1.5
         },
         {
-            "trigger": "b",
-            "type": "key",
-            "target": "BTN_LEFT"
-        },
-        {
             "trigger": "a",
             "type": "key",
-            "target": [
-                "KEY_LEFTALT",
-                "KEY_LEFT"
-            ]
+            "target": "BTN_LEFT",
+            "description": "Left click"
+        },
+        {
+            "trigger": "b",
+            "type": "exec",
+            "target": "${RETROBOX_BIN}/retrobox-webapp-back",
+            "description": "Back; closes the tab when there is no page to go back to"
         },
         {
             "trigger": [

@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# retrobox-webapp-back: go back one page in the web app in front, or close its
+# tab when there is no page to go back to (the B button of the web apps' pad
+# profile, share/pad2key/profiles/apps.keys).
+#
+# It only picks the interpreter and sets up the import path; the work is
+# lib/retrobox/launcher/webapp_back.py.
+set -eo pipefail
+SELF="$(readlink -f "${BASH_SOURCE[0]}")"
+RETROBOX_ROOTDIR="${RETROBOX_ROOTDIR:-$(dirname "$(dirname "${SELF}")")}"
+export RETROBOX_ROOTDIR
+export PYTHONPATH="${RETROBOX_ROOTDIR}/lib${PYTHONPATH:+:${PYTHONPATH}}"
+
+if [[ -z "${RETROBOX_PYTHON:-}" ]]; then
+    if [[ -x "${RETROBOX_ROOTDIR}/venv/bin/python3" ]]; then
+        RETROBOX_PYTHON="${RETROBOX_ROOTDIR}/venv/bin/python3"
+    else
+        RETROBOX_PYTHON="$(command -v python3 || true)"
+    fi
+fi
+[[ -n "${RETROBOX_PYTHON}" ]] || { echo "retrobox-webapp-back: python3 not found" >&2; exit 1; }
+
+exec "${RETROBOX_PYTHON}" -m retrobox.launcher.webapp_back "$@"

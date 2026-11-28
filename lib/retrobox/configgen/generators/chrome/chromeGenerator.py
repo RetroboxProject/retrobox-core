@@ -80,6 +80,14 @@ def _seed_profile(user_data_dir: str) -> None:
     with open(prefs_path, "w", encoding="utf-8") as fh:
         json.dump(prefs, fh)
 
+def _record_profile(user_data_dir: str) -> None:
+    """Tell ``retrobox-webapp-back`` where the profile is (Chrome's DevTools port is in it)."""
+    try:
+        (RUNTIME_DIR / "webapp-profile").write_text(user_data_dir, encoding="utf-8")
+    except OSError:
+        pass  # without it the back button falls back to Alt+Left
+
+
 def _supports_symlinks(folder: str) -> bool:
     """Tell whether ``folder`` can hold symbolic links (Chrome locks its profile with one)."""
     try:
@@ -144,6 +152,7 @@ export QT_SCALE_FACTOR="1.5"
 "{chrome_bin}" \\
     --user-data-dir="{user_data_dir}" \\
     --kiosk \\
+    --remote-debugging-port=0 \\
     --force-device-scale-factor=1.5 \\
     --no-sandbox \\
     --disable-dev-shm-usage \\
@@ -177,6 +186,7 @@ class ChromeGenerator(Generator):
         chrome_bin = _find_chrome_binary()
         user_data_dir = _profile_dir(system.config.get("saves_dir", str(SAVES)))
         _seed_profile(user_data_dir)
+        _record_profile(user_data_dir)
 
         url, user_agent = "about:blank", None
         if rom.name != "Chrome.chrome":

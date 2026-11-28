@@ -292,14 +292,16 @@ The input daemon maps the player 1 gamepad so the web pages can be used without 
 |---|---|
 | Left stick / right stick | Move the mouse cursor / scroll |
 | D-pad | Arrow keys |
-| B | Left click |
-| A | Back (`Alt+Left`) |
+| A | Left click |
+| B | Back one page; closes the tab when there is none to go back to (`retrobox-webapp-back`) |
 | Start / Select | Play/Pause / `Tab` |
 | L1 / R1 | Page Up / Page Down |
 | Hotkey+L1 / Hotkey+R1 | Previous / next media |
 | Hotkey+Y | `Meta+O` (on-screen keyboard shortcut) |
 | Hotkey+X | `Meta+SysRq` (screenshot) |
 | Hotkey+Start | Exit back to EmulationStation |
+
+The Back button asks Chrome (started with a loopback-only DevTools port, `--remote-debugging-port=0`) for the history of the tab in front, so it knows whether there is a page behind; closing the last tab quits the browser and returns to EmulationStation. Firefox has no such port here: there B presses `Alt+Left`.
 
 ## Setup
 
