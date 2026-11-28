@@ -314,7 +314,8 @@ def check_input() -> Iterator[Check]:
     else:
         yield Check(section, "uinput", Status.WARN,
                     "not writable: the pad-to-keyboard mappings and hotkeys can't type",
-                    "the input group needs it: sudo usermod -aG input $USER, then log in again")
+                    "Retrobox's udev rule gives it to the input group: reinstall the package, or "
+                    "sudo udevadm control --reload-rules && sudo udevadm trigger --subsystem-match=misc")
 
     rule_dirs = (Path("/usr/lib/udev/rules.d"), Path("/lib/udev/rules.d"),
                  Path("/etc/udev/rules.d"))

@@ -12,7 +12,7 @@ case "$1" in
 
         if command -v udevadm >/dev/null 2>&1; then
             udevadm control --reload-rules >/dev/null 2>&1 || true
-            udevadm trigger --subsystem-match=input --subsystem-match=hidraw \
+            udevadm trigger --subsystem-match=input --subsystem-match=hidraw --subsystem-match=misc \
                 --action=change >/dev/null 2>&1 || true
         fi
 

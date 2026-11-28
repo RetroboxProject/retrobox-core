@@ -46,7 +46,7 @@ if command -v python3 >/dev/null 2>&1; then
 fi
 if command -v udevadm >/dev/null 2>&1; then
     udevadm control --reload-rules >/dev/null 2>&1 || :
-    udevadm trigger --subsystem-match=input --subsystem-match=hidraw \
+    udevadm trigger --subsystem-match=input --subsystem-match=hidraw --subsystem-match=misc \
         --action=change >/dev/null 2>&1 || :
 fi
 # Keyboards and mice are not covered by the seat ACLs: without the "input"

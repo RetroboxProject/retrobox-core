@@ -420,7 +420,7 @@ if [[ -n "${UDEV_DIR}" ]]; then
     done
     if command -v udevadm >/dev/null 2>&1; then
         priv udevadm control --reload-rules >/dev/null 2>&1 || true
-        priv udevadm trigger --subsystem-match=input --subsystem-match=hidraw --action=change >/dev/null 2>&1 || true
+        priv udevadm trigger --subsystem-match=input --subsystem-match=hidraw --subsystem-match=misc --action=change >/dev/null 2>&1 || true
     fi
 fi
 
