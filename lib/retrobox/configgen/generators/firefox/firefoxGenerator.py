@@ -8,12 +8,14 @@ from ..Generator import Generator
 
 
 def _parse_rom_launcher(lines: list[str]) -> tuple[str, str | None]:
-    """Read both the plain format (the URL on line 1, an optional user agent
-    on line 2) and the ludex one ([ludex-element] with run=/user-agent=)."""
+    """Read the plain format (the URL on line 1, an optional user agent on
+    line 2), the ludex one ([ludex-element] with run=/user-agent=) and the
+    [kodi_webapp] one (url=/user_agent=)."""
     if not lines:
         return "about:blank", None
 
     kv: dict[str, str] = {}
+    is_kodi_webapp = any(line.strip().lower() == "[kodi_webapp]" for line in lines)
     for line in lines:
         line = line.strip()
         if not line or line.startswith(("[", "#", ";")):
@@ -21,6 +23,9 @@ def _parse_rom_launcher(lines: list[str]) -> tuple[str, str | None]:
         if "=" in line:
             key, _, value = line.partition("=")
             kv[key.strip().lower()] = value.strip()
+
+    if is_kodi_webapp:
+        return kv.get("url") or "about:blank", kv.get("user_agent") or None
 
     if "run" in kv:
         url = kv.get("run") or "about:blank"
