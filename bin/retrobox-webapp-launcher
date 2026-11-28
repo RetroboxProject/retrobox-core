@@ -1,0 +1,195 @@
+#!/usr/bin/env bash
+# retrobox-webapp: run a webapp (.webapp file) in Chrome through Retrobox's
+# launcher, with the connected controllers sorted by connection time.
+#
+#   retrobox-webapp [-n|--dry-run] FILE.webapp
+#   retrobox-webapp [-n|--dry-run] NAME            (looks for NAME[.webapp] in <data dir>/apps)
+#
+# FILE.webapp is what the chrome generator reads (configgen/generators/chrome):
+#   line 1: URL
+#   line 2: user agent (optional)
+#
+# Player order: the controllers SDL sees (jsX / evdev, or hidrawX when HIDAPI
+# takes the device) are sorted by the udev USEC_INITIALIZED timestamp of their
+# device node: the first one connected is player 1, the next one player 2...
+# The result is passed to retrobox-launch with the same -pN* options that
+# EmulationStation builds for %CONTROLLERSCONFIG%:
+#
+#   retrobox-launch -p1index N -p1guid G -p1name NAME -p1devicepath PATH \
+#       -p1nbbuttons B -p1nbhats H -p1nbaxes A [-p2...] \
+#       -system apps -emulator chrome -core chrome -rom FILE.webapp
+#
+# --dry-run prints the command instead of running it.
+#
+# Install as /opt/retrobox/bin/retrobox-webapp (mode 755).
+set -eo pipefail
+
+SELF="$(readlink -f "${BASH_SOURCE[0]}")"
+RETROBOX_ROOTDIR="${RETROBOX_ROOTDIR:-$(dirname "$(dirname "${SELF}")")}"
+export RETROBOX_ROOTDIR
+export PYTHONPATH="${RETROBOX_ROOTDIR}/lib${PYTHONPATH:+:${PYTHONPATH}}"
+
+log() { printf '[%s] %s %s\n' "$1" "$(date +%Y-%m-%d_%H:%M:%S)" "$2" >&2; }
+die() { log "ERR " "$1"; exit 1; }
+usage() { sed -n '2,/^# Install as/p' "${SELF}" | sed 's/^# \{0,1\}//' >&2; }
+
+# ---------------------------------------------------------------- arguments
+DRY_RUN=0
+WEBAPP=""
+for arg in "$@"; do
+    case "${arg}" in
+        -n|--dry-run) DRY_RUN=1 ;;
+        -h|--help) usage; exit 0 ;;
+        -*) die "unknown option: ${arg}" ;;
+        *) [[ -z "${WEBAPP}" ]] || die "only one webapp can be given"; WEBAPP="${arg}" ;;
+    esac
+done
+[[ -n "${WEBAPP}" ]] || { usage; exit 1; }
+
+# the webapp: an existing file, or a name inside the apps folder
+DATA_DIR="${RETROBOX_DATADIR:-${XDG_DATA_HOME:-${HOME}/.local/share}/retrobox}"
+APPS_DIR="${DATA_DIR}/apps"
+ROM=""
+for candidate in "${WEBAPP}" "${APPS_DIR}/${WEBAPP}" "${APPS_DIR}/${WEBAPP}.webapp"; do
+    if [[ -f "${candidate}" ]]; then
+        ROM="$(readlink -f "${candidate}")"
+        break
+    fi
+done
+[[ -n "${ROM}" ]] || die "webapp not found: ${WEBAPP} (also looked in ${APPS_DIR})"
+
+# ------------------------------------------------------------- interpreter
+# same choice as bin/retrobox-launch: the venv of the install, else python3
+if [[ -z "${RETROBOX_PYTHON:-}" ]]; then
+    if [[ -x "${RETROBOX_ROOTDIR}/venv/bin/python3" ]]; then
+        RETROBOX_PYTHON="${RETROBOX_ROOTDIR}/venv/bin/python3"
+    else
+        RETROBOX_PYTHON="$(command -v python3 || true)"
+    fi
+fi
+[[ -n "${RETROBOX_PYTHON}" ]] || die "python3 not found"
+
+LAUNCHER="${RETROBOX_ROOTDIR}/bin/retrobox-launch"
+[[ -x "${LAUNCHER}" ]] || die "retrobox-launch not found at ${LAUNCHER}"
+
+# ------------------------------------------------------ controller ordering
+# Prints the -pN* options as NUL-separated words (names may hold spaces) and
+# the order it found on stderr. Any failure leaves the list empty: a webapp
+# runs fine without controllers.
+read -r -d '' PYCODE <<'PY' || true
+import ctypes
+import sys
+import time
+
+MAX_PLAYERS = 8
+
+
+def log(level, msg):
+    sys.stderr.write("[%s] %s %s\n" % (level, time.strftime("%Y-%m-%d_%H:%M:%S"), msg))
+
+
+def connection_time(ctx, path):
+    """udev's USEC_INITIALIZED (monotonic µs since boot) of the node or, failing
+    that, of its parents (input device, hid device...). None if udev has none."""
+    import pyudev
+    try:
+        dev = pyudev.Devices.from_device_file(ctx, path)
+    except Exception:  # pylint: disable=broad-except
+        return None
+    for node in (dev, *dev.ancestors):
+        value = node.properties.get("USEC_INITIALIZED")
+        if value:
+            return int(value)
+    return None
+
+
+def main():
+    try:
+        import pyudev
+        import sdl2
+    except ImportError as err:
+        log("WARN", "no controller ordering (%s)" % err)
+        return
+
+    if sdl2.SDL_Init(sdl2.SDL_INIT_JOYSTICK) != 0:
+        log("WARN", "SDL joystick init failed: %s" % sdl2.SDL_GetError().decode())
+        return
+
+    ctx = pyudev.Context()
+    guid_buf = ctypes.create_string_buffer(33)
+    pads = []
+
+    for index in range(sdl2.SDL_NumJoysticks()):
+        raw_path = sdl2.SDL_JoystickPathForIndex(index)
+        path = raw_path.decode() if raw_path else ""
+        if not path:
+            continue  # virtual / pathless device: nothing to hand to the launcher
+
+        joystick = sdl2.SDL_JoystickOpen(index)
+        if not joystick:
+            continue
+        buttons = sdl2.SDL_JoystickNumButtons(joystick)
+        hats = sdl2.SDL_JoystickNumHats(joystick)
+        axes = sdl2.SDL_JoystickNumAxes(joystick)
+        sdl2.SDL_JoystickClose(joystick)
+        if buttons <= 0 and axes <= 0 and hats <= 0:
+            continue  # motion sensors, etc.
+
+        sdl2.SDL_JoystickGetGUIDString(sdl2.SDL_JoystickGetDeviceGUID(index), guid_buf, 33)
+        raw_name = sdl2.SDL_JoystickNameForIndex(index)
+        stamp = connection_time(ctx, path)
+        pads.append({
+            "index": index,
+            "guid": guid_buf.value.decode(),
+            "name": raw_name.decode("utf-8", "replace") if raw_name else "Unknown",
+            "path": path,
+            "buttons": buttons,
+            "hats": hats,
+            "axes": axes,
+            "stamp": stamp,
+        })
+
+    sdl2.SDL_Quit()
+
+    # oldest connection first; no timestamp goes last; SDL index breaks ties
+    pads.sort(key=lambda p: (p["stamp"] is None, p["stamp"] or 0, p["index"]))
+    pads = pads[:MAX_PLAYERS]
+
+    args = []
+    for player, pad in enumerate(pads, 1):
+        log("INFO", "player %d: %s [%s] %s (udev t=%s, sdl index %d)" % (
+            player, pad["name"], pad["guid"], pad["path"], pad["stamp"], pad["index"]))
+        args += [
+            "-p%dindex" % player, str(pad["index"]),
+            "-p%dguid" % player, pad["guid"],
+            "-p%dname" % player, pad["name"],
+            "-p%ddevicepath" % player, pad["path"],
+            "-p%dnbbuttons" % player, str(pad["buttons"]),
+            "-p%dnbhats" % player, str(pad["hats"]),
+            "-p%dnbaxes" % player, str(pad["axes"]),
+        ]
+    if not pads:
+        log("INFO", "no controllers connected")
+    else:
+        sys.stdout.buffer.write(b"".join(a.encode() + b"\0" for a in args))
+
+
+try:
+    main()
+except Exception as exc:  # pylint: disable=broad-except
+    log("WARN", "controller ordering failed: %s" % exc)
+PY
+
+PAD_ARGS=()
+mapfile -d '' -t PAD_ARGS < <("${RETROBOX_PYTHON}" -c "${PYCODE}") || true
+
+# ------------------------------------------------------------------- launch
+CMD=("${LAUNCHER}" "${PAD_ARGS[@]}" -system apps -emulator chrome -core chrome -rom "${ROM}")
+
+if [[ "${DRY_RUN}" -eq 1 ]]; then
+    printf '%q ' "${CMD[@]}"; printf '\n'
+    exit 0
+fi
+
+log "INFO" "launching ${ROM} in chrome"
+exec "${CMD[@]}"
