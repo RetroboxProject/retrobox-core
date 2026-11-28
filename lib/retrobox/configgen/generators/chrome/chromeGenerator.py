@@ -1,4 +1,5 @@
 from __future__ import annotations
+import configparser
 import glob
 import json
 import os
@@ -24,6 +25,36 @@ _DDG_SEARCH_DATA = {
     "prepopulate_id": 0,
     "is_active": 1,
 }
+
+def parse_webapp(text: str) -> tuple[str, str | None]:
+    """Return ``(url, user_agent)`` from the text of a ``.webapp`` file.
+
+    The format is an INI file::
+
+        [kodi_webapp]
+        name=YouTube Music
+        url=https://music.youtube.com
+        user_agent=Mozilla/5.0 ...
+
+    ``user_agent`` is optional. The older format (URL on the first line,
+    optional user agent on the second) is still understood.
+    """
+    parser = configparser.RawConfigParser(interpolation=None)
+    try:
+        parser.read_string(text)
+    except configparser.Error:
+        parser = None
+    if parser is not None and parser.has_section("kodi_webapp"):
+        section = parser["kodi_webapp"]
+        url = section.get("url", "").strip()
+        user_agent = section.get("user_agent", "").strip()
+        return url or "about:blank", user_agent or None
+    lines = text.splitlines()
+    if not lines or not lines[0].strip():
+        return "about:blank", None
+    user_agent = lines[1].strip() if len(lines) >= 2 else ""
+    return lines[0].strip(), user_agent or None
+
 
 def _seed_profile(user_data_dir: str) -> None:
     """Seed the profile BEFORE its first launch. An existing profile is left alone."""
@@ -147,13 +178,8 @@ class ChromeGenerator(Generator):
         user_data_dir = _profile_dir(system.config.get("saves_dir", str(SAVES)))
         _seed_profile(user_data_dir)
 
-        url = "about:blank"
-        user_agent = ""
+        url, user_agent = "about:blank", None
         if rom.name != "Chrome.chrome":
-            with rom.open() as f:
-                lines = f.read().splitlines()
-            if lines:
-                url = lines[0].strip()
-                user_agent = lines[1].strip() if len(lines) >= 2 and lines[1].strip() else None
+            url, user_agent = parse_webapp(rom.read_text(encoding="utf-8", errors="replace"))
         wrapper_path = _make_wrapper(chrome_bin, url, user_data_dir, playersControllers, user_agent)
         return Command.Command(array=[wrapper_path], env={})
