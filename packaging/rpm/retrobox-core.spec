@@ -44,6 +44,7 @@ cp -a %{stagedir}/. %{buildroot}/
 if command -v python3 >/dev/null 2>&1; then
     python3 -m compileall -q /opt/retrobox/lib >/dev/null 2>&1 || :
 fi
+command -v modprobe >/dev/null 2>&1 && modprobe uinput >/dev/null 2>&1 || :
 if command -v udevadm >/dev/null 2>&1; then
     udevadm control --reload-rules >/dev/null 2>&1 || :
     udevadm trigger --subsystem-match=input --subsystem-match=hidraw --subsystem-match=misc \
@@ -75,6 +76,7 @@ fi
 %dir /etc/retrobox/retrobox.ini.d
 /usr/bin/retrobox
 /usr/lib/udev/rules.d/64-retrobox.rules
+/usr/lib/modules-load.d/retrobox.conf
 /usr/share/polkit-1/rules.d/50-retrobox-nvidia-powerd.rules
 /usr/share/applications/retrobox.desktop
 # listed one by one: a glob would miss the 512 px link (its target is in /opt)

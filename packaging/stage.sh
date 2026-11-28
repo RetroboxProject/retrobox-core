@@ -126,6 +126,11 @@ UDEV_DIR="${DESTDIR}/usr/lib/udev/rules.d"
 mkdir -p "${UDEV_DIR}"
 install -m 644 "${SRC}/system/udev/64-retrobox.rules" "${UDEV_DIR}/64-retrobox.rules"
 
+# --- 3a. kernel modules to load at boot (uinput, for the input daemon) -------
+MODULES_DIR="${DESTDIR}/usr/lib/modules-load.d"
+mkdir -p "${MODULES_DIR}"
+install -m 644 "${SRC}/system/modules-load.d/retrobox.conf" "${MODULES_DIR}/retrobox.conf"
+
 # --- 3b. polkit rules (start/stop nvidia-powerd without a password) ----------
 POLKIT_DIR="${DESTDIR}/usr/share/polkit-1/rules.d"
 mkdir -p "${POLKIT_DIR}"
