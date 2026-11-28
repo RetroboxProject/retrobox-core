@@ -9,7 +9,7 @@ import uuid
 from ...controller import generate_sdl_game_controller_config
 from ... import Command
 from ..Generator import Generator
-from retrobox.paths import LOGS, RUNTIME_DIR, SAVES
+from retrobox.paths import EMULATORS_CONFIG, LOGS, RUNTIME_DIR, SAVES
 
 
 _DDG_SEARCH_DATA = {
@@ -48,6 +48,30 @@ def _seed_profile(user_data_dir: str) -> None:
     }
     with open(prefs_path, "w", encoding="utf-8") as fh:
         json.dump(prefs, fh)
+
+def _supports_symlinks(folder: str) -> bool:
+    """Tell whether ``folder`` can hold symbolic links (Chrome locks its profile with one)."""
+    try:
+        os.makedirs(folder, exist_ok=True)
+        link = os.path.join(folder, f".symlink-test-{os.getpid()}")
+        os.symlink("test", link)
+        os.remove(link)
+        return True
+    except OSError:
+        return False
+
+
+def _profile_dir(saves_dir: str) -> str:
+    """Return the Chrome profile folder: in the saves, or in the config if they hold no symlinks.
+
+    The saves can be on a FAT or exFAT card, where Chrome cannot create its
+    SingletonLock and stops at once.
+    """
+    in_saves = os.path.join(saves_dir, "chrome")
+    if _supports_symlinks(in_saves):
+        return in_saves
+    return str(EMULATORS_CONFIG / "chrome")
+
 
 def _find_chrome_binary() -> str:
     candidates = [
@@ -120,7 +144,7 @@ class ChromeGenerator(Generator):
                 pass
 
         chrome_bin = _find_chrome_binary()
-        user_data_dir = os.path.join(system.config.get("saves_dir", str(SAVES)), "chrome")
+        user_data_dir = _profile_dir(system.config.get("saves_dir", str(SAVES)))
         _seed_profile(user_data_dir)
 
         url = "about:blank"
