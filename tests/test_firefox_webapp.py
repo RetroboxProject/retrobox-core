@@ -11,7 +11,5 @@ def test_kodi_webapp_without_user_agent() -> None:
     assert _parse_rom_launcher(["[kodi_webapp]", "url=https://a.b"]) == ("https://a.b", None)
 
 
-def test_other_formats_still_work() -> None:
+def test_plain_format_still_works() -> None:
     assert _parse_rom_launcher(["https://a.b/?run=1", "UA"]) == ("https://a.b/?run=1", "UA")
-    ludex = ["[ludex-element]", "run=https://a.b", "user-agent=UA"]
-    assert _parse_rom_launcher(ludex) == ("https://a.b", "UA")

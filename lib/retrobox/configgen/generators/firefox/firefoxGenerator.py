@@ -8,33 +8,23 @@ from ..Generator import Generator
 
 
 def _parse_rom_launcher(lines: list[str]) -> tuple[str, str | None]:
-    """Read the plain format (the URL on line 1, an optional user agent on
-    line 2), the ludex one ([ludex-element] with run=/user-agent=) and the
-    [kodi_webapp] one (url=/user_agent=)."""
+    """Read the [kodi_webapp] format (url=/user_agent=) or the plain one (the
+    URL on line 1, an optional user agent on line 2)."""
     if not lines:
         return "about:blank", None
 
-    kv: dict[str, str] = {}
-    is_kodi_webapp = any(line.strip().lower() == "[kodi_webapp]" for line in lines)
-    for line in lines:
-        line = line.strip()
-        if not line or line.startswith(("[", "#", ";")):
-            continue
-        if "=" in line:
-            key, _, value = line.partition("=")
-            kv[key.strip().lower()] = value.strip()
-
-    if is_kodi_webapp:
+    if any(line.strip().lower() == "[kodi_webapp]" for line in lines):
+        kv: dict[str, str] = {}
+        for line in lines:
+            key, sep, value = line.strip().partition("=")
+            if sep and not key.startswith(("[", "#", ";")):
+                kv[key.strip().lower()] = value.strip()
         return kv.get("url") or "about:blank", kv.get("user_agent") or None
-
-    if "run" in kv:
-        url = kv.get("run") or "about:blank"
-        user_agent = kv.get("user-agent") or kv.get("user_agent") or None
-        return url, user_agent
 
     url = lines[0].strip() if lines[0].strip() else "about:blank"
     user_agent = lines[1].strip() if len(lines) >= 2 and lines[1].strip() else None
     return url, user_agent
+
 
 def _find_firefox_binary() -> str:
     candidates = [
