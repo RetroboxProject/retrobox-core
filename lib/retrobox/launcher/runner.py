@@ -211,6 +211,8 @@ def _session_pad_profile(session: GameSession) -> Path | None:
     runs, once session.json names it (see _publish_state()).
     """
     system = session.system
+    if session.generator.hotkeys_opt_in() and not overlay_enabled(system):
+        return None
     base = find_profile(
         session.rom, session.args.system, system.config.emulator, effective_core(system)
     )

@@ -201,6 +201,7 @@ def test_retrobox_systems_use_the_data_folders(es_home: Path, tmp_path: Path) ->
     assert paths["recordings"] == str(RECORDINGS)
     assert paths["library"] == str(DATA_DIR / "library")
     assert paths["apps"] == str(DATA_DIR / "apps")
+    assert paths["linuxapps"] == str(DATA_DIR / "linuxapps")
     assert paths["emuconfig"] == str(INSTALLED_SHARE_DIR / "es_menu")
 
 

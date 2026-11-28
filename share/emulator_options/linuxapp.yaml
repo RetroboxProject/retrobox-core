@@ -1,0 +1,3 @@
+emulator_name: linuxapp
+sharedFeatures:
+  - power_profile

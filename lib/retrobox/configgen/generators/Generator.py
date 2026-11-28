@@ -126,6 +126,15 @@ class Generator(metaclass=ABCMeta):
         """
         return {}
 
+    def hotkeys_opt_in(self) -> bool:
+        """Tell whether the pad hotkeys are only mapped when the overlay is turned on.
+
+        False (the default): every game gets them. A plain app (the *Linux
+        apps* system) says True: it gets none, nor the overlay, until the
+        user turns the overlay on for it.
+        """
+        return False
+
     def hotkey_bindings(self, system: Emulator) -> Bindings:
         """How the emulator performs the standard hotkey actions.
 

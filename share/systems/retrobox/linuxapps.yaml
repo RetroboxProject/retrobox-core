@@ -1,0 +1,22 @@
+linuxapps:
+  fullname: Linux apps
+  manufacturer: _Retrobox
+  release: None
+  hardware: system
+  path: "{data}/linuxapps"
+  extension:
+  - .sh
+  - .run
+  platform:
+  - linuxapps
+  theme: linuxapps
+  emulators:
+    linuxapp:
+      cores:
+        linuxapp:
+          default: true
+          options:
+            # a plain app: no in-game menu or pad hotkeys unless turned on
+            # (IN-GAME MENU (OVERLAY), per system or per app, in EmulationStation)
+            overlay: false
+            hud_support: false

@@ -39,7 +39,7 @@ def _read_frame(conn: socket.socket) -> str:
     return body.decode()
 
 
-class FakeChrome:
+class FakeChrome:  # pylint: disable=too-few-public-methods
     """A DevTools endpoint with one visible page and a given navigation history."""
 
     def __init__(self, current_index: int) -> None:
